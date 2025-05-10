@@ -4,6 +4,8 @@ import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
+import { useKeyboardThrottler } from '@/hooks/useKeyboardThrottler';
+import { keyboardThrottleConfig } from '@/config/keyboard-throttle-config';
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -91,6 +93,12 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
 
+  // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
+  useKeyboardThrottler({
+    ...keyboardThrottleConfig,
+    targetElement: document, // Apply to the entire document
+  });
+
   // Update AG Grid theme when app theme changes
   useEffect(() => {
     setDarkMode(isDarkMode);
@@ -121,7 +129,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
       <DataTableToolbar />
-      
+
       <div className="flex-1 overflow-hidden">
         <AgGridReact
           ref={gridRef}

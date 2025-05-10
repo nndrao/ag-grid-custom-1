@@ -17,7 +17,7 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   return keys.map(key => {
     // Sample values for type inference
     const sampleValues = sampleData.map(row => row[key]);
-    
+
     // Infer type from sample values
     const inferredType = sampleValues.reduce((type, value) => {
       if (type) return type;
@@ -27,7 +27,8 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
       return 'string';
     }, '');
 
-    return {
+    // Base column definition
+    const columnDef: ColumnDef = {
       field: key,
       headerName: key
         .replace(/([A-Z])/g, ' $1') // Add space before capital letters
@@ -35,6 +36,10 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
         .trim(),
       cellDataType: inferredType,
     };
+
+
+
+    return columnDef;
   });
 }
 
