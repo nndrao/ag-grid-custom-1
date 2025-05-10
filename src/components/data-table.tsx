@@ -4,6 +4,7 @@ import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
+import { useProfile } from '@/contexts/profile-context';
 import { useKeyboardThrottler } from '@/hooks/useKeyboardThrottler';
 import { keyboardThrottleConfig } from '@/config/keyboard-throttle-config';
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
@@ -90,19 +91,31 @@ const theme = themeQuartz
 export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();
+  const { setGridApi, currentProfileId, loadProfile } = useProfile();
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
+  const [gridReady, setGridReady] = useState(false);
 
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
     ...keyboardThrottleConfig,
-    targetElement: document, // Apply to the entire document
+    targetElement: document as any, // Apply to the entire document
   });
 
   // Update AG Grid theme when app theme changes
   useEffect(() => {
     setDarkMode(isDarkMode);
   }, [isDarkMode]);
+
+
+
+  // Load the current profile when the grid is ready
+  useEffect(() => {
+    if (gridReady && currentProfileId) {
+      console.log("Loading profile with ID:", currentProfileId);
+      loadProfile(currentProfileId);
+    }
+  }, [gridReady, currentProfileId, loadProfile]);
 
   const defaultColDef = useMemo(() => ({
     flex: 1,
@@ -111,6 +124,15 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     enableValue: true,
     enableRowGroup: true,
     enablePivot: true,
+  }), []);
+
+  const autoGroupColumnDef = useMemo(() => ({
+    minWidth: 200,
+    flex: 1,
+    headerName: 'Group',
+    cellRendererParams: {
+      suppressCount: false,
+    },
   }), []);
 
   const getContextMenuItems = useCallback((params: GetContextMenuItemsParams): (DefaultMenuItem | MenuItemDef)[] => {
@@ -136,6 +158,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           rowData={dataRow}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          autoGroupColumnDef={autoGroupColumnDef}
+          rowGroupPanelShow="always"
+          groupDisplayType="singleColumn"
+          groupDefaultExpanded={-1}
           cellSelection={{ handle: { mode: 'fill' } }}
           suppressMenuHide={true}
           dataTypeDefinitions={{
@@ -162,9 +188,22 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
               },
             ],
           }}
+          statusBar={{
+            statusPanels: [
+              { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+              { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+              { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
+              { statusPanel: 'agAggregationComponent', align: 'right' },
+              { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
+            ],
+          }}
           getContextMenuItems={getContextMenuItems}
           onGridReady={(params) => {
+            console.log("Grid ready event fired");
             gridApiRef.current = params.api;
+            console.log("Setting grid API:", params.api);
+            setGridApi(params.api);
+            setGridReady(true);
           }}
           theme={theme}
         />
