@@ -67,36 +67,22 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (storedProfiles) {
       try {
         const parsed = JSON.parse(storedProfiles);
-        console.log("[ProfileProvider] Loaded profiles from localStorage:", parsed);
         setProfiles(parsed);
       } catch (e) {
         console.error("[ProfileProvider] Failed to parse profiles from localStorage:", e, storedProfiles);
       }
-    } else {
-      console.log("[ProfileProvider] No profiles found in localStorage on mount.");
     }
-
     const storedCurrentProfile = localStorage.getItem(CURRENT_PROFILE_KEY);
     if (storedCurrentProfile) {
       setCurrentProfileId(storedCurrentProfile);
-      console.log("[ProfileProvider] Loaded currentProfileId from localStorage:", storedCurrentProfile);
-    } else {
-      console.log("[ProfileProvider] No currentProfileId found in localStorage on mount.");
     }
   }, []);
 
   // Save profiles to localStorage when they change
   useEffect(() => {
-    console.log("[ProfileProvider] Saving profiles to localStorage:", profiles);
     try {
-      // Only overwrite localStorage if profiles is not empty, or if explicitly clearing all
       if (profiles.length > 0) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-        console.log("[ProfileProvider] Successfully saved profiles to localStorage");
-      } else {
-        // Optionally, you can choose to remove the key if profiles is empty
-        // localStorage.removeItem(STORAGE_KEY);
-        console.log("[ProfileProvider] Profiles array is empty, not overwriting localStorage.");
       }
     } catch (error) {
       console.error("[ProfileProvider] Error saving profiles to localStorage:", error);
@@ -127,8 +113,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   // Save a new profile or update an existing one
   const saveProfile = async (name: string): Promise<void> => {
-    console.log("Saving profile:", name);
-    console.log("Grid API available:", !!gridApi);
     if (!gridApi) {
       console.error("Cannot save profile: Grid API is not available");
       return;
@@ -139,7 +123,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       'getFilterModel',
       'getRowGroupColumns',
       'getColumnGroupState',
-      'isPivotMode'
     ];
     for (const method of requiredMethods) {
       if (typeof (gridApi as any)[method] !== 'function') {
@@ -154,6 +137,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const rowGroupColumns = gridApi.getRowGroupColumns().map(col => col.getColId());
       const columnGroupState = gridApi.getColumnGroupState();
       const pivotMode = gridApi.isPivotMode();
+
+      console.log('[ProfileProvider] Saving profile with columnState:', columnState);
+      console.log('[ProfileProvider] Saving profile with columnGroupState:', columnGroupState);
 
       const now = new Date().toISOString();
       const id = generateUUID();
@@ -171,29 +157,20 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         pivotMode
       };
 
-      console.log("New profile created:", newProfile);
-
       // Create a new array with the new profile
       const newProfiles = [...profiles, newProfile];
-      console.log("Setting profiles to:", newProfiles);
 
       // Save to localStorage first
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newProfiles));
         localStorage.setItem(CURRENT_PROFILE_KEY, id);
-        console.log("Saved to localStorage successfully");
       } catch (err) {
         console.error("Error saving to localStorage:", err);
       }
 
       // Update state - do this synchronously to ensure immediate update
-      console.log("Current profiles before update:", profiles);
       setProfiles(newProfiles);
       setCurrentProfileId(id);
-      console.log("State updated, new profiles should be:", newProfiles);
-
-      // Force a re-render by dispatching a custom event
-      window.dispatchEvent(new CustomEvent('profile-saved', { detail: { profiles: newProfiles, currentId: id } }));
 
       console.log("Profile saved successfully");
     } catch (error) {
@@ -209,6 +186,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const profile = profiles.find(p => p.id === id);
     if (!profile) return;
 
+    console.log('[ProfileProvider] Loading profile with columnState:', profile.columnState);
+    console.log('[ProfileProvider] Loading profile with columnGroupState:', profile.columnGroupState);
+
     // Apply column state (includes sort)
     gridApi.applyColumnState({
       state: profile.columnState,
@@ -218,12 +198,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     // Apply filter model
     gridApi.setFilterModel(profile.filterModel);
 
-    // Apply row group columns
-    const allColumns = gridApi.getAllGridColumns();
-    const rowGroupColumns = allColumns.filter(col =>
-      profile.rowGroupColumns.includes(col.getColId())
-    );
-    gridApi.setRowGroupColumns(rowGroupColumns);
+    // Apply row group columns in saved order
+    gridApi.setRowGroupColumns(profile.rowGroupColumns);
 
     // Apply column group state
     gridApi.setColumnGroupState(profile.columnGroupState);
@@ -278,6 +254,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const columnGroupState = gridApi.getColumnGroupState();
     const pivotMode = gridApi.isPivotMode();
     const now = new Date().toISOString();
+
+    console.log('[ProfileProvider] Updating profile with columnState:', columnState);
+    console.log('[ProfileProvider] Updating profile with columnGroupState:', columnGroupState);
+
     const updatedProfiles = [...profiles];
     updatedProfiles[profileIndex] = {
       ...updatedProfiles[profileIndex],

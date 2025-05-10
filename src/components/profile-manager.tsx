@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,17 +22,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useProfile } from '@/contexts/profile-context';
 import { formatDistanceToNow } from 'date-fns';
+import React from 'react';
 
 interface ProfileManagerProps {
   onClose: () => void;
 }
 
-export function ProfileManager({ onClose }: ProfileManagerProps) {
+export const ProfileManager = React.memo(function ProfileManager({ onClose }: ProfileManagerProps) {
   const { profiles, deleteProfile, renameProfile, currentProfileId } = useProfile();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Only use profiles from context
   const displayProfiles = profiles;
@@ -42,13 +44,18 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
     setNewName(currentName);
   };
 
-  const handleSaveEdit = async (id: string) => {
+  const handleSaveEdit = useCallback(async (id: string) => {
     if (newName.trim()) {
-      await renameProfile(id, newName);
+      setLoading(true);
+      try {
+        await renameProfile(id, newName);
+      } finally {
+        setLoading(false);
+      }
     }
     setEditingId(null);
     setNewName('');
-  };
+  }, [newName, renameProfile]);
 
   const handleCancelEdit = () => {
     setEditingId(null);
@@ -60,13 +67,18 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (profileToDelete) {
-      await deleteProfile(profileToDelete);
+      setLoading(true);
+      try {
+        await deleteProfile(profileToDelete);
+      } finally {
+        setLoading(false);
+      }
       setDeleteDialogOpen(false);
       setProfileToDelete(null);
     }
-  };
+  }, [profileToDelete, deleteProfile]);
 
   return (
     <div className="space-y-4">
@@ -98,6 +110,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
                         if (e.key === 'Enter') handleSaveEdit(profile.id);
                         if (e.key === 'Escape') handleCancelEdit();
                       }}
+                      disabled={loading}
                     />
                   ) : (
                     profile.name
@@ -114,6 +127,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleSaveEdit(profile.id)}
+                          disabled={loading}
                         >
                           Save
                         </Button>
@@ -121,6 +135,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
                           variant="outline"
                           size="sm"
                           onClick={handleCancelEdit}
+                          disabled={loading}
                         >
                           Cancel
                         </Button>
@@ -131,6 +146,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleStartEdit(profile.id, profile.name)}
+                          disabled={loading}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -138,6 +154,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteClick(profile.id)}
+                          disabled={loading}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -152,7 +169,7 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
       </Table>
 
       <div className="flex justify-end">
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose} disabled={loading}>Close</Button>
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -164,13 +181,16 @@ export function ProfileManager({ onClose }: ProfileManagerProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>
-              Delete
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={loading}>
+              {loading ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {loading && (
+        <span className="ml-2 text-xs text-muted-foreground">Loading...</span>
+      )}
     </div>
   );
-}
+});
