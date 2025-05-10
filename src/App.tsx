@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DataTable, type ColumnDef } from '@/components/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
+import { ProfileProvider } from '@/contexts/profile-context';
 import { useMemo } from 'react';
 
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
@@ -48,32 +49,27 @@ function App() {
   const columns = useMemo(() => inferColumnDefinitions(data), [data]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
-        <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6" />
-          <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
-        </div>
-        <ThemeToggle />
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 mt-16 mb-16">
-        <div className="p-6">
-          <div className="h-[calc(100vh-8rem-3rem)]">
-            <DataTable columnDefs={columns} dataRow={data} />
+    <ProfileProvider>
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
+          <div className="flex items-center gap-4">
+            <Menu className="h-6 w-6" />
+            <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
           </div>
-        </div>
-      </main>
+          <ThemeToggle />
+        </header>
 
-      {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex items-center justify-center px-6">
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Your Company. All rights reserved.
-        </p>
-      </footer>
-    </div>
+        {/* Main Content */}
+        <main className="flex-1 mt-16 mb-16">
+          <div className="p-6">
+            <div className="h-[calc(100vh-8rem-3rem)]">
+              <DataTable columnDefs={columns} dataRow={data} />
+            </div>
+          </div>
+        </main>
+      </div>
+    </ProfileProvider>
   );
 }
 
