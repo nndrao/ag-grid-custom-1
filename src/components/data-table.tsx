@@ -48,10 +48,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
   const lastKeyNavTime = useRef<number>(0);
   const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
+  
+  // Single font state for the application
   const [gridFont, setGridFont] = useState('monospace');
   console.log("🔍 Initial gridFont state:", gridFont);
   
-  const profileLoadedRef = useRef(false);
+  // Use this ref to track fonts we've seen to avoid redundant cell refreshes
+  const appliedFontRef = useRef<string>(gridFont);
 
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
@@ -163,86 +166,84 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     setDarkMode(isDarkMode);
   }, [isDarkMode]);
 
-  // Effect to check for a stored profile on initial load
+  // CONSOLIDATED PROFILE & FONT HANDLING
+  // This single effect handles all profile and font loading scenarios
   useEffect(() => {
-    console.log("🔍 INIT EFFECT - Checking for stored profile");
-    console.log("🔍 Profiles available:", profiles.map(p => ({ id: p.id, name: p.name, font: p.gridFont })));
+    console.log("🔍 CONSOLIDATED PROFILE LOADING EFFECT");
     
-    // This will run once on component mount
-    const storedCurrentProfile = localStorage.getItem('ag-grid-current-profile');
-    console.log("🔍 Stored profile ID:", storedCurrentProfile);
-    
-    if (storedCurrentProfile) {
-      // Find the profile in our profiles array
-      const profile = profiles.find(p => p.id === storedCurrentProfile);
-      console.log("🔍 Found profile from localStorage:", profile);
+    // Function to apply font if it's different from the currently applied font
+    const applyFontIfNeeded = (font: string | undefined) => {
+      if (!font) return false;
       
-      if (profile && profile.gridFont) {
-        console.log("🔍 Setting font from stored profile to:", profile.gridFont);
-        setGridFont(profile.gridFont);
-        profileLoadedRef.current = true;
-        console.log("🔍 profileLoadedRef set to:", profileLoadedRef.current);
-      } else {
-        console.log("🔍 No font found in stored profile or profile not found");
+      if (font !== appliedFontRef.current) {
+        console.log(`🔍 Applying new font: ${font} (previous: ${appliedFontRef.current})`);
+        setGridFont(font);
+        appliedFontRef.current = font;
+        return true;
       }
-    } else {
-      console.log("🔍 No stored profile ID found in localStorage");
-    }
-  }, [profiles]);
-
-  // Load font when profile changes, even before grid is ready
-  useEffect(() => {
-    console.log("🔍 PROFILE CHANGE EFFECT - Profile ID:", currentProfileId);
-    console.log("🔍 profileLoadedRef before:", profileLoadedRef.current);
+      
+      console.log(`🔍 Font already applied: ${font}`);
+      return false;
+    };
     
+    // CASE 1: Current profile exists - get font from it
     if (currentProfileId) {
-      console.log("🔍 Profile changed to:", currentProfileId);
-      profileLoadedRef.current = false;
+      console.log("🔍 Current profile ID exists:", currentProfileId);
       
-      // Find the profile in memory first
+      // Find profile in memory first for immediate response
       const profile = profiles.find(p => p.id === currentProfileId);
-      console.log("🔍 Found profile in memory:", profile);
       
-      if (profile && profile.gridFont) {
-        // Apply font immediately from the profile in memory
-        console.log("🔍 Setting font from profile in memory to:", profile.gridFont);
-        setGridFont(profile.gridFont);
-        profileLoadedRef.current = true;
-        console.log("🔍 profileLoadedRef set to:", profileLoadedRef.current);
-      } else {
-        console.log("🔍 No font in profile or profile not found");
+      if (profile?.gridFont) {
+        console.log("🔍 Found font in profile memory:", profile.gridFont);
+        applyFontIfNeeded(profile.gridFont);
       }
-    } else {
-      console.log("🔍 No current profile ID");
-    }
-  }, [currentProfileId, profiles]);
-
-  // Load the full profile when the grid is ready
-  useEffect(() => {
-    console.log("🔍 GRID READY EFFECT - Grid ready:", gridReady, "Current profile:", currentProfileId, "Already loaded:", profileLoadedRef.current);
-    
-    if (gridReady && currentProfileId && !profileLoadedRef.current) {
-      console.log("🔍 Loading full profile with ID:", currentProfileId);
       
-      // This will load the complete profile including all grid settings
-      loadProfile(currentProfileId).then(({ gridFont: savedFont }) => {
-        console.log("🔍 Profile loaded, returned font:", savedFont);
+      // If grid is ready, load the complete profile (only once per profile)
+      if (gridReady && gridApiRef.current) {
+        console.log("🔍 Grid is ready, loading complete profile");
         
-        // If there's a saved font in the profile and we haven't already applied it
-        if (savedFont) {
-          console.log("🔍 Setting font from loadProfile to:", savedFont);
-          setGridFont(savedFont);
-        } else {
-          console.log("🔍 No font returned from loadProfile");
+        loadProfile(currentProfileId).then(({ gridFont: savedFont }) => {
+          if (savedFont) {
+            console.log("🔍 Loaded font from profile API:", savedFont);
+            applyFontIfNeeded(savedFont);
+          }
+        }).catch(err => {
+          console.error("🔍 Error loading profile:", err);
+        });
+      }
+    } 
+    // CASE 2: No current profile but we have a stored profile ID
+    else {
+      console.log("🔍 No current profile ID, checking localStorage");
+      
+      const storedProfileId = localStorage.getItem('ag-grid-current-profile');
+      
+      if (storedProfileId) {
+        console.log("🔍 Found stored profile ID:", storedProfileId);
+        
+        // Find the profile in memory
+        const storedProfile = profiles.find(p => p.id === storedProfileId);
+        
+        if (storedProfile?.gridFont) {
+          console.log("🔍 Found font in stored profile:", storedProfile.gridFont);
+          applyFontIfNeeded(storedProfile.gridFont);
         }
-        
-        profileLoadedRef.current = true;
-        console.log("🔍 profileLoadedRef set to:", profileLoadedRef.current);
-      }).catch(err => {
-        console.error("🔍 Error loading profile:", err);
-      });
+      }
     }
-  }, [gridReady, currentProfileId, loadProfile]);
+  }, [currentProfileId, profiles, gridReady, loadProfile]);
+  
+  // Apply theme to grid when it changes
+  useEffect(() => {
+    if (gridApiRef.current && appliedFontRef.current !== gridFont) {
+      console.log("🔍 Font changed in theme, refreshing grid once");
+      
+      // AG-Grid refreshCells is expensive, only do it when necessary
+      gridApiRef.current.refreshCells({ force: true });
+      
+      // Update our ref to track that we've applied this font
+      appliedFontRef.current = gridFont;
+    }
+  }, [gridFont, theme]);
 
   const defaultColDef = useMemo(() => ({
     flex: 1,
@@ -275,34 +276,33 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     ];
   }, []);
 
-  const handleFontChange = (font: string) => {
+  // Optimized font change handler
+  const handleFontChange = useCallback((font: string) => {
     console.log("🔍 Font changed manually to:", font);
-    console.log("🔍 Current gridFont before change:", gridFont);
     
+    if (font === appliedFontRef.current) {
+      console.log("🔍 Font is already applied, skipping refresh");
+      return;
+    }
+    
+    // Update state (will trigger theme regeneration through useMemo)
     setGridFont(font);
-    console.log("🔍 GridFont state set to:", font);
     
     // If there's an active profile, update it with the new font setting
     if (currentProfileId) {
       console.log("🔍 Updating profile with font:", font);
-      // We'll update the profile with the new font, but don't need to refresh the cells
-      // since the theme will handle that automatically via the useMemo dependency
-      updateProfile(font).then(() => {
-        console.log("🔍 Profile updated successfully with new font");
-      }).catch(err => {
-        console.error("🔍 Error updating profile with font:", err);
-      });
-    } else {
-      console.log("🔍 No current profile to update with font");
+      // Using setTimeout to ensure this happens after render completes
+      setTimeout(() => {
+        updateProfile(font).then(() => {
+          console.log("🔍 Profile updated successfully with new font");
+        }).catch(err => {
+          console.error("🔍 Error updating profile with font:", err);
+        });
+      }, 0);
     }
     
-    if (gridApiRef.current) {
-      console.log("🔍 Refreshing grid cells with new font");
-      gridApiRef.current.refreshCells({ force: true });
-    } else {
-      console.log("🔍 No grid API available to refresh cells");
-    }
-  };
+    // We don't call refreshCells here - it will be handled by the useEffect that watches gridFont
+  }, [currentProfileId, updateProfile]);
 
   console.log("🔍 Current gridFont before render:", gridFont);
 
