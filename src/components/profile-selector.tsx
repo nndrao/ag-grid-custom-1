@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useContext } from 'react';
 import { Check, ChevronsUpDown, Plus, Save, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,12 +24,16 @@ import { useProfile } from '@/contexts/profile-context';
 import { ProfileManager } from './profile-manager';
 import React from 'react';
 
+// Create a context to share the current font between components
+export const CurrentFontContext = React.createContext<string>('monospace');
+
 export const ProfileSelector = React.memo(function ProfileSelector() {
   const { profiles, currentProfileId, saveProfile, updateProfile, loadProfile } = useProfile();
   const [newProfileName, setNewProfileName] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const currentFont = useContext(CurrentFontContext);
 
   // Only use profiles from context
   const displayProfiles = profiles;
@@ -43,24 +47,26 @@ export const ProfileSelector = React.memo(function ProfileSelector() {
     }
     setLoading(true);
     try {
-      await saveProfile(newProfileName);
+      // Pass the current font to the saveProfile function
+      await saveProfile(newProfileName, currentFont);
       setNewProfileName('');
       setCreateDialogOpen(false);
     } finally {
       setLoading(false);
     }
-  }, [newProfileName, saveProfile]);
+  }, [newProfileName, saveProfile, currentFont]);
 
   // Update current profile
   const handleUpdateProfile = useCallback(async () => {
     if (!currentProfileId) return;
     setLoading(true);
     try {
-      await updateProfile();
+      // Including current font in profile update
+      await updateProfile(currentFont);
     } finally {
       setLoading(false);
     }
-  }, [currentProfileId, updateProfile]);
+  }, [currentProfileId, updateProfile, currentFont]);
 
   // Select profile
   const handleSelectProfile = useCallback(async (id: string) => {

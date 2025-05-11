@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CurrentFontContext } from "./profile-selector";
 
 // List of available monospace fonts (system fonts + imported Google Fonts)
 const MONOSPACE_FONTS = [
@@ -35,16 +36,36 @@ interface FontSelectorProps {
 }
 
 export function FontSelector({ onFontChange }: FontSelectorProps) {
+  console.log("🔤 FontSelector rendering");
+  const currentFont = React.useContext(CurrentFontContext);
+  console.log("🔤 Current font from context:", currentFont);
+  
   const handleValueChange = (value: string) => {
+    console.log("🔤 Font value changed to:", value);
     if (onFontChange) {
+      console.log("🔤 Calling onFontChange with:", value);
       onFontChange(value);
+    } else {
+      console.log("🔤 No onFontChange handler provided");
     }
   };
+
+  React.useEffect(() => {
+    console.log("🔤 FontSelector mounted with current font:", currentFont);
+  }, []);
+
+  React.useEffect(() => {
+    console.log("🔤 Current font changed to:", currentFont);
+  }, [currentFont]);
 
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Grid Font:</span>
-      <Select defaultValue="monospace" onValueChange={handleValueChange}>
+      <Select 
+        defaultValue={currentFont} 
+        value={currentFont}
+        onValueChange={handleValueChange}
+      >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Select font" />
         </SelectTrigger>
