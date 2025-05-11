@@ -1,9 +1,10 @@
 /**
- * Configuration for keyboard throttling in ag-grid
+ * Configuration for keyboard event throttling
+ * Controls how AG-Grid handles rapid key presses to prevent performance issues
  */
 export const keyboardThrottleConfig = {
   /**
-   * Keys to throttle
+   * Keys to throttle (navigation, selection, and special keys)
    */
   keys: [
     'Tab',
@@ -11,30 +12,69 @@ export const keyboardThrottleConfig = {
     'ArrowDown',
     'ArrowLeft',
     'ArrowRight',
-    'Shift+ArrowUp',
-    'Shift+ArrowDown',
-    'Shift+ArrowLeft',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown',
+    'Shift+ArrowUp', 
+    'Shift+ArrowDown', 
+    'Shift+ArrowLeft', 
     'Shift+ArrowRight'
   ],
 
   /**
-   * Maximum number of events to allow within the time window
+   * Maximum number of events to allow per second
+   * This throttles events at the DOM level to prevent overwhelming AG-Grid
    */
-  maxEventsPerWindow: 5,
+  eventsPerSecond: 12,
 
   /**
-   * Time window in milliseconds
+   * Whether to enable throttling (enabled by default)
    */
-  timeWindowMs: 500,
+  enabled: true
+};
+
+/**
+ * Configuration for rapid keypress behavior
+ * Controls how rapid keypresses are handled for continuous navigation
+ */
+export const rapidKeypressConfig = {
+  /**
+   * Initial delay before rapid keypresses start (in milliseconds)
+   * This delay gives a pause before continuous navigation kicks in
+   */
+  initialDelay: 250,
 
   /**
-   * Minimum delay between events in milliseconds (for smoother navigation)
-   * Lower values = faster navigation, higher values = smoother but slower navigation
+   * Initial interval between rapid keypresses (in milliseconds)
+   * Sets how fast the first few repeated keypresses will be
    */
-  minDelayBetweenEvents: 100,
+  rapidInterval: 60,
 
   /**
-   * Whether to enable the throttler
+   * Rate at which interval decreases (acceleration)
+   * Values < 1 make navigation speed up over time (e.g., 0.95 = 5% faster each time)
    */
-  enabled: true,
+  accelerationRate: 0.95,
+
+  /**
+   * Minimum interval between keypresses (in milliseconds)
+   * Sets a minimum speed limit to prevent too-fast navigation
+   */
+  minInterval: 15,
+
+  /**
+   * Keys that support rapid keypress behavior
+   */
+  enabledKeys: [
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'Tab',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown'
+  ]
 };

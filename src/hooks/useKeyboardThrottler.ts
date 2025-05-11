@@ -7,14 +7,9 @@ interface KeyboardThrottlerOptions {
   keys: string[];
 
   /**
-   * Maximum number of events to allow within the time window
+   * Maximum number of events to allow per second (defaults to 8)
    */
-  maxEventsPerWindow: number;
-
-  /**
-   * Time window in milliseconds
-   */
-  timeWindowMs: number;
+  eventsPerSecond?: number;
 
   /**
    * Target element to attach the event listener to (defaults to document)
@@ -25,11 +20,6 @@ interface KeyboardThrottlerOptions {
    * Whether to enable the throttler (defaults to true)
    */
   enabled?: boolean;
-
-  /**
-   * Minimum delay between events in milliseconds (for smoother navigation)
-   */
-  minDelayBetweenEvents?: number;
 }
 
 /**
@@ -38,105 +28,57 @@ interface KeyboardThrottlerOptions {
  */
 export function useKeyboardThrottler({
   keys,
-  maxEventsPerWindow = 5,
-  timeWindowMs = 500,
+  eventsPerSecond = 8,
   targetElement,
   enabled = true,
-  minDelayBetweenEvents = 100, // Minimum delay between events for smooth navigation
 }: KeyboardThrottlerOptions) {
-  // Track key press timestamps for each key
-  const keyPressTimestamps = useRef<Record<string, number[]>>({});
-
-  // Track last processed event time for each key
+  // Track last processed time for each key
   const lastProcessedTime = useRef<Record<string, number>>({});
-
-  // Track if a key is being held down
-  const keyHeldDown = useRef<Record<string, boolean>>({});
-
-  // Initialize timestamps for each key
-  useEffect(() => {
-    keys.forEach(key => {
-      keyPressTimestamps.current[key] = [];
-    });
-  }, [keys]);
+  
+  // Calculate minimum time between events in ms based on events per second
+  const minTimeBetweenEvents = useRef(Math.floor(1000 / eventsPerSecond));
 
   useEffect(() => {
     if (!enabled) return;
 
     const target = targetElement || document;
 
-    // Handle key up events to track when keys are released
-    const handleKeyUp = (event: KeyboardEvent) => {
-      const key = event.key;
+    const handleKeyDown = (event: Event) => {
+      const keyEvent = event as KeyboardEvent;
+      const key = keyEvent.key;
 
       // Handle Shift+Arrow key combinations
-      const effectiveKey = event.shiftKey &&
+      const effectiveKey = keyEvent.shiftKey &&
         (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight')
         ? `Shift+${key}`
         : key;
 
-      if (!keys.includes(effectiveKey) && !keys.includes(key)) {
-        return;
-      }
-
-      // Mark key as no longer held down
-      if (keys.includes(effectiveKey)) {
-        keyHeldDown.current[effectiveKey] = false;
-      } else {
-        keyHeldDown.current[key] = false;
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if this is a key we want to throttle
-      const key = event.key;
-
-      // Handle Shift+Arrow key combinations
-      const effectiveKey = event.shiftKey &&
-        (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight')
-        ? `Shift+${key}`
-        : key;
-
-      if (!keys.includes(effectiveKey) && !keys.includes(key)) {
+      const keyToTrack = keys.includes(effectiveKey) ? effectiveKey : key;
+      
+      if (!keys.includes(keyToTrack)) {
         return;
       }
 
       const now = Date.now();
-      const timestamps = keyPressTimestamps.current[effectiveKey] ||
-                         keyPressTimestamps.current[key] ||
-                         [];
-
-      // Filter out timestamps outside the current time window
-      const recentTimestamps = timestamps.filter(
-        timestamp => now - timestamp < timeWindowMs
-      );
-
-      // If we've reached the maximum number of events in the time window, prevent default
-      if (recentTimestamps.length >= maxEventsPerWindow) {
+      const lastTime = lastProcessedTime.current[keyToTrack] || 0;
+      
+      // If not enough time has passed since the last event for this key, prevent default
+      if (now - lastTime < minTimeBetweenEvents.current) {
         event.preventDefault();
         event.stopPropagation();
         return;
       }
-
-      // Add the current timestamp
-      recentTimestamps.push(now);
-
-      // Update the timestamps for this key
-      if (keys.includes(effectiveKey)) {
-        keyPressTimestamps.current[effectiveKey] = recentTimestamps;
-      } else {
-        keyPressTimestamps.current[key] = recentTimestamps;
-      }
+      
+      // Update the last processed time for this key
+      lastProcessedTime.current[keyToTrack] = now;
     };
 
     // Add the event listener
     target.addEventListener('keydown', handleKeyDown, { capture: true });
-    target.addEventListener('keyup', handleKeyUp, { capture: true });
 
     // Clean up
     return () => {
       target.removeEventListener('keydown', handleKeyDown, { capture: true });
-      target.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
-  }, [keys, maxEventsPerWindow, timeWindowMs, targetElement, enabled]);
+  }, [keys, eventsPerSecond, targetElement, enabled]);
 }
