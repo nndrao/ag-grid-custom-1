@@ -282,7 +282,7 @@ export const useRapidKeypressNavigator = (
     
     // Only clear focus if not doing range selection
     if (!shiftKey) {
-      gridApi.clearFocusedCell();
+      gridApi.clearCellSelection()
     }
     
     // Ensure visibility for both vertical and horizontal navigation
