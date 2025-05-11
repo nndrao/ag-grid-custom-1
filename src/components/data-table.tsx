@@ -28,67 +28,6 @@ function setDarkMode(enabled: boolean) {
   document.body.dataset.agThemeMode = enabled ? "dark" : "light";
 }
 
-const theme = themeQuartz
-  .withParams(
-    {
-      accentColor: "#8AAAA7",
-      backgroundColor: "#F7F7F7",
-      borderColor: "#23202029",
-      browserColorScheme: "light",
-      buttonBorderRadius: 2,
-      cellTextColor: "#000000",
-      checkboxBorderRadius: 2,
-      columnBorder: true,
-      fontFamily: {
-        googleFont: "Inter",
-      },
-      fontSize: 14,
-      headerBackgroundColor: "#EFEFEFD6",
-      headerFontFamily: {
-        googleFont: "Inter",
-      },
-      headerFontSize: 14,
-      headerFontWeight: 500,
-      iconButtonBorderRadius: 1,
-      iconSize: 12,
-      inputBorderRadius: 2,
-      oddRowBackgroundColor: "#EEF1F1E8",
-      spacing: 6,
-      wrapperBorderRadius: 2,
-    },
-    "light"
-  )
-  .withParams(
-    {
-      accentColor: "#8AAAA7",
-      backgroundColor: "#1f2836",
-      borderRadius: 2,
-      checkboxBorderRadius: 2,
-      columnBorder: true,
-      fontFamily: {
-        googleFont: "Inter",
-      },
-      browserColorScheme: "dark",
-      chromeBackgroundColor: {
-        ref: "foregroundColor",
-        mix: 0.07,
-        onto: "backgroundColor",
-      },
-      fontSize: 14,
-      foregroundColor: "#FFF",
-      headerFontFamily: {
-        googleFont: "Inter",
-      },
-      headerFontSize: 14,
-      iconSize: 12,
-      inputBorderRadius: 2,
-      oddRowBackgroundColor: "#2A2E35",
-      spacing: 6,
-      wrapperBorderRadius: 2,
-    },
-    "dark"
-  );
-
 export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();
@@ -99,6 +38,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
   const lastKeyNavTime = useRef<number>(0);
   const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
+  const [gridFont, setGridFont] = useState('monospace');
 
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
@@ -108,6 +48,63 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Use rapid keypress navigator for enhanced keyboard navigation
   const { enable: enableRapidKeypress } = useRapidKeypressNavigator(gridApiRef.current, rapidKeypressConfig);
+
+  // Create theme based on current font
+  const theme = useMemo(() => {
+    const baseTheme = themeQuartz.withParams(
+      {
+        accentColor: "#8AAAA7",
+        backgroundColor: "#F7F7F7",
+        borderColor: "#23202029",
+        browserColorScheme: "light",
+        buttonBorderRadius: 2,
+        cellTextColor: "#000000",
+        checkboxBorderRadius: 2,
+        columnBorder: true,
+        fontFamily: gridFont,
+        fontSize: 14,
+        headerBackgroundColor: "#EFEFEFD6",
+        headerFontFamily: gridFont,
+        headerFontSize: 14,
+        headerFontWeight: 500,
+        iconButtonBorderRadius: 1,
+        iconSize: 12,
+        inputBorderRadius: 2,
+        oddRowBackgroundColor: "#EEF1F1E8",
+        spacing: 6,
+        wrapperBorderRadius: 2,
+      },
+      "light"
+    )
+    .withParams(
+      {
+        accentColor: "#8AAAA7",
+        backgroundColor: "#1f2836",
+        borderRadius: 2,
+        checkboxBorderRadius: 2,
+        columnBorder: true,
+        fontFamily: gridFont,
+        browserColorScheme: "dark",
+        chromeBackgroundColor: {
+          ref: "foregroundColor",
+          mix: 0.07,
+          onto: "backgroundColor",
+        },
+        fontSize: 14,
+        foregroundColor: "#FFF",
+        headerFontFamily: gridFont,
+        headerFontSize: 14,
+        iconSize: 12,
+        inputBorderRadius: 2,
+        oddRowBackgroundColor: "#2A2E35",
+        spacing: 6,
+        wrapperBorderRadius: 2,
+      },
+      "dark"
+    );
+
+    return baseTheme;
+  }, [gridFont]);
 
   // Handle keyboard navigation for ensuring column visibility
   useEffect(() => {
@@ -191,9 +188,16 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     ];
   }, []);
 
+  const handleFontChange = (font: string) => {
+    setGridFont(font);
+    if (gridApiRef.current) {
+      gridApiRef.current.refreshCells({ force: true });
+    }
+  };
+
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
-      <DataTableToolbar />
+      <DataTableToolbar onFontChange={handleFontChange} />
 
       <div className="flex-1 overflow-hidden">
         <AgGridReact
