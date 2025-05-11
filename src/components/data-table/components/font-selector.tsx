@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CurrentFontContext } from "./profile-selector";
+import { useCurrentFont } from '../contexts/current-font-context'; // UPDATED IMPORT
 
 // List of available monospace fonts (system fonts + imported Google Fonts)
 const MONOSPACE_FONTS = [
@@ -37,8 +37,8 @@ interface FontSelectorProps {
 
 export function FontSelector({ onFontChange }: FontSelectorProps) {
   console.log("🔤 FontSelector rendering");
-  const currentFont = React.useContext(CurrentFontContext);
-  console.log("🔤 Current font from context:", currentFont);
+  const { currentGridFont } = useCurrentFont();
+  console.log("🔤 Current font from context:", currentGridFont);
   
   const handleValueChange = (value: string) => {
     console.log("🔤 Font value changed to:", value);
@@ -51,19 +51,18 @@ export function FontSelector({ onFontChange }: FontSelectorProps) {
   };
 
   React.useEffect(() => {
-    console.log("🔤 FontSelector mounted with current font:", currentFont);
-  }, []);
+    console.log("🔤 FontSelector mounted with current font:", currentGridFont);
+  }, []); // Note: currentGridFont is not in dep array, so this only logs initial mount value
 
   React.useEffect(() => {
-    console.log("🔤 Current font changed to:", currentFont);
-  }, [currentFont]);
+    console.log("🔤 Current font changed to:", currentGridFont);
+  }, [currentGridFont]);
 
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Grid Font:</span>
       <Select 
-        defaultValue={currentFont} 
-        value={currentFont}
+        value={currentGridFont}
         onValueChange={handleValueChange}
       >
         <SelectTrigger className="w-[180px]">

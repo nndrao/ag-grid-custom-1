@@ -508,144 +508,91 @@ export const useRapidKeypressNavigator = (
           break;
       }
     } catch (error) {
-      console.error('Error during keyboard navigation:', error);
+      console.error("Error simulating keypress:", error);
+      // Optionally, stop simulation if an error occurs
+      // stopSimulation(key);
     }
   }, [gridApi, navigateInDirection, navigateWithTab, navigateToRowEdge, navigateByPage]);
   
-  // Start rapid simulation for a key
-  const startRapidSimulation = useCallback((key: string) => {
-    if (!gridApi) return;
-    
-    stopRapidSimulation(key);
-    
-    const timer = simulationTimersRef.current.get(key);
-    if (!timer) return;
-    
-    const simulate = () => {
-      if (!activeKeysRef.current.has(key)) {
-        return; // Key was released
-      }
-      
-      const keyState = activeKeysRef.current.get(key);
-      if (!keyState) return;
-      
-      // Simulate the keypress
-      simulateKeypress(key, keyState);
-      
-      // Accelerate the interval
-      timer.currentInterval = Math.max(
-        timer.currentInterval * finalConfig.accelerationRate,
-        finalConfig.minInterval
-      );
-      
-      // Schedule the next simulation
-      timer.rapid = setTimeout(simulate, timer.currentInterval);
-    };
-    
-    // Start the first rapid simulation
-    simulate();
-  }, [gridApi, finalConfig.accelerationRate, finalConfig.minInterval, simulateKeypress, stopRapidSimulation]);
-  
-  // Handler for keydown events
+  // Handle keydown event
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!gridApi || !isEnabledRef.current) return;
+    if (!isEnabledRef.current || !gridApi) return;
     
-    const key = event.key;
+    const { key, shiftKey, ctrlKey, altKey, metaKey } = event;
     
-    // Check if this key should be handled
-    if (!finalConfig.enabledKeys.includes(key)) {
-      return;
+    if (!finalConfig.enabledKeys.includes(key) || activeKeysRef.current.has(key)) {
+      return; // Ignore if key not enabled or already active
     }
     
     event.preventDefault();
     event.stopPropagation();
     
-    // If key is already being held, don't restart the simulation
-    if (activeKeysRef.current.has(key)) {
-      return;
-    }
-    
-    // Store key state
-    const keyState: KeyState = {
-      shiftKey: event.shiftKey,
-      ctrlKey: event.ctrlKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey
-    };
-    
+    const keyState: KeyState = { shiftKey, ctrlKey, altKey, metaKey };
     activeKeysRef.current.set(key, keyState);
     
-    // Execute the first keypress immediately
+    // Initial keypress
     simulateKeypress(key, keyState);
     
-    // Start the simulation after initial delay
+    // Start initial delay timer
     const initialTimer = setTimeout(() => {
-      startRapidSimulation(key);
+      // Start rapid simulation timer
+      let currentInterval = finalConfig.rapidInterval;
+      const simulate = () => {
+        if (activeKeysRef.current.has(key)) {
+          simulateKeypress(key, keyState);
+          currentInterval = Math.max(finalConfig.minInterval, currentInterval * finalConfig.accelerationRate);
+          
+          const rapidTimer = setTimeout(simulate, currentInterval);
+          simulationTimersRef.current.set(key, { initial: null, rapid: rapidTimer, currentInterval });
+        }
+      };
+      simulate(); // Start first rapid simulation
     }, finalConfig.initialDelay);
     
-    simulationTimersRef.current.set(key, {
-      initial: initialTimer,
-      rapid: null,
-      currentInterval: finalConfig.rapidInterval
-    });
-  }, [gridApi, finalConfig.enabledKeys, finalConfig.initialDelay, finalConfig.rapidInterval, simulateKeypress, startRapidSimulation]);
+    simulationTimersRef.current.set(key, { initial: initialTimer, rapid: null, currentInterval: finalConfig.rapidInterval });
+  }, [gridApi, finalConfig, simulateKeypress, stopSimulation]);
   
-  // Handler for keyup events
+  // Handle keyup event
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
-    const key = event.key;
+    if (!isEnabledRef.current) return;
     
+    const { key } = event;
     if (activeKeysRef.current.has(key)) {
       stopSimulation(key);
     }
   }, [stopSimulation]);
   
-  // Set up event listeners
+  // Effect to add/remove event listeners
   useEffect(() => {
-    if (!gridApi) return;
+    const targetElement = document; // Or some specific element if needed
     
-    // Add event listeners
-    document.addEventListener('keydown', handleKeyDown, true);
-    document.addEventListener('keyup', handleKeyUp, true);
+    // Cast to EventListener to satisfy addEventListener/removeEventListener types
+    const keyDownListener = handleKeyDown as EventListener;
+    const keyUpListener = handleKeyUp as EventListener;
     
-    // Cleanup on unmount
+    if (isEnabledRef.current) {
+      targetElement.addEventListener('keydown', keyDownListener, true);
+      targetElement.addEventListener('keyup', keyUpListener, true);
+    }
+    
     return () => {
-      document.removeEventListener('keydown', handleKeyDown, true);
-      document.removeEventListener('keyup', handleKeyUp, true);
-      
-      // Stop all active simulations
-      activeKeysRef.current.forEach((_, keyToStop) => {
-        stopSimulation(keyToStop);
-      });
+      targetElement.removeEventListener('keydown', keyDownListener, true);
+      targetElement.removeEventListener('keyup', keyUpListener, true);
+      // Clean up any active timers on unmount
+      activeKeysRef.current.forEach((_, key) => stopSimulation(key));
     };
-  }, [gridApi, handleKeyDown, handleKeyUp, stopSimulation]);
+  }, [handleKeyDown, handleKeyUp, stopSimulation]); // Re-run if handlers change
   
-  // Public API methods
+  // Methods to enable/disable the hook externally
   const enable = useCallback(() => {
     isEnabledRef.current = true;
   }, []);
   
   const disable = useCallback(() => {
     isEnabledRef.current = false;
-    // Stop all active simulations
-    activeKeysRef.current.forEach((_, keyToStop) => {
-      stopSimulation(keyToStop);
-    });
+    // Clean up any active timers when disabling
+    activeKeysRef.current.forEach((_, key) => stopSimulation(key));
   }, [stopSimulation]);
   
-  const isEnabled = useCallback(() => {
-    return isEnabledRef.current;
-  }, []);
-  
-  return {
-    enable,
-    disable,
-    isEnabled
-  };
-};
-
-// TypeScript types export for users
-export type {
-  RapidKeypressConfig,
-  KeyState,
-  TimerState
+  return { enable, disable };
 }; 

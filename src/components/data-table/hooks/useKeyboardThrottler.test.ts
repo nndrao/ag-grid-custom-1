@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks';
-import { useKeyboardThrottler } from './useKeyboardThrottler';
+import { useKeyboardThrottler } from './useKeyboardThrottler'; // Path is now relative to this new location
 
 describe('useKeyboardThrottler', () => {
   let addEventListenerSpy: jest.SpyInstance;
@@ -19,8 +19,7 @@ describe('useKeyboardThrottler', () => {
     const { unmount } = renderHook(() => 
       useKeyboardThrottler({
         keys: ['Tab', 'ArrowDown'],
-        maxEventsPerWindow: 3,
-        timeWindowMs: 500,
+        // eventsPerSecond: 6, // Updated to reflect new prop name if test logic depended on old ones
       })
     );
     
@@ -43,8 +42,7 @@ describe('useKeyboardThrottler', () => {
     renderHook(() => 
       useKeyboardThrottler({
         keys: ['Tab', 'ArrowDown'],
-        maxEventsPerWindow: 3,
-        timeWindowMs: 500,
+        // eventsPerSecond: 6,
         enabled: false,
       })
     );
@@ -59,8 +57,7 @@ describe('useKeyboardThrottler', () => {
     renderHook(() => 
       useKeyboardThrottler({
         keys: ['Tab', 'ArrowDown'],
-        maxEventsPerWindow: 3,
-        timeWindowMs: 500,
+        // eventsPerSecond: 6,
         targetElement,
       })
     );
@@ -71,4 +68,4 @@ describe('useKeyboardThrottler', () => {
       { capture: true }
     );
   });
-});
+}); 

@@ -1,5 +1,5 @@
-import { useState, useCallback, useContext } from 'react';
-import { Check, ChevronsUpDown, Plus, Save, Settings } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Check, ChevronsUpDown, Plus, Save, Settings, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -20,89 +21,90 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useProfile } from '@/contexts/profile-context';
+import { useProfile } from '../contexts/profile-context';
 import { ProfileManager } from './profile-manager';
-import React from 'react';
+import { useCurrentFont } from '../contexts/current-font-context';
 
-// Create a context to share the current font between components
-export const CurrentFontContext = React.createContext<string>('monospace');
+export const ProfileSelector: React.FC = () => {
+  const { 
+    profiles, 
+    currentProfileId, 
+    saveNewProfile, 
+    updateCurrentProfile, 
+    loadProfile, 
+    getActiveProfile 
+  } = useProfile();
+  const { currentGridFont } = useCurrentFont();
 
-export const ProfileSelector = React.memo(function ProfileSelector() {
-  const { profiles, currentProfileId, saveProfile, updateProfile, loadProfile } = useProfile();
   const [newProfileName, setNewProfileName] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const currentFont = useContext(CurrentFontContext);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Only use profiles from context
-  const displayProfiles = profiles;
+  const activeProfile = getActiveProfile();
 
-  const currentProfile = displayProfiles.find(p => p.id === currentProfileId);
-
-  // Create new profile
   const handleCreateProfile = useCallback(async () => {
-    if (!newProfileName.trim()) {
-      return;
-    }
-    setLoading(true);
+    if (!newProfileName.trim()) return;
+    setIsLoading(true);
     try {
-      // Pass the current font to the saveProfile function
-      await saveProfile(newProfileName, currentFont);
+      await saveNewProfile(newProfileName.trim(), currentGridFont);
       setNewProfileName('');
       setCreateDialogOpen(false);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      // TODO: Show error to user
     }
-  }, [newProfileName, saveProfile, currentFont]);
+    setIsLoading(false);
+  }, [newProfileName, currentGridFont, saveNewProfile]);
 
-  // Update current profile
-  const handleUpdateProfile = useCallback(async () => {
+  const handleUpdateCurrent = useCallback(async () => {
     if (!currentProfileId) return;
-    setLoading(true);
+    setIsLoading(true);
     try {
-      // Including current font in profile update
-      await updateProfile(currentFont);
-    } finally {
-      setLoading(false);
+      await updateCurrentProfile(currentGridFont);
+      // TODO: Show success feedback to user
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      // TODO: Show error to user
     }
-  }, [currentProfileId, updateProfile, currentFont]);
+    setIsLoading(false);
+  }, [currentProfileId, currentGridFont, updateCurrentProfile]);
 
-  // Select profile
   const handleSelectProfile = useCallback(async (id: string) => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       await loadProfile(id);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      // TODO: Show error to user
     }
+    setIsLoading(false);
   }, [loadProfile]);
 
   return (
     <div className="flex items-center gap-2">
-      {/* Profile Selector Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-[200px] justify-between">
-            {currentProfile ? currentProfile.name : 'Select profile'}
+          <Button variant="outline" className="w-[200px] justify-between shrink-0" disabled={isLoading}>
+            <span className="truncate">{activeProfile ? activeProfile.name : 'Select Profile'}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[200px]">
-          <DropdownMenuLabel>Profiles</DropdownMenuLabel>
+          <DropdownMenuLabel>Available Profiles</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {displayProfiles.length === 0 ? (
+          {profiles.length === 0 ? (
             <DropdownMenuItem disabled>No profiles saved</DropdownMenuItem>
           ) : (
-            displayProfiles.map((profile) => (
+            profiles.map((profile) => (
               <DropdownMenuItem
                 key={profile.id}
                 onClick={() => handleSelectProfile(profile.id)}
-                className="flex justify-between"
+                disabled={isLoading}
               >
-                {profile.name}
+                <span className="truncate flex-grow">{profile.name}</span>
                 {profile.id === currentProfileId && (
-                  <Check className="h-4 w-4" />
+                  <Check className="ml-2 h-4 w-4 shrink-0" />
                 )}
               </DropdownMenuItem>
             ))
@@ -110,62 +112,63 @@ export const ProfileSelector = React.memo(function ProfileSelector() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Update (Save) Current Profile Button */}
       <Button
         variant="outline"
         size="icon"
-        onClick={handleUpdateProfile}
-        disabled={!currentProfileId || loading}
-        title="Save current profile"
+        onClick={handleUpdateCurrent}
+        disabled={!currentProfileId || isLoading}
+        title="Save current profile state"
       >
-        <Save className="h-4 w-4" />
+        {isLoading && !currentProfileId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
       </Button>
 
-      {/* Create New Profile Button */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon" title="Create new profile" disabled={loading}>
+          <Button variant="outline" size="icon" title="Create new profile" disabled={isLoading}>
             <Plus className="h-4 w-4" />
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>New Profile</DialogTitle>
+            <DialogTitle>Create New Profile</DialogTitle>
             <DialogDescription>
-              Enter a name for your new profile.
+              Save the current grid layout and settings as a new profile.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="profile-name" className="text-right">
+              <Label htmlFor="new-profile-name" className="text-right">
                 Name
               </Label>
               <Input
-                id="profile-name"
+                id="new-profile-name"
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
                 className="col-span-3"
-                placeholder="My Profile"
-                disabled={loading}
+                placeholder="e.g., My Default View"
+                disabled={isLoading}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleCreateProfile} disabled={loading}>
-              {loading ? 'Creating...' : 'Create'}
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isLoading}>Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleCreateProfile} disabled={isLoading || !newProfileName.trim()}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Create Profile
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Manage Profiles Dialog */}
       <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon" disabled={loading}>
+          <Button variant="outline" size="icon" title="Manage profiles" disabled={isLoading}>
             <Settings className="h-4 w-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[525px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Manage Profiles</DialogTitle>
             <DialogDescription>
@@ -175,9 +178,6 @@ export const ProfileSelector = React.memo(function ProfileSelector() {
           <ProfileManager onClose={() => setManageDialogOpen(false)} />
         </DialogContent>
       </Dialog>
-      {loading && (
-        <span className="ml-2 text-xs text-muted-foreground">Loading...</span>
-      )}
     </div>
   );
-});
+}; 

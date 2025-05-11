@@ -81,4 +81,4 @@ export function useKeyboardThrottler({
       target.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [keys, eventsPerSecond, targetElement, enabled]);
-}
+} 
