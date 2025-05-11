@@ -6,7 +6,8 @@ import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
 import { useProfile } from '@/contexts/profile-context';
 import { useKeyboardThrottler } from '@/hooks/useKeyboardThrottler';
-import { keyboardThrottleConfig } from '@/config/keyboard-throttle-config';
+import { useRapidKeypressNavigator } from '@/hooks/useRapidKeypressNavigator';
+import { keyboardThrottleConfig, rapidKeypressConfig } from '@/config/keyboard-throttle-config';
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -95,6 +96,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
   const [gridReady, setGridReady] = useState(false);
+  const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
+  const lastKeyNavTime = useRef<number>(0);
+  const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
 
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
@@ -102,12 +106,51 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     targetElement: document as any, // Apply to the entire document
   });
 
+  // Use rapid keypress navigator for enhanced keyboard navigation
+  const { enable: enableRapidKeypress } = useRapidKeypressNavigator(gridApiRef.current, rapidKeypressConfig);
+
+  // Handle keyboard navigation for ensuring column visibility
+  useEffect(() => {
+    if (!gridReady || !gridApiRef.current) return;
+    
+    const api = gridApiRef.current;
+    
+    // Enable rapid keypresses when grid is ready
+    enableRapidKeypress();
+    
+    // Add a focused cell changed listener for column visibility
+    const onFocusedCellChanged = (params: any) => {
+      if (!params.column) return;
+      
+      try {
+        // Ensure the column is visible in the viewport
+        api.ensureColumnVisible(params.column);
+        
+        // Track this cell to prevent excessive handling
+        lastHandledCell.current = {
+          col: params.column.getId(),
+          row: params.rowIndex
+        };
+      } catch (err) {
+        console.error('Error handling focused cell change:', err);
+      }
+    };
+    
+    // Register the listener
+    api.addEventListener('cellFocused', onFocusedCellChanged);
+    
+    // Cleanup
+    return () => {
+      if (gridApiRef.current) {
+        gridApiRef.current.removeEventListener('cellFocused', onFocusedCellChanged);
+      }
+    };
+  }, [gridReady, enableRapidKeypress, lastHandledCell]);
+
   // Update AG Grid theme when app theme changes
   useEffect(() => {
     setDarkMode(isDarkMode);
   }, [isDarkMode]);
-
-
 
   // Load the current profile when the grid is ready
   useEffect(() => {
@@ -197,6 +240,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
               { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
             ],
           }}
+        
           getContextMenuItems={getContextMenuItems}
           onGridReady={(params) => {
             console.log("Grid ready event fired");
@@ -204,7 +248,12 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             console.log("Setting grid API:", params.api);
             setGridApi(params.api);
             setGridReady(true);
+            setTimeout(() => {
+              setSuppressColumnVirtualisation(true);
+            // params.api.setGridOption('suppressColumnVirtualisation', true);
+            }, 100);
           }}
+        
           theme={theme}
         />
       </div>

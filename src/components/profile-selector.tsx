@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Check, ChevronsUpDown, Plus, Save, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,12 +22,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useProfile } from '@/contexts/profile-context';
 import { ProfileManager } from './profile-manager';
+import React from 'react';
 
-export function ProfileSelector() {
+export const ProfileSelector = React.memo(function ProfileSelector() {
   const { profiles, currentProfileId, saveProfile, updateProfile, loadProfile } = useProfile();
   const [newProfileName, setNewProfileName] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Only use profiles from context
   const displayProfiles = profiles;
@@ -35,21 +37,40 @@ export function ProfileSelector() {
   const currentProfile = displayProfiles.find(p => p.id === currentProfileId);
 
   // Create new profile
-  const handleCreateProfile = () => {
+  const handleCreateProfile = useCallback(async () => {
     if (!newProfileName.trim()) {
-      console.error("Profile name is empty, not creating");
       return;
     }
-    saveProfile(newProfileName);
-    setNewProfileName('');
-    setCreateDialogOpen(false);
-  };
+    setLoading(true);
+    try {
+      await saveProfile(newProfileName);
+      setNewProfileName('');
+      setCreateDialogOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [newProfileName, saveProfile]);
 
   // Update current profile
-  const handleUpdateProfile = () => {
+  const handleUpdateProfile = useCallback(async () => {
     if (!currentProfileId) return;
-    updateProfile();
-  };
+    setLoading(true);
+    try {
+      await updateProfile();
+    } finally {
+      setLoading(false);
+    }
+  }, [currentProfileId, updateProfile]);
+
+  // Select profile
+  const handleSelectProfile = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      await loadProfile(id);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadProfile]);
 
   return (
     <div className="flex items-center gap-2">
@@ -70,7 +91,7 @@ export function ProfileSelector() {
             displayProfiles.map((profile) => (
               <DropdownMenuItem
                 key={profile.id}
-                onClick={() => loadProfile(profile.id)}
+                onClick={() => handleSelectProfile(profile.id)}
                 className="flex justify-between"
               >
                 {profile.name}
@@ -88,7 +109,7 @@ export function ProfileSelector() {
         variant="outline"
         size="icon"
         onClick={handleUpdateProfile}
-        disabled={!currentProfileId}
+        disabled={!currentProfileId || loading}
         title="Save current profile"
       >
         <Save className="h-4 w-4" />
@@ -97,7 +118,7 @@ export function ProfileSelector() {
       {/* Create New Profile Button */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon" title="Create new profile">
+          <Button variant="outline" size="icon" title="Create new profile" disabled={loading}>
             <Plus className="h-4 w-4" />
           </Button>
         </DialogTrigger>
@@ -119,12 +140,13 @@ export function ProfileSelector() {
                 onChange={(e) => setNewProfileName(e.target.value)}
                 className="col-span-3"
                 placeholder="My Profile"
+                disabled={loading}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleCreateProfile}>
-              Create
+            <Button type="submit" onClick={handleCreateProfile} disabled={loading}>
+              {loading ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -133,7 +155,7 @@ export function ProfileSelector() {
       {/* Manage Profiles Dialog */}
       <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" disabled={loading}>
             <Settings className="h-4 w-4" />
           </Button>
         </DialogTrigger>
@@ -147,6 +169,9 @@ export function ProfileSelector() {
           <ProfileManager onClose={() => setManageDialogOpen(false)} />
         </DialogContent>
       </Dialog>
+      {loading && (
+        <span className="ml-2 text-xs text-muted-foreground">Loading...</span>
+      )}
     </div>
   );
-}
+});
