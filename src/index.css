@@ -1,3 +1,6 @@
+/* Import monospace fonts */
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Fira+Code:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Ubuntu+Mono:wght@400;700&family=Roboto+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Inconsolata:wght@400;500&family=Anonymous+Pro:wght@400;700&family=Oxygen+Mono&family=PT+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
