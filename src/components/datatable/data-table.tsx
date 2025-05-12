@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ModuleRegistry, themeQuartz, GridApi } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
-import { DataTableToolbar } from './data-table-toolbar';
+import { DataTableToolbar } from './data-table-toolbar'; // Updated path
 import { useTheme } from '@/components/theme-provider';
-import { useKeyboardThrottler } from '@/hooks/useKeyboardThrottler';
-import { useRapidKeypressNavigator } from '@/hooks/useRapidKeypressNavigator';
-import { keyboardThrottleConfig, rapidKeypressConfig } from '@/config/keyboard-throttle-config';
+import { useKeyboardThrottler } from './hooks/useKeyboardThrottler'; // Updated path
+import { useRapidKeypressNavigator } from './hooks/useRapidKeypressNavigator'; // Updated path
+import { keyboardThrottleConfig, rapidKeypressConfig } from './config/keyboard-throttle-config'; // Updated path
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -218,6 +218,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         table={null} 
         onFontChange={handleFontChange} 
         currentFontValue={gridFont}
+        className="mb-2.5"
       />
 
       <div className="flex-1 overflow-hidden">
@@ -286,4 +287,4 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       </div>
     </div>
   );
-}
+} 

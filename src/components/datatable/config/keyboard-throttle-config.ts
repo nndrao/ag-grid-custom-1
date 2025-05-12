@@ -77,4 +77,4 @@ export const rapidKeypressConfig = {
     'PageUp',
     'PageDown'
   ]
-};
+}; 

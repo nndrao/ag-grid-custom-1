@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Download, Filter, RefreshCw, Settings } from 'lucide-react';
 import { Cross2Icon } from "@radix-ui/react-icons";
-import { FontSelector } from './font-selector';
+import { FontSelector } from './font-selector'; // Updated path
 
 interface DataTableToolbarProps<TData> {
   table: any;
@@ -14,7 +14,7 @@ export function DataTableToolbar<TData>({ table, onFontChange, currentFontValue 
   const isFiltered = table ? table.getState().columnFilters.length > 0 : false;
   
   return (
-    <div className="h-[60px] flex items-center justify-between gap-4 border-b bg-muted/40 backdrop-blur-sm px-4">
+    <div className="h-[60px] flex items-center justify-between gap-4 border-b border-border bg-muted/40 backdrop-blur-sm px-4">
       <div className="flex items-center gap-2">
         {/* Removed search input and filter button */}
       </div>
@@ -27,4 +27,4 @@ export function DataTableToolbar<TData>({ table, onFontChange, currentFontValue 
       </div>
     </div>
   );
-}
+} 

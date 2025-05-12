@@ -1,6 +1,6 @@
 import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { DataTable, type ColumnDef } from '@/components/data-table';
+import { DataTable, type ColumnDef } from '@/components/datatable/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
 import { useMemo } from 'react';
 import { ThemeProvider } from "@/components/theme-provider";
@@ -47,7 +47,7 @@ function App() {
   const columns = useMemo(() => inferColumnDefinitions(data), [data]);
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <main className="h-full flex flex-col">
         <div className="border-b">
           {/* Header */}

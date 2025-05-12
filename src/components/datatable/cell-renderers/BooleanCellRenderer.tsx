@@ -27,4 +27,4 @@ function BooleanCellRenderer(props: ICellRendererParams) {
 }
 
 // Use memo to prevent unnecessary re-renders
-export default memo(BooleanCellRenderer);
+export default memo(BooleanCellRenderer); 
