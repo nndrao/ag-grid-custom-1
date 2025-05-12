@@ -4,6 +4,10 @@ import { DataTable, type ColumnDef } from '@/components/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
 import { ProfileProvider } from '@/contexts/profile-context';
 import { useMemo } from 'react';
+import { ThemeProvider } from "@/components/theme-provider";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { CurrentFontProvider } from '@/contexts/font-context';
 
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (data.length === 0) return [];
@@ -47,29 +51,37 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
 function App() {
   const data = useMemo(() => generateFixedIncomeData(10000), []); // Starting with 100 records for initial render
   const columns = useMemo(() => inferColumnDefinitions(data), [data]);
+  const queryClient = new QueryClient();
 
   return (
-    <ProfileProvider>
-      <div className="min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
-          <div className="flex items-center gap-4">
-            <Menu className="h-6 w-6" />
-            <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
-          </div>
-          <ThemeToggle />
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 mt-16 mb-16">
-          <div className="p-6">
-            <div className="h-[calc(100vh-8rem-3rem)]">
-              <DataTable columnDefs={columns} dataRow={data} />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <CurrentFontProvider>
+          <main className="h-full flex flex-col">
+            <div className="border-b">
+              {/* Header */}
+              <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b flex items-center justify-between px-6 z-50">
+                <div className="flex items-center gap-4">
+                  <Menu className="h-6 w-6" />
+                  <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
+                </div>
+                <ThemeToggle />
+              </header>
             </div>
-          </div>
-        </main>
-      </div>
-    </ProfileProvider>
+
+            {/* Main Content */}
+            <main className="flex-1 mt-16 mb-16">
+              <div className="p-6">
+                <div className="h-[calc(100vh-8rem-3rem)]">
+                  <DataTable columnDefs={columns} dataRow={data} />
+                </div>
+              </div>
+            </main>
+          </main>
+        </CurrentFontProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
