@@ -7,10 +7,11 @@ import { FontSelector } from './font-selector';
 interface DataTableToolbarProps<TData> {
   table: any;
   onFontChange?: (font: string) => void;
+  currentFontValue: string;
 }
 
-export function DataTableToolbar<TData>({ table, onFontChange }: DataTableToolbarProps<TData>) {
-  const isFiltered = table.getState().columnFilters.length > 0;
+export function DataTableToolbar<TData>({ table, onFontChange, currentFontValue }: DataTableToolbarProps<TData>) {
+  const isFiltered = table ? table.getState().columnFilters.length > 0 : false;
   
   return (
     <div className="h-[60px] flex items-center justify-between gap-4 border-b bg-muted/40 backdrop-blur-sm px-4">
@@ -18,7 +19,10 @@ export function DataTableToolbar<TData>({ table, onFontChange }: DataTableToolba
         {/* Removed search input and filter button */}
       </div>
       <div className="flex items-center gap-2">
-        <FontSelector onFontChange={onFontChange} />
+        <FontSelector 
+          onFontChange={onFontChange} 
+          currentFontValue={currentFontValue}
+        />
         {/* Removed refresh, export, and settings buttons */}
       </div>
     </div>

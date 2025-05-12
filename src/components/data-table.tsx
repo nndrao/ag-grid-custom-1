@@ -4,12 +4,10 @@ import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
-import { useProfile } from '@/contexts/profile-context';
 import { useKeyboardThrottler } from '@/hooks/useKeyboardThrottler';
 import { useRapidKeypressNavigator } from '@/hooks/useRapidKeypressNavigator';
 import { keyboardThrottleConfig, rapidKeypressConfig } from '@/config/keyboard-throttle-config';
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
-import { CurrentFontContext } from './profile-selector';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -34,13 +32,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   const gridRef = useRef<AgGridReact>(null);
   const { theme: currentTheme } = useTheme();
-  const { setGridApi, currentProfileId, loadProfile, updateProfile, saveProfile, profiles } = useProfile();
-  
-  console.log("🔍 Current profile data:", { 
-    currentProfileId, 
-    profilesCount: profiles.length,
-    currentProfileDetails: currentProfileId ? profiles.find(p => p.id === currentProfileId) : 'none'
-  });
   
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
@@ -139,13 +130,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       try {
         // Ensure the column is visible in the viewport
         api.ensureColumnVisible(params.column);
-        
-        // Track this cell to prevent excessive handling
-        lastHandledCell.current = {
-          col: params.column.getId(),
-          row: params.rowIndex
-        };
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error handling focused cell change:', err);
       }
     };
@@ -159,79 +144,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         gridApiRef.current.removeEventListener('cellFocused', onFocusedCellChanged);
       }
     };
-  }, [gridReady, enableRapidKeypress, lastHandledCell]);
+  }, [gridReady, enableRapidKeypress]);
 
   // Update AG Grid theme when app theme changes
   useEffect(() => {
     setDarkMode(isDarkMode);
   }, [isDarkMode]);
 
-  // CONSOLIDATED PROFILE & FONT HANDLING
-  // This single effect handles all profile and font loading scenarios
-  useEffect(() => {
-    console.log("🔍 CONSOLIDATED PROFILE LOADING EFFECT");
-    
-    // Function to apply font if it's different from the currently applied font
-    const applyFontIfNeeded = (font: string | undefined) => {
-      if (!font) return false;
-      
-      if (font !== appliedFontRef.current) {
-        console.log(`🔍 Applying new font: ${font} (previous: ${appliedFontRef.current})`);
-        setGridFont(font);
-        appliedFontRef.current = font;
-        return true;
-      }
-      
-      console.log(`🔍 Font already applied: ${font}`);
-      return false;
-    };
-    
-    // CASE 1: Current profile exists - get font from it
-    if (currentProfileId) {
-      console.log("🔍 Current profile ID exists:", currentProfileId);
-      
-      // Find profile in memory first for immediate response
-      const profile = profiles.find(p => p.id === currentProfileId);
-      
-      if (profile?.gridFont) {
-        console.log("🔍 Found font in profile memory:", profile.gridFont);
-        applyFontIfNeeded(profile.gridFont);
-      }
-      
-      // If grid is ready, load the complete profile (only once per profile)
-      if (gridReady && gridApiRef.current) {
-        console.log("🔍 Grid is ready, loading complete profile");
-        
-        loadProfile(currentProfileId).then(({ gridFont: savedFont }) => {
-          if (savedFont) {
-            console.log("🔍 Loaded font from profile API:", savedFont);
-            applyFontIfNeeded(savedFont);
-          }
-        }).catch(err => {
-          console.error("🔍 Error loading profile:", err);
-        });
-      }
-    } 
-    // CASE 2: No current profile but we have a stored profile ID
-    else {
-      console.log("🔍 No current profile ID, checking localStorage");
-      
-      const storedProfileId = localStorage.getItem('ag-grid-current-profile');
-      
-      if (storedProfileId) {
-        console.log("🔍 Found stored profile ID:", storedProfileId);
-        
-        // Find the profile in memory
-        const storedProfile = profiles.find(p => p.id === storedProfileId);
-        
-        if (storedProfile?.gridFont) {
-          console.log("🔍 Found font in stored profile:", storedProfile.gridFont);
-          applyFontIfNeeded(storedProfile.gridFont);
-        }
-      }
-    }
-  }, [currentProfileId, profiles, gridReady, loadProfile]);
-  
   // Apply theme to grid when it changes
   useEffect(() => {
     if (gridApiRef.current && appliedFontRef.current !== gridFont) {
@@ -288,95 +207,83 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // Update state (will trigger theme regeneration through useMemo)
     setGridFont(font);
     
-    // If there's an active profile, update it with the new font setting
-    if (currentProfileId) {
-      console.log("🔍 Updating profile with font:", font);
-      // Using setTimeout to ensure this happens after render completes
-      setTimeout(() => {
-        updateProfile(font).then(() => {
-          console.log("🔍 Profile updated successfully with new font");
-        }).catch(err => {
-          console.error("🔍 Error updating profile with font:", err);
-        });
-      }, 0);
-    }
-    
     // We don't call refreshCells here - it will be handled by the useEffect that watches gridFont
-  }, [currentProfileId, updateProfile]);
+  }, []);
 
   console.log("🔍 Current gridFont before render:", gridFont);
 
   return (
-    <CurrentFontContext.Provider value={gridFont}>
-      <div className="h-full w-full flex flex-col box-border overflow-hidden">
-        <DataTableToolbar onFontChange={handleFontChange} />
+    <div className="h-full w-full flex flex-col box-border overflow-hidden">
+      <DataTableToolbar 
+        table={null} 
+        onFontChange={handleFontChange} 
+        currentFontValue={gridFont}
+      />
 
-        <div className="flex-1 overflow-hidden">
-          <AgGridReact
-            ref={gridRef}
-            rowData={dataRow}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            autoGroupColumnDef={autoGroupColumnDef}
-            rowGroupPanelShow="always"
-            groupDisplayType="singleColumn"
-            groupDefaultExpanded={-1}
-            cellSelection={{ handle: { mode: 'fill' } }}
-            suppressMenuHide={true}
-            dataTypeDefinitions={{
-              string: {
-                baseDataType: 'text',
-                extendsDataType: 'text',
+      <div className="flex-1 overflow-hidden">
+        <AgGridReact
+          ref={gridRef}
+          rowData={dataRow}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          autoGroupColumnDef={autoGroupColumnDef}
+          rowGroupPanelShow="always"
+          groupDisplayType="singleColumn"
+          groupDefaultExpanded={-1}
+          cellSelection={{ handle: { mode: 'fill' } }}
+          suppressMenuHide={true}
+          dataTypeDefinitions={{
+            string: {
+              baseDataType: 'text',
+              extendsDataType: 'text',
+            },
+          }}
+          sideBar={{
+            toolPanels: [
+              {
+                id: 'columns',
+                labelDefault: 'Columns',
+                labelKey: 'columns',
+                iconKey: 'columns',
+                toolPanel: 'agColumnsToolPanel',
               },
-            }}
-            sideBar={{
-              toolPanels: [
-                {
-                  id: 'columns',
-                  labelDefault: 'Columns',
-                  labelKey: 'columns',
-                  iconKey: 'columns',
-                  toolPanel: 'agColumnsToolPanel',
-                },
-                {
-                  id: 'filters',
-                  labelDefault: 'Filters',
-                  labelKey: 'filters',
-                  iconKey: 'filter',
-                  toolPanel: 'agFiltersToolPanel',
-                },
-              ],
-            }}
-            statusBar={{
-              statusPanels: [
-                { statusPanel: 'agTotalRowCountComponent', align: 'left' },
-                { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
-                { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
-                { statusPanel: 'agAggregationComponent', align: 'right' },
-                { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
-              ],
-            }}
-          
-            getContextMenuItems={getContextMenuItems}
-            onGridReady={(params) => {
-              console.log("🔍 Grid ready event fired");
-              gridApiRef.current = params.api;
-              console.log("🔍 Setting grid API");
-              setGridApi(params.api);
-              setGridReady(true);
-              console.log("🔍 Grid ready state set to true");
-              
-              setTimeout(() => {
-                setSuppressColumnVirtualisation(true);
-                console.log("🔍 Column virtualization suppressed");
-              // params.api.setGridOption('suppressColumnVirtualisation', true);
-              }, 100);
-            }}
-          
-            theme={theme}
-          />
-        </div>
+              {
+                id: 'filters',
+                labelDefault: 'Filters',
+                labelKey: 'filters',
+                iconKey: 'filter',
+                toolPanel: 'agFiltersToolPanel',
+              },
+            ],
+          }}
+          statusBar={{
+            statusPanels: [
+              { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+              { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+              { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
+              { statusPanel: 'agAggregationComponent', align: 'right' },
+              { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
+            ],
+          }}
+        
+          getContextMenuItems={getContextMenuItems}
+          onGridReady={(params) => {
+            console.log("🔍 Grid ready event fired");
+            gridApiRef.current = params.api;
+            console.log("🔍 Setting grid API");
+            setGridReady(true);
+            console.log("🔍 Grid ready state set to true");
+            
+            setTimeout(() => {
+              setSuppressColumnVirtualisation(true);
+              console.log("🔍 Column virtualization suppressed");
+            // params.api.setGridOption('suppressColumnVirtualisation', true);
+            }, 100);
+          }}
+        
+          theme={theme}
+        />
       </div>
-    </CurrentFontContext.Provider>
+    </div>
   );
 }
