@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ModuleRegistry, themeQuartz, GridApi } from 'ag-grid-community';
+import { ModuleRegistry, themeQuartz, GridApi, CellFocusedEvent } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
-import { DataTableToolbar } from './data-table-toolbar'; // Updated path
+import { DataTableToolbar } from '../datatable/data-table-toolbar'; // Corrected path
 import { useTheme } from '@/components/theme-provider';
-import { useKeyboardThrottler } from './hooks/useKeyboardThrottler'; // Updated path
-import { useRapidKeypressNavigator } from './hooks/useRapidKeypressNavigator'; // Updated path
-import { keyboardThrottleConfig, rapidKeypressConfig } from './config/keyboard-throttle-config'; // Updated path
+import { useKeyboardThrottler } from '../datatable/hooks/useKeyboardThrottler'; // Corrected path
+import { useRapidKeypressNavigator } from '../datatable/hooks/useRapidKeypressNavigator'; // Corrected path
+import { keyboardThrottleConfig, rapidKeypressConfig } from '../datatable/config/keyboard-throttle-config'; // Corrected path
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -19,7 +19,7 @@ export interface ColumnDef {
 
 interface DataTableProps {
   columnDefs: ColumnDef[];
-  dataRow: Record<string, any>[];
+  dataRow: Record<string, unknown>[]; // Use unknown instead of any
 }
 
 // Function to set dark mode on document body for AG Grid
@@ -36,9 +36,11 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
   const [gridReady, setGridReady] = useState(false);
-  const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
-  const lastKeyNavTime = useRef<number>(0);
-  const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
+  // Remove unused state
+  // const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
+  // Remove unused refs
+  // const lastKeyNavTime = useRef<number>(0);
+  // const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
   
   // Single font state for the application
   const [gridFont, setGridFont] = useState('monospace');
@@ -50,7 +52,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
     ...keyboardThrottleConfig,
-    targetElement: document as any, // Apply to the entire document
+    targetElement: document.body, // Use document.body instead of document as any
   });
 
   // Use rapid keypress navigator for enhanced keyboard navigation
@@ -124,13 +126,14 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     enableRapidKeypress();
     
     // Add a focused cell changed listener for column visibility
-    const onFocusedCellChanged = (params: any) => {
+    // Provide correct event type
+    const onFocusedCellChanged = (params: CellFocusedEvent) => {
       if (!params.column) return;
       
       try {
         // Ensure the column is visible in the viewport
         api.ensureColumnVisible(params.column);
-      } catch (err: any) {
+      } catch (err: unknown) { // Use unknown for error type
         console.error('Error handling focused cell change:', err);
       }
     };
@@ -182,6 +185,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     },
   }), []);
 
+  // Disable eslint rule for unused params as it's required by AG Grid type but not used here
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getContextMenuItems = useCallback((params: GetContextMenuItemsParams): (DefaultMenuItem | MenuItemDef)[] => {
     return [
       "autoSizeAll",
@@ -275,11 +280,11 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             setGridReady(true);
             console.log("🔍 Grid ready state set to true");
             
-            setTimeout(() => {
-              setSuppressColumnVirtualisation(true);
-              console.log("🔍 Column virtualization suppressed");
-            // params.api.setGridOption('suppressColumnVirtualisation', true);
-            }, 100);
+            // Remove unused setTimeout logic
+            // setTimeout(() => {
+            //   setSuppressColumnVirtualisation(true);
+            //   console.log("🔍 Column virtualization suppressed");
+            // }, 100);
           }}
         
           theme={theme}
