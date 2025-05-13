@@ -116,11 +116,11 @@ function FontSelectorBase({ onFontChange, compact = false }: FontSelectorProps) 
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="inline-block">
+          <div className="inline-block relative">
             {fontSelect}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top">
+        <TooltipContent side="top" sideOffset={12}>
           Select Grid Font
         </TooltipContent>
       </Tooltip>

@@ -62,7 +62,7 @@ export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: Profil
         <TooltipTrigger asChild>
           {button}
         </TooltipTrigger>
-        <TooltipContent side="top">
+        <TooltipContent side="top" sideOffset={8}>
           {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Profile"}
         </TooltipContent>
       </Tooltip>

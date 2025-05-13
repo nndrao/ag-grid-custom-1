@@ -135,7 +135,7 @@ export function DataTableToolbar<TData>({
 
   return (
     <TooltipProvider>
-      <div className={`h-[60px] flex items-center border-b border-border bg-muted/40 backdrop-blur-sm px-4 ${className || ''}`}>
+      <div className={`h-[60px] flex items-center border-b border-border bg-muted/40 backdrop-blur-sm px-4 relative z-10 ${className || ''}`}>
         <div className="flex items-center gap-2 flex-shrink-0">
           {profileManager && !profileManager.loading && profileManager.profiles && (
             <ProfileButtonGroup

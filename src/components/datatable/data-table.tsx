@@ -19,6 +19,7 @@ import { ProfileManager } from '@/types/ProfileManager';
 
 // Import custom AG Grid styles
 import './ag-grid-styles.css';
+import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 

@@ -60,7 +60,7 @@ export function ProfileManager({ onCreate, iconOnly = false }: ProfileManagerPro
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
-        <TooltipContent side="top">
+        <TooltipContent side="top" sideOffset={8}>
           Create New Profile
         </TooltipContent>
       </Tooltip>

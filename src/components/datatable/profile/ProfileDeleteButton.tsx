@@ -43,7 +43,7 @@ export function ProfileDeleteButton({ onDelete, disabled, profileName, iconOnly 
             </Button>
           </AlertDialogTrigger>
         </TooltipTrigger>
-        <TooltipContent side="top">
+        <TooltipContent side="top" sideOffset={8}>
           Delete Profile
         </TooltipContent>
       </Tooltip>

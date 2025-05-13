@@ -25,7 +25,7 @@ export function ProfileButtonGroup({
   onCreate
 }: ProfileButtonGroupProps) {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={100}>
       <div className="flex items-center gap-1.5 bg-muted/60 rounded-md p-1 shadow-sm border border-border/30">
         <ProfileSelector 
           profiles={profiles}
