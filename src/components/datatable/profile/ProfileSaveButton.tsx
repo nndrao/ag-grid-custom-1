@@ -15,10 +15,7 @@ interface ProfileSaveButtonProps {
   iconOnly?: boolean;
 }
 
-export const ProfileSaveButton = React.forwardRef<
-  HTMLButtonElement,
-  ProfileSaveButtonProps
->(({ onSave, disabled, iconOnly = false }, ref) => {
+export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: ProfileSaveButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -27,30 +24,21 @@ export const ProfileSaveButton = React.forwardRef<
       setIsSaving(true);
       setSaveSuccess(false);
       await onSave();
-      
-      // Show success state briefly
       setSaveSuccess(true);
-      
-      // Reset success state after showing feedback
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 2000);
+      setTimeout(() => setSaveSuccess(false), 2000);
     } catch (error) {
-      // Error handling is done in the parent component
       console.error("Error in save button:", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Create button element with ref
-  const renderButton = () => (
+  const button = (
     <Button 
       variant={saveSuccess ? "secondary" : "outline"}
       size={iconOnly ? "icon" : "sm"}
       onClick={handleSave}
       disabled={disabled || isSaving}
-      ref={ref}
       className={cn(
         iconOnly && "h-7 w-7",
         saveSuccess && !iconOnly && "bg-green-100 border-green-300 text-green-800 hover:bg-green-200",
@@ -72,7 +60,7 @@ export const ProfileSaveButton = React.forwardRef<
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          {renderButton()}
+          {button}
         </TooltipTrigger>
         <TooltipContent side="top">
           {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Profile"}
@@ -81,7 +69,5 @@ export const ProfileSaveButton = React.forwardRef<
     );
   }
 
-  return renderButton();
-});
-
-ProfileSaveButton.displayName = "ProfileSaveButton"; 
+  return button;
+} 

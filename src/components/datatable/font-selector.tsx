@@ -114,9 +114,11 @@ function FontSelectorBase({ onFontChange, compact = false }: FontSelectorProps) 
 
   if (compact) {
     return (
-      <Tooltip delayDuration={300}>
+      <Tooltip>
         <TooltipTrigger asChild>
-          <div>{fontSelect}</div>
+          <div className="inline-block">
+            {fontSelect}
+          </div>
         </TooltipTrigger>
         <TooltipContent side="top">
           Select Grid Font
@@ -128,5 +130,4 @@ function FontSelectorBase({ onFontChange, compact = false }: FontSelectorProps) 
   return fontSelect;
 }
 
-// Export a memoized version of the component to prevent unnecessary re-renders
 export const FontSelector = React.memo(FontSelectorBase); 

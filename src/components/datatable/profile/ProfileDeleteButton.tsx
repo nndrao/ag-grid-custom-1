@@ -26,47 +26,27 @@ interface ProfileDeleteButtonProps {
   iconOnly?: boolean;
 }
 
-export const ProfileDeleteButton = React.forwardRef<
-  HTMLButtonElement,
-  ProfileDeleteButtonProps
->(({ onDelete, disabled, profileName, iconOnly = false }, ref) => {
-  // Create button element with ref
-  const renderButton = () => (
-    <Button 
-      variant="outline" 
-      size={iconOnly ? "icon" : "sm"}
-      disabled={disabled}
-      className={cn(iconOnly && "h-7 w-7")}
-      ref={ref}
-    >
-      <Trash2 className={cn(iconOnly ? "h-3.5 w-3.5" : "h-4 w-4 mr-2")} />
-      {!iconOnly && "Delete"}
-    </Button>
-  );
-
-  // Wrap with AlertDialog
-  const renderTrigger = () => {
-    if (iconOnly) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {renderButton()}
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            Delete Profile
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-    
-    return renderButton();
-  };
-
+export function ProfileDeleteButton({ onDelete, disabled, profileName, iconOnly = false }: ProfileDeleteButtonProps) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        {renderTrigger()}
-      </AlertDialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size={iconOnly ? "icon" : "sm"}
+              disabled={disabled}
+              className={cn(iconOnly && "h-7 w-7")}
+            >
+              <Trash2 className={cn(iconOnly ? "h-3.5 w-3.5" : "h-4 w-4 mr-2")} />
+              {!iconOnly && "Delete"}
+            </Button>
+          </AlertDialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          Delete Profile
+        </TooltipContent>
+      </Tooltip>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Profile</AlertDialogTitle>
@@ -81,6 +61,4 @@ export const ProfileDeleteButton = React.forwardRef<
       </AlertDialogContent>
     </AlertDialog>
   );
-});
-
-ProfileDeleteButton.displayName = "ProfileDeleteButton"; 
+} 

@@ -17,17 +17,14 @@ interface ProfileSelectorProps {
   compact?: boolean;
 }
 
-export const ProfileSelector = React.forwardRef<
-  HTMLDivElement,
-  ProfileSelectorProps
->(({ 
+export function ProfileSelector({ 
   profiles, 
   activeProfile, 
   onSelectProfile,
   compact = false
-}, ref) => {
+}: ProfileSelectorProps) {
   return (
-    <div className="flex items-center gap-1" ref={ref}>
+    <div className="flex items-center gap-1">
       {!compact && <span className="text-sm text-muted-foreground">Profile:</span>}
       <Select 
         value={activeProfile?.id || ""}
@@ -50,6 +47,4 @@ export const ProfileSelector = React.forwardRef<
       </Select>
     </div>
   );
-});
-
-ProfileSelector.displayName = "ProfileSelector"; 
+} 

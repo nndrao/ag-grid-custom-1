@@ -24,7 +24,30 @@ export const useProfileManager = (settingsController: SettingsController | null)
           const active = loadedProfiles.find(p => p.id === activeId);
           if (active) {
             setActiveProfile(active);
-            settingsController.applyProfileSettings(active.settings);
+            
+            // Check if the profile has valid settings before applying
+            if (active.settings) {
+              // Ensure settings has all required properties
+              if (!active.settings.toolbar) {
+                active.settings.toolbar = {
+                  fontFamily: 'monospace'
+                };
+                console.warn(`Fixing missing toolbar settings for profile: ${active.name}`);
+              }
+              if (!active.settings.grid) {
+                active.settings.grid = {};
+                console.warn(`Fixing missing grid settings for profile: ${active.name}`);
+              }
+              if (!active.settings.custom) {
+                active.settings.custom = {};
+                console.warn(`Fixing missing custom settings for profile: ${active.name}`);
+              }
+              
+              // Now apply settings
+              settingsController.applyProfileSettings(active.settings);
+            } else {
+              console.warn(`Profile ${active.name} has no settings, skipping apply`);
+            }
           }
         }
       }
@@ -109,9 +132,30 @@ export const useProfileManager = (settingsController: SettingsController | null)
       setProfiles(allProfiles);
       setActiveProfile(freshProfile);
       
-      // Apply the fresh settings
-      console.log(`Applying latest settings for profile: ${freshProfile.name}`);
-      settingsController.applyProfileSettings(freshProfile.settings);
+      // Check if the profile has valid settings before applying
+      if (freshProfile.settings) {
+        // Ensure settings has all required properties
+        if (!freshProfile.settings.toolbar) {
+          freshProfile.settings.toolbar = {
+            fontFamily: 'monospace'
+          };
+          console.warn(`Fixing missing toolbar settings for profile: ${freshProfile.name}`);
+        }
+        if (!freshProfile.settings.grid) {
+          freshProfile.settings.grid = {};
+          console.warn(`Fixing missing grid settings for profile: ${freshProfile.name}`);
+        }
+        if (!freshProfile.settings.custom) {
+          freshProfile.settings.custom = {};
+          console.warn(`Fixing missing custom settings for profile: ${freshProfile.name}`);
+        }
+        
+        // Apply the fresh settings
+        console.log(`Applying latest settings for profile: ${freshProfile.name}`);
+        settingsController.applyProfileSettings(freshProfile.settings);
+      } else {
+        console.warn(`Profile ${freshProfile.name} has no settings, skipping apply`);
+      }
     } catch (error) {
       console.error('Error selecting profile:', error);
     }

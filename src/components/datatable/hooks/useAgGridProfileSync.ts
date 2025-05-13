@@ -25,7 +25,31 @@ export function useAgGridProfileSync(
       // Apply the selected profile's settings
       setTimeout(() => {
         if (settingsController && profileManager?.activeProfile) {
+          // Add safety check for profileSettings itself first
+          if (!profileManager.activeProfile.settings) {
+            console.warn("⚠️ Profile has no settings object at all, creating default settings");
+            profileManager.activeProfile.settings = {
+              toolbar: { fontFamily: 'monospace' },
+              grid: {},
+              custom: {}
+            };
+          }
+          
           const profileSettings = profileManager.activeProfile.settings;
+          
+          // Add safety check for missing properties
+          // If toolbar is missing, create a default one
+          if (!profileSettings.toolbar) {
+            console.warn("⚠️ Profile active in sync hook has no toolbar settings");
+            profileSettings.toolbar = { fontFamily: 'monospace' };
+          }
+          if (!profileSettings.grid) {
+            console.warn("⚠️ Profile active in sync hook has no grid settings");
+            profileSettings.grid = {};
+          }
+          if (!profileSettings.custom) {
+            profileSettings.custom = {};
+          }
           
           // Apply settings to grid
           settingsController.applyProfileSettings(profileSettings);

@@ -50,6 +50,9 @@ export class SettingsController {
     // Apply toolbar settings first (non-grid related)
     if (settings.toolbar) {
       this.updateToolbarSettings(settings.toolbar);
+    } else {
+      // If toolbar settings are missing, use an empty object to avoid errors
+      console.warn("⚠️ Profile has no toolbar settings, using defaults");
     }
     
     // Apply grid settings
