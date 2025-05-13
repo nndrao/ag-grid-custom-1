@@ -17,6 +17,9 @@ import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
 
+// Import custom AG Grid styles
+import './ag-grid-styles.css';
+
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
 export interface ColumnDef {
@@ -60,8 +63,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Memoize important values to prevent re-renders
   const memoizedToolbarProps = useMemo(() => ({
     onFontChange: handleFontChange,
-    profileManager
-  }), [handleFontChange, profileManager]);
+    profileManager,
+    settingsController: settingsControllerRef.current
+  }), [handleFontChange, profileManager, settingsControllerRef.current]);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
@@ -85,6 +89,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
       <div className="flex-1 overflow-hidden">
         <AgGridReact
+          className="ag-theme-quartz"
           ref={gridRef}
           rowData={dataRow}
           columnDefs={columnDefs}

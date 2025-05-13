@@ -7,6 +7,8 @@ export interface Profile {
 export interface ProfileSettings {
   toolbar?: {
     fontFamily?: string;
+    fontSize?: number;
+    spacing?: number;
     [key: string]: any;
   };
   [key: string]: any;

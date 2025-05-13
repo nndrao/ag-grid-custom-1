@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +14,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 interface ProfileManagerProps {
   onCreate: (name: string) => Promise<void>;
+  iconOnly?: boolean;
 }
 
-export function ProfileManager({ onCreate }: ProfileManagerProps) {
+export const ProfileManager = React.forwardRef<
+  HTMLButtonElement,
+  ProfileManagerProps
+>(({ onCreate, iconOnly = false }, ref) => {
   const [open, setOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -38,13 +48,41 @@ export function ProfileManager({ onCreate }: ProfileManagerProps) {
     }
   };
 
+  // Create button element with ref
+  const renderButton = () => (
+    <Button 
+      variant="outline" 
+      size={iconOnly ? "icon" : "sm"}
+      className={cn(iconOnly && "h-7 w-7")}
+      ref={ref}
+    >
+      <Plus className={cn(iconOnly ? "h-3.5 w-3.5" : "h-4 w-4 mr-2")} />
+      {!iconOnly && "New Profile"}
+    </Button>
+  );
+
+  // Wrap with tooltip if needed
+  const renderTrigger = () => {
+    if (iconOnly) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {renderButton()}
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Create New Profile
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    
+    return renderButton();
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          New Profile
-        </Button>
+        {renderTrigger()}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -79,4 +117,6 @@ export function ProfileManager({ onCreate }: ProfileManagerProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+});
+
+ProfileManager.displayName = "ProfileManager"; 

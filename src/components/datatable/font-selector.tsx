@@ -9,6 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { Type } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 // List of available monospace fonts (system fonts + imported Google Fonts)
 const MONOSPACE_FONTS = [
@@ -33,9 +40,10 @@ const MONOSPACE_FONTS = [
 
 interface FontSelectorProps {
   onFontChange?: (font: string) => void;
+  compact?: boolean;
 }
 
-function FontSelectorBase({ onFontChange }: FontSelectorProps) {
+function FontSelectorBase({ onFontChange, compact = false }: FontSelectorProps) {
   // Use internal state for font value, initialized from CSS variable
   const [fontValue, setFontValue] = useState(() => {
     const cssFont = getComputedStyle(document.documentElement).getPropertyValue('--ag-font-family').trim();
@@ -72,14 +80,18 @@ function FontSelectorBase({ onFontChange }: FontSelectorProps) {
     }
   };
 
-  return (
+  const fontSelect = (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Grid Font:</span>
+      {!compact && <span className="text-sm text-muted-foreground">Grid Font:</span>}
       <Select 
         value={fontValue}
         onValueChange={handleValueChange}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className={cn(
+          compact ? "w-[240px] h-9" : "w-[280px]",
+          compact && "pl-2.5"
+        )}>
+          {compact && <Type className="h-4 w-4 mr-2 opacity-70" />}
           <SelectValue placeholder="Select font" />
         </SelectTrigger>
         <SelectContent>
@@ -99,6 +111,21 @@ function FontSelectorBase({ onFontChange }: FontSelectorProps) {
       </Select>
     </div>
   );
+
+  if (compact) {
+    return (
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <div>{fontSelect}</div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          Select Grid Font
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return fontSelect;
 }
 
 // Export a memoized version of the component to prevent unnecessary re-renders

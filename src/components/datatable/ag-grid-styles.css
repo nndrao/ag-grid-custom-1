@@ -1,0 +1,69 @@
+/* AG Grid custom styles */
+:root {
+  /* Default values for AG Grid CSS variables */
+  --ag-spacing: 6px;
+  --ag-font-size: 14px;
+  --ag-odd-row-background-color-light: #E2E6E6;
+  --ag-odd-row-background-color-dark: #2A2E35;
+  --ag-background-color-light: #EAEAEA;
+  --ag-background-color-dark: #1f2836;
+  --ag-header-background-color-light: #E6E6E6D6;
+  --ag-header-background-color-dark: rgba(255, 255, 255, 0.07);
+  
+  /* Apply these CSS variables to AG Grid elements */
+  --ag-cell-horizontal-padding: var(--ag-spacing);
+  --ag-cell-widget-spacing: var(--ag-spacing);
+  --ag-row-height: calc(var(--ag-spacing) * 4 + var(--ag-font-size));
+  --ag-header-height: calc(var(--ag-spacing) * 4 + var(--ag-font-size));
+  --ag-list-item-height: calc(var(--ag-spacing) * 3 + var(--ag-font-size));
+  --ag-column-select-indent-size: var(--ag-spacing);
+  --ag-grid-size: var(--ag-spacing);
+  --ag-widget-container-horizontal-padding: var(--ag-spacing);
+  --ag-widget-container-vertical-padding: var(--ag-spacing);
+  --ag-widget-horizontal-spacing: var(--ag-spacing);
+  --ag-widget-vertical-spacing: var(--ag-spacing);
+}
+
+/* Light theme specific styles */
+[data-ag-theme-mode="light"] .ag-theme-quartz {
+  --ag-odd-row-background-color: var(--ag-odd-row-background-color-light);
+  --ag-background-color: var(--ag-background-color-light);
+  --ag-header-background-color: var(--ag-header-background-color-light);
+  --ag-control-panel-background-color: var(--ag-background-color-light);
+  --ag-subheader-background-color: var(--ag-background-color-light);
+  --ag-selected-row-background-color: rgba(33, 150, 243, 0.1);
+  --ag-row-hover-color: rgba(33, 150, 243, 0.1);
+}
+
+/* Dark theme specific styles */
+[data-ag-theme-mode="dark"] .ag-theme-quartz {
+  --ag-odd-row-background-color: var(--ag-odd-row-background-color-dark);
+  --ag-background-color: var(--ag-background-color-dark);
+  --ag-header-background-color: var(--ag-header-background-color-dark);
+  --ag-control-panel-background-color: var(--ag-background-color-dark);
+  --ag-subheader-background-color: var(--ag-background-color-dark);
+  --ag-selected-row-background-color: rgba(33, 150, 243, 0.1);
+  --ag-row-hover-color: rgba(33, 150, 243, 0.1);
+}
+
+/* Custom cell and row styles with dynamic spacing */
+.ag-cell {
+  font-size: var(--ag-font-size);
+  padding-left: var(--ag-spacing);
+  padding-right: var(--ag-spacing);
+}
+
+.ag-header-cell {
+  font-size: var(--ag-font-size);
+  padding-left: var(--ag-spacing);
+  padding-right: var(--ag-spacing);
+}
+
+/* Force alternating row colors */
+.ag-theme-quartz .ag-row-odd {
+  background-color: var(--ag-odd-row-background-color);
+}
+
+.ag-theme-quartz .ag-row-even {
+  background-color: var(--ag-background-color);
+} 
