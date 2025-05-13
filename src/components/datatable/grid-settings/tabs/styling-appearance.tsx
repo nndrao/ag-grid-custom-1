@@ -21,6 +21,7 @@ export function StylingAppearance({ settings, onChange, initialProperties = [] }
   // Update local state when settings prop changes
   useEffect(() => {
     // Filter out the theme property if it exists in the incoming settings
+    // Theme should only be set via theme-provider and the toolbar, not in the grid settings
     const { theme, ...restSettings } = settings as any;
     setLocalSettings(restSettings);
   }, [settings]);

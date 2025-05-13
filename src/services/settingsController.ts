@@ -156,12 +156,26 @@ export class SettingsController {
         if (value === undefined) return;
         const optKey = option as keyof GridOptions;
 
+        const ensureRowSelectionObject = (currentSelection: GridOptions['rowSelection']): Partial<RowSelectionOptions> => {
+          if (typeof currentSelection === 'object' && currentSelection !== null) {
+            return currentSelection;
+          }
+          // If it's a string ('single' or 'multiple') or undefined, start fresh with a mode
+          return { mode: currentSelection === 'singleRow' ? 'singleRow' : 'multiRow' };
+        };
+
         switch (optKey) {
           case 'rowMultiSelectWithClick':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableSelectionWithoutKeys: value as boolean };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              enableSelectionWithoutKeys: value as boolean 
+            };
             break;
           case 'suppressRowClickSelection':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableClickSelection: !(value as boolean) };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              enableClickSelection: !(value as boolean) 
+            };
             break;
           case 'enableRangeSelection':
             processedOptions.cellSelection = value as boolean;
@@ -169,22 +183,34 @@ export class SettingsController {
           case 'enableRangeHandle':
             processedOptions.cellSelection = typeof processedOptions.cellSelection === 'object' && processedOptions.cellSelection !== null 
                                               ? { ...processedOptions.cellSelection, handle: value as boolean } 
-                                              : { handle: value as boolean };
+                                              : { handle: value as boolean }; // This might still need adjustment based on CellSelectionOptions['handle'] type
             break;
           case 'suppressRowDeselection':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableClickSelection: !(value as boolean) };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              enableClickSelection: !(value as boolean) 
+            };
             break;
           case 'groupSelectsChildren':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), groupSelects: (value ? 'descendants' : 'none') as RowSelectionOptions['groupSelects'] };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              groupSelectsChildren: value as boolean // Assuming groupSelectsChildren is a valid boolean prop for RowSelectionOptions
+            };
             break;
           case 'groupRemoveSingleChildren':
             processedOptions.groupHideParentOfSingleChild = value as boolean;
             break;
           case 'suppressCopyRowsToClipboard':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), copySelectedRows: !(value as boolean) };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              copySelectedRows: !(value as boolean) 
+            };
             break;
           case 'suppressCopySingleCellRanges':
-            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), copySelectedRows: !(value as boolean) };
+            processedOptions.rowSelection = { 
+              ...ensureRowSelectionObject(processedOptions.rowSelection), 
+              copySelectedRows: !(value as boolean) 
+            };
             break;
           case 'suppressLoadingOverlay': // Deprecated
             processedOptions.loading = !(value as boolean); // Modern equivalent
@@ -207,6 +233,7 @@ export class SettingsController {
             Object.entries(this.currentGridOptions).forEach(([option, value]) => {
               const optKey = option as ManagedGridOptionKey;
               if (value !== undefined && !initialProperties.includes(optKey as keyof GridOptions)) {
+                // Exclude 'theme' from being set on the grid
                 if(optKey !== 'theme'){
                   gridApiInstance.setGridOption(optKey, value);
                 }

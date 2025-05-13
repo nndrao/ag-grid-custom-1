@@ -11,7 +11,6 @@ import { GridStateProvider } from '@/services/gridStateProvider';
 import { SettingsController } from '@/services/settingsController';
 import { useProfileManager } from '@/hooks/useProfileManager';
 import { useAgGridTheme } from './hooks/useAgGridTheme';
-import { useAgGridFont } from './hooks/useAgGridFont';
 import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation';
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useDefaultColumnDefs } from './config/default-column-defs';
@@ -54,7 +53,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Use our modular hooks
   const { theme } = useAgGridTheme();
-  const { handleFontChange } = useAgGridFont(settingsControllerRef.current, gridApiRef.current);
   useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   // Use type assertion to bypass type checking for profileManager
   useAgGridProfileSync(gridReady, profileManager as unknown as ProfileManager, settingsControllerRef.current);
@@ -62,11 +60,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Memoize important values to prevent re-renders
   const memoizedToolbarProps = useMemo(() => ({
-    onFontChange: handleFontChange,
     profileManager,
     settingsController: settingsControllerRef.current,
     gridApi: gridApiRef.current
-  }), [handleFontChange, profileManager, settingsControllerRef.current, gridApiRef.current]);
+  }), [profileManager, settingsControllerRef.current, gridApiRef.current]);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
