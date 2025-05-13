@@ -35,7 +35,7 @@ interface FontSelectorProps {
   currentFontValue: string;
 }
 
-export function FontSelector({ onFontChange, currentFontValue }: FontSelectorProps) {
+function FontSelectorBase({ onFontChange, currentFontValue }: FontSelectorProps) {
   console.log("🔤 FontSelector rendering");
   
   const handleValueChange = (value: string) => {
@@ -75,4 +75,7 @@ export function FontSelector({ onFontChange, currentFontValue }: FontSelectorPro
       </Select>
     </div>
   );
-} 
+}
+
+// Export a memoized version of the component to prevent unnecessary re-renders
+export const FontSelector = React.memo(FontSelectorBase); 

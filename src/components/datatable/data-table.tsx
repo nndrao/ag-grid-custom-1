@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ModuleRegistry, themeQuartz, GridApi, CellFocusedEvent } from 'ag-grid-community';
+import { 
+  ModuleRegistry, 
+  themeQuartz, 
+  GridApi, 
+  CellFocusedEvent,
+  GridReadyEvent
+} from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from '../datatable/data-table-toolbar'; // Corrected path
@@ -8,6 +14,9 @@ import { useKeyboardThrottler } from '../datatable/hooks/useKeyboardThrottler'; 
 import { useRapidKeypressNavigator } from '../datatable/hooks/useRapidKeypressNavigator'; // Corrected path
 import { keyboardThrottleConfig, rapidKeypressConfig } from '../datatable/config/keyboard-throttle-config'; // Corrected path
 import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
+import { GridStateProvider } from '@/services/gridStateProvider';
+import { SettingsController } from '@/services/settingsController';
+import { useProfileManager } from '@/hooks/useProfileManager';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
 
@@ -36,18 +45,23 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridApiRef = useRef<GridApi | null>(null);
   const isDarkMode = currentTheme === 'dark';
   const [gridReady, setGridReady] = useState(false);
-  // Remove unused state
-  // const [suppressColumnVirtualisation, setSuppressColumnVirtualisation] = useState(true);
-  // Remove unused refs
-  // const lastKeyNavTime = useRef<number>(0);
-  // const lastHandledCell = useRef<{ col: string | null, row: number | null }>({ col: null, row: null });
   
-  // Single font state for the application
-  const [gridFont, setGridFont] = useState('monospace');
-  console.log("🔍 Initial gridFont state:", gridFont);
+  // Use a ref to store the current font to avoid re-renders
+  const currentFontRef = useRef<string>('monospace');
   
-  // Use this ref to track fonts we've seen to avoid redundant cell refreshes
-  const appliedFontRef = useRef<string>(gridFont);
+  // Initialize services for profile management
+  const gridStateProvider = useRef(new GridStateProvider());
+  const settingsControllerRef = useRef<SettingsController | null>(null);
+
+  // Initialize settings controller once
+  useEffect(() => {
+    if (!settingsControllerRef.current) {
+      settingsControllerRef.current = new SettingsController(gridStateProvider.current);
+    }
+  }, []);
+
+  // Initialize profile manager - always call the hook, never conditionally
+  const profileManager = useProfileManager(settingsControllerRef.current);
 
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
@@ -58,9 +72,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Use rapid keypress navigator for enhanced keyboard navigation
   const { enable: enableRapidKeypress } = useRapidKeypressNavigator(gridApiRef.current, rapidKeypressConfig);
 
-  // Create theme based on current font
+  // Create theme with base parameters but handle fonts separately via CSS
   const theme = useMemo(() => {
-    console.log("🔍 Creating theme with font:", gridFont);
+    console.log("🔍 Creating base theme");
     const baseTheme = themeQuartz.withParams(
       {
         accentColor: "#8AAAA7",
@@ -71,10 +85,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         cellTextColor: "#000000",
         checkboxBorderRadius: 2,
         columnBorder: true,
-        fontFamily: gridFont,
+        // Don't include fontFamily in theme to avoid re-rendering
         fontSize: 14,
         headerBackgroundColor: "#EFEFEFD6",
-        headerFontFamily: gridFont,
+        // Don't include headerFontFamily in theme to avoid re-rendering
         headerFontSize: 14,
         headerFontWeight: 500,
         iconButtonBorderRadius: 1,
@@ -93,7 +107,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         borderRadius: 2,
         checkboxBorderRadius: 2,
         columnBorder: true,
-        fontFamily: gridFont,
+        // Don't include fontFamily in theme to avoid re-rendering
         browserColorScheme: "dark",
         chromeBackgroundColor: {
           ref: "foregroundColor",
@@ -102,7 +116,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         },
         fontSize: 14,
         foregroundColor: "#FFF",
-        headerFontFamily: gridFont,
+        // Don't include headerFontFamily in theme to avoid re-rendering
         headerFontSize: 14,
         iconSize: 12,
         inputBorderRadius: 2,
@@ -114,7 +128,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     );
 
     return baseTheme;
-  }, [gridFont]);
+  }, []); // No dependencies means theme won't regenerate when font changes
 
   // Handle keyboard navigation for ensuring column visibility
   useEffect(() => {
@@ -154,18 +168,44 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     setDarkMode(isDarkMode);
   }, [isDarkMode]);
 
-  // Apply theme to grid when it changes
-  useEffect(() => {
-    if (gridApiRef.current && appliedFontRef.current !== gridFont) {
-      console.log("🔍 Font changed in theme, refreshing grid once");
-      
-      // AG-Grid refreshCells is expensive, only do it when necessary
-      gridApiRef.current.refreshCells({ force: true });
-      
-      // Update our ref to track that we've applied this font
-      appliedFontRef.current = gridFont;
+  // Extremely simple font change handler - just set the CSS variable directly
+  const handleFontChange = useCallback((font: string) => {
+    console.log("🔍 Setting font to:", font);
+    
+    // Set the font directly on document root
+    document.documentElement.style.setProperty("--ag-font-family", font);
+    
+    // Update the ref instead of state
+    currentFontRef.current = font;
+    
+    // Only update settings controller for persisting the font preference
+    if (settingsControllerRef.current) {
+      settingsControllerRef.current.updateToolbarSettings({ fontFamily: font });
     }
-  }, [gridFont, theme]);
+  }, []);
+
+  // Listen for settings changes from the settings controller
+  useEffect(() => {
+    if (!settingsControllerRef.current) return;
+
+    const unsubscribe = settingsControllerRef.current.onToolbarSettingsChange((settings) => {
+      if (settings.fontFamily) {
+        // Apply font changes coming from settings updates (e.g. profile changes)
+        document.documentElement.style.setProperty("--ag-font-family", settings.fontFamily);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [settingsControllerRef]);
+
+  // Memoize important values to prevent re-renders
+  const memoizedToolbarProps = useMemo(() => ({
+    onFontChange: handleFontChange,
+    currentFontValue: currentFontRef.current,
+    profileManager: profileManager
+  }), [handleFontChange, profileManager]);
 
   const defaultColDef = useMemo(() => ({
     flex: 1,
@@ -200,29 +240,68 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     ];
   }, []);
 
-  // Optimized font change handler
-  const handleFontChange = useCallback((font: string) => {
-    console.log("🔍 Font changed manually to:", font);
+  // Handle grid ready event (more efficiently)
+  const onGridReady = useCallback((params: GridReadyEvent) => {
+    console.log("🔍 Grid ready event fired");
+    gridApiRef.current = params.api;
+    gridStateProvider.current.setGridApi(params.api);
+    console.log("🔍 Setting grid API");
+    setGridReady(true);
+    console.log("🔍 Grid ready state set to true");
     
-    if (font === appliedFontRef.current) {
-      console.log("🔍 Font is already applied, skipping refresh");
-      return;
+    // Apply active profile settings if available, but don't make any unnecessary refreshes
+    if (profileManager?.activeProfile && settingsControllerRef.current) {
+      console.log("🔍 Applying saved profile from grid ready event");
+      // Apply settings immediately but don't trigger additional refreshes
+      settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
     }
-    
-    // Update state (will trigger theme regeneration through useMemo)
-    setGridFont(font);
-    
-    // We don't call refreshCells here - it will be handled by the useEffect that watches gridFont
-  }, []);
+  }, [profileManager?.activeProfile]);
 
-  console.log("🔍 Current gridFont before render:", gridFont);
+  // Only watch for profile selection changes, not profile content updates
+  const activeProfileIdRef = useRef<string | null>(null);
+  
+  // Modify the useEffect that watches for activeProfile changes to properly handle fonts
+  useEffect(() => {
+    // Skip if grid not ready or no active profile
+    if (!gridReady || !profileManager?.activeProfile || !settingsControllerRef.current) return;
+    
+    const currentProfileId = profileManager.activeProfile.id;
+    
+    // Only apply settings if the profile ID changed (meaning we switched profiles)
+    // This avoids re-applying when just saving the current profile
+    if (currentProfileId !== activeProfileIdRef.current) {
+      console.log("🔍 Profile selection changed, applying new profile settings");
+      activeProfileIdRef.current = currentProfileId;
+      
+      // Apply the selected profile's settings
+      setTimeout(() => {
+        if (settingsControllerRef.current && profileManager?.activeProfile) {
+          const profileSettings = profileManager.activeProfile.settings;
+          
+          // Apply settings to grid
+          settingsControllerRef.current.applyProfileSettings(profileSettings);
+          
+          // Also directly update the font if it exists in the profile
+          if (profileSettings.toolbar?.fontFamily) {
+            // Update our font ref
+            currentFontRef.current = profileSettings.toolbar.fontFamily;
+            
+            // Apply font directly via CSS
+            document.documentElement.style.setProperty(
+              "--ag-font-family", 
+              profileSettings.toolbar.fontFamily
+            );
+          }
+        }
+      }, 50);
+    }
+  }, [gridReady, profileManager?.activeProfile]);
 
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
       <DataTableToolbar 
         table={null} 
-        onFontChange={handleFontChange} 
-        currentFontValue={gridFont}
+        {...memoizedToolbarProps}
         className="mb-2.5"
       />
 
@@ -271,22 +350,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
               { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
             ],
           }}
-        
           getContextMenuItems={getContextMenuItems}
-          onGridReady={(params) => {
-            console.log("🔍 Grid ready event fired");
-            gridApiRef.current = params.api;
-            console.log("🔍 Setting grid API");
-            setGridReady(true);
-            console.log("🔍 Grid ready state set to true");
-            
-            // Remove unused setTimeout logic
-            // setTimeout(() => {
-            //   setSuppressColumnVirtualisation(true);
-            //   console.log("🔍 Column virtualization suppressed");
-            // }, 100);
-          }}
-        
+          onGridReady={onGridReady}
           theme={theme}
         />
       </div>
