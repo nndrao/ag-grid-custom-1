@@ -36,8 +36,6 @@ interface FontSelectorProps {
 }
 
 function FontSelectorBase({ onFontChange }: FontSelectorProps) {
-  console.log("🔤 FontSelector rendering");
-  
   // Use internal state for font value, initialized from CSS variable
   const [fontValue, setFontValue] = useState(() => {
     const cssFont = getComputedStyle(document.documentElement).getPropertyValue('--ag-font-family').trim();
@@ -65,13 +63,10 @@ function FontSelectorBase({ onFontChange }: FontSelectorProps) {
   }, [fontValue]);
   
   const handleValueChange = (value: string) => {
-    console.log("🔤 Font value changed to:", value);
     setFontValue(value);
     if (onFontChange) {
-      console.log("🔤 Calling onFontChange with:", value);
       onFontChange(value);
     } else {
-      console.log("🔤 No onFontChange handler provided");
       // Set the CSS variable directly if no handler is provided
       document.documentElement.style.setProperty("--ag-font-family", value);
     }

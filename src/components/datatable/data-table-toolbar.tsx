@@ -1,14 +1,10 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Download, Filter, RefreshCw, Settings } from 'lucide-react';
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { FontSelector } from './font-selector'; // Updated path
 import { ProfileSelector } from './profile/ProfileSelector';
 import { ProfileSaveButton } from './profile/ProfileSaveButton';
 import { ProfileDeleteButton } from './profile/ProfileDeleteButton';
 import { ProfileManager } from './profile/ProfileManager';
 import { useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast'; // Fixed import path
+import { useToast } from '@/components/ui/use-toast';
+import { FontSelector } from './font-selector';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -33,8 +29,7 @@ export function DataTableToolbar<TData>({
   profileManager,
   className 
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table ? table.getState().columnFilters.length > 0 : false;
-  const { toast } = useToast(); // Use the hook at component level
+  const { toast } = useToast();
   
   const handleCreateProfile = useCallback(async (name: string) => {
     if (profileManager) {
