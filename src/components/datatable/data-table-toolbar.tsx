@@ -50,17 +50,21 @@ export function DataTableToolbar<TData>({
       // Save current settings without re-applying them
       await profileManager.saveCurrentProfile();
       
-      // Show success message
+      // Show enhanced success message
       toast({
-        title: "Profile Saved",
-        description: "Your grid profile has been successfully updated.",
+        title: "Profile Saved Successfully",
+        description: `Profile "${profileManager.activeProfile.name}" has been updated with your current grid settings and preferences.`,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+        duration: 3000,
       });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to save profile. Please try again.",
-        variant: "destructive"
+        title: "Error Saving Profile",
+        description: "Failed to save profile. Please try again or check console for details.",
+        variant: "destructive",
+        duration: 5000,
       });
     }
   }, [profileManager, toast]);
