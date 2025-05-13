@@ -17,8 +17,7 @@ import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
 
-// Import custom AG Grid styles
-import './ag-grid-styles.css';
+// Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
 import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -55,7 +54,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Use our modular hooks
   const { theme } = useAgGridTheme();
-  const { handleFontChange } = useAgGridFont(settingsControllerRef.current);
+  const { handleFontChange } = useAgGridFont(settingsControllerRef.current, gridApiRef.current);
   useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   // Use type assertion to bypass type checking for profileManager
   useAgGridProfileSync(gridReady, profileManager as unknown as ProfileManager, settingsControllerRef.current);
@@ -65,8 +64,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const memoizedToolbarProps = useMemo(() => ({
     onFontChange: handleFontChange,
     profileManager,
-    settingsController: settingsControllerRef.current
-  }), [handleFontChange, profileManager, settingsControllerRef.current]);
+    settingsController: settingsControllerRef.current,
+    gridApi: gridApiRef.current
+  }), [handleFontChange, profileManager, settingsControllerRef.current, gridApiRef.current]);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
@@ -90,7 +90,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
       <div className="flex-1 overflow-hidden">
         <AgGridReact
-          className="ag-theme-quartz"
           ref={gridRef}
           rowData={dataRow}
           columnDefs={columnDefs}
@@ -99,8 +98,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           rowGroupPanelShow="always"
           groupDisplayType="singleColumn"
           groupDefaultExpanded={-1}
-          cellSelection={{ handle: { mode: 'fill' } }}
-          suppressMenuHide={true}
+          cellSelection={true}
+          rowSelection={{
+            mode: 'multiRow',
+            enableClickSelection: true,
+            enableSelectionWithoutKeys: true
+          }}
+          loading={false}
           dataTypeDefinitions={{
             string: {
               baseDataType: 'text',

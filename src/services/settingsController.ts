@@ -1,10 +1,17 @@
-import { ProfileSettings, ToolbarSettings } from '@/types/profile.types';
+import { ProfileSettings, ToolbarSettings, GridSettings } from '@/types/profile.types';
 import { GridStateProvider } from './gridStateProvider';
+import { GridApi as AgGridApi, GridOptions, ManagedGridOptionKey, ColDef, ColumnState, RowSelectionOptions, CellSelectionOptions } from 'ag-grid-community';
+
+// Define a more specific type for grid options
+export type GridOptionValue = string | number | boolean | object | null | undefined | Function | ColDef[];
+export type GridOptionsMap = Partial<GridOptions>; // Use GridOptions for better type safety
 
 export class SettingsController {
   private gridStateProvider: GridStateProvider;
   private currentToolbarSettings: Partial<ToolbarSettings> = {};
+  private currentGridOptions: GridOptionsMap = {};
   private settingsChangeListeners: Array<(settings: Partial<ToolbarSettings>) => void> = [];
+  private gridOptionsChangeListeners: Array<(options: GridOptionsMap) => void> = [];
 
   constructor(gridStateProvider: GridStateProvider) {
     this.gridStateProvider = gridStateProvider;
@@ -33,13 +40,39 @@ export class SettingsController {
     return { ...this.currentToolbarSettings };
   }
 
+  // Update grid options
+  updateGridOptions(options: GridOptionsMap): void {
+    this.currentGridOptions = { ...this.currentGridOptions, ...options };
+    
+    // Notify any listeners about the options change
+    this.gridOptionsChangeListeners.forEach(listener => {
+      listener(this.currentGridOptions);
+    });
+  }
+
+  // Method to register a listener for grid options changes
+  onGridOptionsChange(listener: (options: GridOptionsMap) => void): () => void {
+    this.gridOptionsChangeListeners.push(listener);
+    
+    // Return a function to unregister the listener
+    return () => {
+      this.gridOptionsChangeListeners = this.gridOptionsChangeListeners.filter(l => l !== listener);
+    };
+  }
+
+  getCurrentGridOptions(): GridOptionsMap {
+    return { ...this.currentGridOptions };
+  }
+
   // Collect current grid and toolbar settings
   collectCurrentSettings(): ProfileSettings {
     // Create a clean copy of all settings to avoid references that could trigger side effects
     return {
       toolbar: { ...this.currentToolbarSettings } as ToolbarSettings,
       grid: this.gridStateProvider.extractGridState(),
-      custom: {}
+      custom: {
+        gridOptions: { ...this.currentGridOptions }
+      }
     };
   }
 
@@ -57,55 +90,138 @@ export class SettingsController {
     
     // Apply grid settings
     if (settings.grid) {
-      // Extract column widths from the grid state if available
-      const columnWidths: Record<string, number> = {};
+      const columnWidthsToApply: { key: string; newWidth: number }[] = [];
       
       // Get widths from columnState
       if (settings.grid.columnState) {
-        settings.grid.columnState.forEach(col => {
-          if (col.width !== undefined) {
-            columnWidths[col.colId] = col.width;
+        settings.grid.columnState.forEach((col: ColumnState) => {
+          if (col.colId && col.width !== undefined) {
+            columnWidthsToApply.push({ key: col.colId, newWidth: col.width });
           }
         });
       }
       
       // Get widths from columnSizingState (more specific)
-      if (settings.grid.columnSizingState?.columnWidths) {
-        Object.assign(columnWidths, settings.grid.columnSizingState.columnWidths);
+      const gridSettingsWithPotentialSizing = settings.grid as any; // Keep `any` for this specific community-driven property
+      if (gridSettingsWithPotentialSizing.columnSizingState?.columnWidths) {
+        Object.entries(gridSettingsWithPotentialSizing.columnSizingState.columnWidths).forEach(([key, value]) => {
+          // Remove if already present from columnState to prioritize columnSizingState
+          const existingIndex = columnWidthsToApply.findIndex(c => c.key === key);
+          if (existingIndex > -1) columnWidthsToApply.splice(existingIndex, 1);
+          columnWidthsToApply.push({ key, newWidth: value as number });
+        });
       }
       
       console.log("🔧 Applying grid state with column info:", 
-        Object.keys(columnWidths).length ? 
-        `${Object.keys(columnWidths).length} column widths to preserve` : 
+        columnWidthsToApply.length ? 
+        `${columnWidthsToApply.length} column widths to preserve` : 
         "No column width information available");
       
       // Apply grid state
       setTimeout(() => {
         // Apply all grid state first
-        this.gridStateProvider.applyGridState(settings.grid);
+        this.gridStateProvider.applyGridState(settings.grid as GridSettings);
         
         // Then force the exact column widths
-        if (Object.keys(columnWidths).length > 0 && this.gridStateProvider.getGridApi()) {
-          setTimeout(() => {
-            console.log("🔧 Forcing exact column widths:", columnWidths);
-            const api = this.gridStateProvider.getGridApi();
-            
-            if (api) {
-              const allColumns = api.getAllGridColumns();
-              allColumns.forEach(col => {
-                const colId = col.getColId();
-                if (columnWidths[colId]) {
-                  // Force the exact width for this column
-                  col.setActualWidth(columnWidths[colId]);
-                }
-              });
-              
-              // Force refresh to reflect the restored widths
-              api.refreshHeader();
-            }
-          }, 100);
+        const gridApiInstance = this.gridStateProvider.getGridApi();
+        if (columnWidthsToApply.length > 0 && gridApiInstance) {
+          const columnApi = gridApiInstance.columnApi; // Corrected: Access columnApi directly
+          if (columnApi) {
+            setTimeout(() => {
+              console.log("🔧 Forcing exact column widths:", columnWidthsToApply);
+              columnApi.setColumnWidths(columnWidthsToApply);
+              gridApiInstance.refreshHeader(); // Refresh header after width changes
+            }, 100);
+          }
         }
       }, 50);
+    }
+    
+    // Apply custom grid options if available
+    if (settings.custom?.gridOptions) {
+      const processedOptions: GridOptionsMap = {};
+      const initialProperties: Array<keyof GridOptions> = [
+        'rowModelType',
+        'cacheQuickFilter',
+        'paginationPageSizeSelector',
+        'pivotPanelShow',
+        'undoRedoCellEditing',
+        'undoRedoCellEditingLimit',
+        'suppressAutoSize',
+        'valueCache',
+        // suppressLoadingOverlay is handled by the 'loading' property now
+      ];
+
+      Object.entries(settings.custom.gridOptions).forEach(([option, value]) => {
+        if (value === undefined) return;
+        const optKey = option as keyof GridOptions;
+
+        switch (optKey) {
+          case 'rowMultiSelectWithClick':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableSelectionWithoutKeys: value as boolean };
+            break;
+          case 'suppressRowClickSelection':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableClickSelection: !(value as boolean) };
+            break;
+          case 'enableRangeSelection':
+            processedOptions.cellSelection = value as boolean;
+            break;
+          case 'enableRangeHandle':
+            processedOptions.cellSelection = typeof processedOptions.cellSelection === 'object' && processedOptions.cellSelection !== null 
+                                              ? { ...processedOptions.cellSelection, handle: value as boolean } 
+                                              : { handle: value as boolean };
+            break;
+          case 'suppressRowDeselection':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), enableClickSelection: !(value as boolean) };
+            break;
+          case 'groupSelectsChildren':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), groupSelects: (value ? 'descendants' : 'none') as RowSelectionOptions['groupSelects'] };
+            break;
+          case 'groupRemoveSingleChildren':
+            processedOptions.groupHideParentOfSingleChild = value as boolean;
+            break;
+          case 'suppressCopyRowsToClipboard':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), copySelectedRows: !(value as boolean) };
+            break;
+          case 'suppressCopySingleCellRanges':
+            processedOptions.rowSelection = { ...(processedOptions.rowSelection || {}), copySelectedRows: !(value as boolean) };
+            break;
+          case 'suppressLoadingOverlay': // Deprecated
+            processedOptions.loading = !(value as boolean); // Modern equivalent
+            break;
+          default:
+            (processedOptions as any)[optKey] = value;
+            break;
+        }
+      });
+
+      // Update our internal reference with processed options
+      this.currentGridOptions = { ...processedOptions };
+      
+      // Apply to grid if possible
+      const gridApiInstance = this.gridStateProvider.getGridApi();
+      if (gridApiInstance) {
+        setTimeout(() => {
+          try {
+            console.log("🔧 Applying processed custom grid options:", this.currentGridOptions);
+            Object.entries(this.currentGridOptions).forEach(([option, value]) => {
+              const optKey = option as ManagedGridOptionKey;
+              if (value !== undefined && !initialProperties.includes(optKey as keyof GridOptions)) {
+                if(optKey !== 'theme'){
+                  gridApiInstance.setGridOption(optKey, value);
+                }
+              }
+            });
+          } catch (error) {
+            console.error("❌ Error applying grid options:", error);
+          }
+        }, 100);
+      }
+      
+      // Notify listeners with processed options
+      this.gridOptionsChangeListeners.forEach(listener => {
+        listener(this.currentGridOptions);
+      });
     }
   }
 } 

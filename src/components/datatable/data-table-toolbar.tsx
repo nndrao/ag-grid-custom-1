@@ -6,6 +6,9 @@ import { Label } from '@/components/ui/label';
 import { SettingsController } from '@/services/settingsController';
 import { ProfileButtonGroup } from './profile/ProfileButtonGroup';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
+import { GridApi } from 'ag-grid-community';
+import { useAgGridTheme } from './hooks/useAgGridTheme';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -23,6 +26,7 @@ interface DataTableToolbarProps<TData> {
   profileManager?: ProfileManagerInterface | null;
   className?: string;
   settingsController?: SettingsController | null;
+  gridApi?: GridApi | null;
 }
 
 // Default values for AG Grid spacing and font size
@@ -34,11 +38,13 @@ export function DataTableToolbar<TData>({
   onFontChange, 
   profileManager,
   className,
-  settingsController
+  settingsController,
+  gridApi
 }: DataTableToolbarProps<TData>) {
   const { toast } = useToast();
   const [spacing, setSpacing] = useState(DEFAULT_SPACING);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const { updateThemeParams } = useAgGridTheme();
   
   // Initialize values from settingsController on mount
   useEffect(() => {
@@ -46,14 +52,28 @@ export function DataTableToolbar<TData>({
       const currentSettings = settingsController.getCurrentToolbarSettings();
       if (currentSettings.spacing) {
         setSpacing(currentSettings.spacing);
-        document.documentElement.style.setProperty("--ag-spacing", `${currentSettings.spacing}px`);
+        
+        // Apply to grid if available
+        if (gridApi) {
+          const updatedTheme = updateThemeParams({ spacing: currentSettings.spacing }, 'both');
+          gridApi.setGridOption('theme', updatedTheme);
+        }
       }
+      
       if (currentSettings.fontSize) {
         setFontSize(currentSettings.fontSize);
-        document.documentElement.style.setProperty("--ag-font-size", `${currentSettings.fontSize}px`);
+        
+        // Apply to grid if available
+        if (gridApi) {
+          const updatedTheme = updateThemeParams({ 
+            fontSize: currentSettings.fontSize,
+            headerFontSize: currentSettings.fontSize
+          }, 'both');
+          gridApi.setGridOption('theme', updatedTheme);
+        }
       }
     }
-  }, [settingsController]);
+  }, [settingsController, gridApi, updateThemeParams]);
 
   // Subscribe to settings changes
   useEffect(() => {
@@ -62,18 +82,32 @@ export function DataTableToolbar<TData>({
     const unsubscribe = settingsController.onToolbarSettingsChange((settings) => {
       if (settings.spacing !== undefined) {
         setSpacing(settings.spacing);
-        document.documentElement.style.setProperty("--ag-spacing", `${settings.spacing}px`);
+        
+        // Apply to grid if available
+        if (gridApi) {
+          const updatedTheme = updateThemeParams({ spacing: settings.spacing }, 'both');
+          gridApi.setGridOption('theme', updatedTheme);
+        }
       }
+      
       if (settings.fontSize !== undefined) {
         setFontSize(settings.fontSize);
-        document.documentElement.style.setProperty("--ag-font-size", `${settings.fontSize}px`);
+        
+        // Apply to grid if available
+        if (gridApi) {
+          const updatedTheme = updateThemeParams({ 
+            fontSize: settings.fontSize,
+            headerFontSize: settings.fontSize
+          }, 'both');
+          gridApi.setGridOption('theme', updatedTheme);
+        }
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [settingsController]);
+  }, [settingsController, gridApi, updateThemeParams]);
   
   const handleCreateProfile = useCallback(async (name: string) => {
     if (profileManager) {
@@ -117,21 +151,36 @@ export function DataTableToolbar<TData>({
   const handleSpacingChange = useCallback((value: number[]) => {
     const newSpacing = value[0];
     setSpacing(newSpacing);
-    document.documentElement.style.setProperty("--ag-spacing", `${newSpacing}px`);
+    
     if (settingsController) {
       settingsController.updateToolbarSettings({ spacing: newSpacing });
     }
-  }, [settingsController]);
+    
+    // If grid API is available, update the grid theme directly
+    if (gridApi) {
+      const updatedTheme = updateThemeParams({ spacing: newSpacing }, 'both');
+      gridApi.setGridOption('theme', updatedTheme);
+    }
+  }, [settingsController, gridApi, updateThemeParams]);
 
   // Handle font size change
   const handleFontSizeChange = useCallback((value: number[]) => {
     const newFontSize = value[0];
     setFontSize(newFontSize);
-    document.documentElement.style.setProperty("--ag-font-size", `${newFontSize}px`);
+    
     if (settingsController) {
       settingsController.updateToolbarSettings({ fontSize: newFontSize });
     }
-  }, [settingsController]);
+    
+    // If grid API is available, update the grid theme directly
+    if (gridApi) {
+      const updatedTheme = updateThemeParams({ 
+        fontSize: newFontSize,
+        headerFontSize: newFontSize
+      }, 'both');
+      gridApi.setGridOption('theme', updatedTheme);
+    }
+  }, [settingsController, gridApi, updateThemeParams]);
 
   return (
     <TooltipProvider>
@@ -179,8 +228,14 @@ export function DataTableToolbar<TData>({
           </div>
         </div>
         
-        {/* Font selector on the right */}
+        {/* Font selector and grid settings on the right */}
         <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          {gridApi && (
+            <GridSettingsMenu 
+              gridApi={gridApi} 
+              settingsController={settingsController} 
+            />
+          )}
           <FontSelector 
             onFontChange={onFontChange}
             compact

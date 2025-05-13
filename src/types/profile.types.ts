@@ -27,6 +27,7 @@ export interface GridSettings {
 }
 
 export interface CustomSettings {
+  gridOptions?: Record<string, any>;
   [key: string]: any;
 }
 

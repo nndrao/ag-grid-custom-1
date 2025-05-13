@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { themeQuartz } from 'ag-grid-community';
 import { useTheme } from '@/components/theme-provider';
 
@@ -7,12 +7,63 @@ function setDarkMode(enabled: boolean) {
   document.body.dataset.agThemeMode = enabled ? "dark" : "light";
 }
 
-// Define colors for reuse - 5% darker light mode
-const LIGHT_BG_COLOR = "#EAEAEA"; // Darker than previous #F7F7F7
-const LIGHT_ODD_ROW_COLOR = "#E2E6E6"; // Darker than previous #EEF1F1
-const LIGHT_HEADER_BG = "#E6E6E6D6"; // Darker than previous #EFEFEFD6
-const DARK_ODD_ROW_COLOR = "#2A2E35";
-const DARK_BG_COLOR = "#1f2836";
+// Define default theme parameters for light and dark modes
+const LIGHT_THEME_PARAMS = {
+  accentColor: "#8AAAA7",
+  backgroundColor: "#F7F7F7",
+  borderColor: "#23202029",
+  browserColorScheme: "light",
+  buttonBorderRadius: 2,
+  cellTextColor: "#000000",
+  checkboxBorderRadius: 2,
+  columnBorder: true,
+  fontFamily: {
+    googleFont: "Inter",
+  },
+  fontSize: 14,
+  headerBackgroundColor: "#EFEFEFD6",
+  headerFontFamily: {
+    googleFont: "Inter",
+  },
+  headerFontSize: 14,
+  headerFontWeight: 500,
+  iconButtonBorderRadius: 1,
+  iconSize: 12,
+  inputBorderRadius: 2,
+  oddRowBackgroundColor: "#EEF1F1E8",
+  spacing: 6,
+  wrapperBorderRadius: 2,
+};
+
+const DARK_THEME_PARAMS = {
+  accentColor: "#8AAAA7",
+  backgroundColor: "#1f2836",
+  borderRadius: 2,
+  checkboxBorderRadius: 2,
+  columnBorder: true,
+  fontFamily: {
+    googleFont: "Inter",
+  },
+  browserColorScheme: "dark",
+  chromeBackgroundColor: {
+    ref: "foregroundColor",
+    mix: 0.07,
+    onto: "backgroundColor",
+  },
+  fontSize: 14,
+  foregroundColor: "#FFF",
+  headerFontFamily: {
+    googleFont: "Inter",
+  },
+  headerFontSize: 14,
+  iconSize: 12,
+  inputBorderRadius: 2,
+  oddRowBackgroundColor: "#2A2E35",
+  spacing: 6,
+  wrapperBorderRadius: 2,
+};
+
+export type ThemeParams = typeof LIGHT_THEME_PARAMS;
 
 export function useAgGridTheme() {
   const { theme: currentTheme } = useTheme();
@@ -21,98 +72,52 @@ export function useAgGridTheme() {
   // Update AG Grid theme when app theme changes
   useEffect(() => {
     setDarkMode(isDarkMode);
-    
-    // Ensure default CSS variables are set (in case they're not set elsewhere)
-    // These will be overridden by the sliders if changed
-    const spacingStyle = document.documentElement.style.getPropertyValue('--ag-spacing');
-    const fontSizeStyle = document.documentElement.style.getPropertyValue('--ag-font-size');
-    
-    if (!spacingStyle) {
-      document.documentElement.style.setProperty('--ag-spacing', '6px');
-    }
-    
-    if (!fontSizeStyle) {
-      document.documentElement.style.setProperty('--ag-font-size', '14px');
-    }
-
-    // Set the odd row background color based on current theme
-    document.documentElement.style.setProperty(
-      '--ag-odd-row-background-color', 
-      isDarkMode ? DARK_ODD_ROW_COLOR : LIGHT_ODD_ROW_COLOR
-    );
-    
-    // Also set the background color
-    document.documentElement.style.setProperty(
-      '--ag-background-color', 
-      isDarkMode ? DARK_BG_COLOR : LIGHT_BG_COLOR
-    );
-    
-    // Set header background color
-    document.documentElement.style.setProperty(
-      '--ag-header-background-color', 
-      isDarkMode ? "rgba(255, 255, 255, 0.07)" : LIGHT_HEADER_BG
-    );
   }, [isDarkMode]);
 
-  // Create theme with base parameters but handle fonts separately via CSS
+  // Create theme with parameters
   const agGridTheme = useMemo(() => {
-    const baseTheme = themeQuartz.withParams(
-      {
-        accentColor: "#8AAAA7",
-        backgroundColor: LIGHT_BG_COLOR,
-        borderColor: "#23202029",
-        browserColorScheme: "light",
-        buttonBorderRadius: 2,
-        cellTextColor: "#000000",
-        checkboxBorderRadius: 2,
-        columnBorder: true,
-        // Don't include fontFamily in theme to avoid re-rendering
-        // Don't include fontSize as we're controlling it via CSS variable
-        headerBackgroundColor: LIGHT_HEADER_BG,
-        // Don't include headerFontFamily in theme to avoid re-rendering
-        headerFontSize: 14,
-        headerFontWeight: 500,
-        iconButtonBorderRadius: 1,
-        iconSize: 12,
-        inputBorderRadius: 2,
-        oddRowBackgroundColor: LIGHT_ODD_ROW_COLOR,
-        // Don't include spacing as we're controlling it via CSS variable
-        wrapperBorderRadius: 2,
-      },
-      "light"
-    )
-    .withParams(
-      {
-        accentColor: "#8AAAA7",
-        backgroundColor: DARK_BG_COLOR,
-        borderRadius: 2,
-        checkboxBorderRadius: 2,
-        columnBorder: true,
-        // Don't include fontFamily in theme to avoid re-rendering
-        browserColorScheme: "dark",
-        chromeBackgroundColor: {
-          ref: "foregroundColor",
-          mix: 0.07,
-          onto: "backgroundColor",
-        },
-        // Don't include fontSize as we're controlling it via CSS variable
-        foregroundColor: "#FFF",
-        // Don't include headerFontFamily in theme to avoid re-rendering
-        headerFontSize: 14,
-        iconSize: 12,
-        inputBorderRadius: 2,
-        oddRowBackgroundColor: DARK_ODD_ROW_COLOR,
-        // Don't include spacing as we're controlling it via CSS variable
-        wrapperBorderRadius: 2,
-      },
-      "dark"
-    );
+    return themeQuartz
+      .withParams(LIGHT_THEME_PARAMS, "light")
+      .withParams(DARK_THEME_PARAMS, "dark");
+  }, []);
 
-    return baseTheme;
-  }, []); // No dependencies means theme won't regenerate when font changes
+  // Function to update theme parameters dynamically
+  const updateThemeParams = useCallback((params: Partial<ThemeParams>, mode: 'light' | 'dark' | 'both' = 'both') => {
+    // First create a copy of the base theme
+    let updatedTheme = themeQuartz;
+    
+    // Apply light params if updating light or both
+    if (mode === 'light' || mode === 'both') {
+      const lightParams = {
+        ...LIGHT_THEME_PARAMS,
+        ...params,
+      };
+      updatedTheme = updatedTheme.withParams(lightParams, "light");
+    } else {
+      // Keep original light params
+      updatedTheme = updatedTheme.withParams(LIGHT_THEME_PARAMS, "light");
+    }
+    
+    // Apply dark params if updating dark or both
+    if (mode === 'dark' || mode === 'both') {
+      const darkParams = {
+        ...DARK_THEME_PARAMS,
+        ...params,
+      };
+      updatedTheme = updatedTheme.withParams(darkParams, "dark");
+    } else {
+      // Keep original dark params
+      updatedTheme = updatedTheme.withParams(DARK_THEME_PARAMS, "dark");
+    }
+    
+    return updatedTheme;
+  }, []);
 
   return {
     theme: agGridTheme,
-    isDarkMode
+    isDarkMode,
+    updateThemeParams,
+    lightThemeParams: LIGHT_THEME_PARAMS,
+    darkThemeParams: DARK_THEME_PARAMS
   };
 } 
