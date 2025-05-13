@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -32,19 +33,47 @@ const MONOSPACE_FONTS = [
 
 interface FontSelectorProps {
   onFontChange?: (font: string) => void;
-  currentFontValue: string;
 }
 
-function FontSelectorBase({ onFontChange, currentFontValue }: FontSelectorProps) {
+function FontSelectorBase({ onFontChange }: FontSelectorProps) {
   console.log("🔤 FontSelector rendering");
+  
+  // Use internal state for font value, initialized from CSS variable
+  const [fontValue, setFontValue] = useState(() => {
+    const cssFont = getComputedStyle(document.documentElement).getPropertyValue('--ag-font-family').trim();
+    return cssFont || "monospace";
+  });
+  
+  // Listen for CSS variable changes from outside
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'style') {
+          const newFont = getComputedStyle(document.documentElement).getPropertyValue('--ag-font-family').trim();
+          if (newFont && newFont !== fontValue) {
+            setFontValue(newFont);
+          }
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [fontValue]);
   
   const handleValueChange = (value: string) => {
     console.log("🔤 Font value changed to:", value);
+    setFontValue(value);
     if (onFontChange) {
       console.log("🔤 Calling onFontChange with:", value);
       onFontChange(value);
     } else {
       console.log("🔤 No onFontChange handler provided");
+      // Set the CSS variable directly if no handler is provided
+      document.documentElement.style.setProperty("--ag-font-family", value);
     }
   };
 
@@ -52,7 +81,7 @@ function FontSelectorBase({ onFontChange, currentFontValue }: FontSelectorProps)
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Grid Font:</span>
       <Select 
-        value={currentFontValue}
+        value={fontValue}
         onValueChange={handleValueChange}
       >
         <SelectTrigger className="w-[180px]">

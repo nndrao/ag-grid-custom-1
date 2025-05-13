@@ -8,12 +8,12 @@ import {
 } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
-import { DataTableToolbar } from '../datatable/data-table-toolbar'; // Corrected path
+import { DataTableToolbar } from '@/components/datatable/data-table-toolbar';
 import { useTheme } from '@/components/theme-provider';
-import { useKeyboardThrottler } from '../datatable/hooks/useKeyboardThrottler'; // Corrected path
-import { useRapidKeypressNavigator } from '../datatable/hooks/useRapidKeypressNavigator'; // Corrected path
-import { keyboardThrottleConfig, rapidKeypressConfig } from '../datatable/config/keyboard-throttle-config'; // Corrected path
-import type { GetContextMenuItemsParams, DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
+import { useKeyboardThrottler } from '@/components/datatable/hooks/useKeyboardThrottler';
+import { useRapidKeypressNavigator } from '@/components/datatable/hooks/useRapidKeypressNavigator';
+import { keyboardThrottleConfig, rapidKeypressConfig } from '@/components/datatable/config/keyboard-throttle-config';
+import type { DefaultMenuItem, MenuItemDef } from 'ag-grid-community';
 import { GridStateProvider } from '@/services/gridStateProvider';
 import { SettingsController } from '@/services/settingsController';
 import { useProfileManager } from '@/hooks/useProfileManager';
@@ -28,7 +28,7 @@ export interface ColumnDef {
 
 interface DataTableProps {
   columnDefs: ColumnDef[];
-  dataRow: Record<string, unknown>[]; // Use unknown instead of any
+  dataRow: Record<string, unknown>[];
 }
 
 // Function to set dark mode on document body for AG Grid
@@ -46,7 +46,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const isDarkMode = currentTheme === 'dark';
   const [gridReady, setGridReady] = useState(false);
   
-  // Use a ref to store the current font to avoid re-renders
+  // Just use a ref to store the current font to avoid re-renders
   const currentFontRef = useRef<string>('monospace');
   
   // Initialize services for profile management
@@ -66,7 +66,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
     ...keyboardThrottleConfig,
-    targetElement: document.body, // Use document.body instead of document as any
+    targetElement: document.body,
   });
 
   // Use rapid keypress navigator for enhanced keyboard navigation
@@ -140,14 +140,13 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     enableRapidKeypress();
     
     // Add a focused cell changed listener for column visibility
-    // Provide correct event type
     const onFocusedCellChanged = (params: CellFocusedEvent) => {
       if (!params.column) return;
       
       try {
         // Ensure the column is visible in the viewport
         api.ensureColumnVisible(params.column);
-      } catch (err: unknown) { // Use unknown for error type
+      } catch (err: unknown) {
         console.error('Error handling focused cell change:', err);
       }
     };
@@ -175,7 +174,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // Set the font directly on document root
     document.documentElement.style.setProperty("--ag-font-family", font);
     
-    // Update the ref instead of state
+    // Update the ref
     currentFontRef.current = font;
     
     // Only update settings controller for persisting the font preference
@@ -192,19 +191,19 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       if (settings.fontFamily) {
         // Apply font changes coming from settings updates (e.g. profile changes)
         document.documentElement.style.setProperty("--ag-font-family", settings.fontFamily);
+        currentFontRef.current = settings.fontFamily;
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [settingsControllerRef]);
+  }, []);
 
   // Memoize important values to prevent re-renders
   const memoizedToolbarProps = useMemo(() => ({
     onFontChange: handleFontChange,
-    currentFontValue: currentFontRef.current,
-    profileManager: profileManager
+    profileManager
   }), [handleFontChange, profileManager]);
 
   const defaultColDef = useMemo(() => ({
@@ -225,9 +224,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     },
   }), []);
 
-  // Disable eslint rule for unused params as it's required by AG Grid type but not used here
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getContextMenuItems = useCallback((params: GetContextMenuItemsParams): (DefaultMenuItem | MenuItemDef)[] => {
+  const getContextMenuItems = useCallback((): (DefaultMenuItem | MenuItemDef)[] => {
     return [
       "autoSizeAll",
       "resetColumns",
@@ -255,7 +252,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       // Apply settings immediately but don't trigger additional refreshes
       settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
     }
-  }, [profileManager?.activeProfile]);
+  }, [profileManager]);
 
   // Only watch for profile selection changes, not profile content updates
   const activeProfileIdRef = useRef<string | null>(null);
@@ -295,7 +292,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         }
       }, 50);
     }
-  }, [gridReady, profileManager?.activeProfile]);
+  }, [gridReady, profileManager]);
 
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">

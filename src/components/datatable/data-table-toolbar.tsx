@@ -23,7 +23,6 @@ interface ProfileManagerInterface {
 interface DataTableToolbarProps<TData> {
   table: any;
   onFontChange?: (font: string) => void;
-  currentFontValue: string;
   profileManager?: ProfileManagerInterface | null;
   className?: string;
 }
@@ -31,7 +30,6 @@ interface DataTableToolbarProps<TData> {
 export function DataTableToolbar<TData>({ 
   table, 
   onFontChange, 
-  currentFontValue, 
   profileManager,
   className 
 }: DataTableToolbarProps<TData>) {
@@ -100,7 +98,6 @@ export function DataTableToolbar<TData>({
       <div className="flex items-center gap-2">
         <FontSelector 
           onFontChange={onFontChange} 
-          currentFontValue={currentFontValue}
         />
       </div>
     </div>
