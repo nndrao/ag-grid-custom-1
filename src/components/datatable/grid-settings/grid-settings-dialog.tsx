@@ -54,6 +54,7 @@ export function GridSettingsDialog({
   const [initialValues, setInitialValues] = useState<GridOptionsMap>({});
 
   // Load current grid settings when dialog opens
+  // Only rehydrate gridSettings when dialog is first opened
   useEffect(() => {
     if (open && gridApi) {
       // Start with default grid options
@@ -110,6 +111,8 @@ export function GridSettingsDialog({
       };
       
       // Column defaults - ensure this is properly hydrated
+      // DEBUG: Log mergedSettings.defaultColDef to check for alignment properties
+      console.debug('[GridSettingsDialog] mergedSettings.defaultColDef:', mergedSettings.defaultColDef);
       currentSettings.defaults = {
         defaultColDef: mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef
       };
@@ -253,17 +256,33 @@ export function GridSettingsDialog({
       setGridSettings(currentSettings);
       setHasChanges(false);
     }
-  }, [open, gridApi, settingsController]);
+  }, [open, gridApi]);
 
   // Handler for changes to grid settings
   const handleSettingChange = useCallback((category: string, option: string, value: any) => {
-    setGridSettings(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [option]: value
+    setGridSettings(prev => {
+      // Special handling for ColumnDefaults: merge defaultColDef deeply
+      if (category === 'defaults' && option === 'defaultColDef') {
+        return {
+          ...prev,
+          defaults: {
+            ...prev.defaults,
+            defaultColDef: {
+              ...prev.defaults?.defaultColDef,
+              ...value
+            }
+          }
+        };
       }
-    }));
+      // Standard update for all other cases
+      return {
+        ...prev,
+        [category]: {
+          ...prev[category],
+          [option]: value
+        }
+      };
+    });
     setHasChanges(true);
   }, []);
 

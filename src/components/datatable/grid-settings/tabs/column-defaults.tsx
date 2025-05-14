@@ -44,9 +44,12 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
   const [localSettings, setLocalSettings] = useState({
     defaultColDef: settings.defaultColDef || {}
   });
+  // DEBUG: Initial state
+  console.debug('[ColumnDefaults] Initial localSettings.defaultColDef:', settings.defaultColDef);
   
   // Update local state when settings prop changes
   useEffect(() => {
+    console.debug('[ColumnDefaults] useEffect settings.defaultColDef:', settings.defaultColDef);
     setLocalSettings({
       defaultColDef: settings.defaultColDef || {}
     });
@@ -65,11 +68,8 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
       defaultColDef: newDefaultColDef
     }));
     
-    // Pass the entire defaultColDef object to the parent component
-    // Strip out deprecated alignment props before passing to AG Grid
-type ColDefGrid = typeof newDefaultColDef;
-const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
-onChange('defaultColDef', colDefForGrid);
+    // Pass the entire defaultColDef object to the parent component, including alignment
+    onChange('defaultColDef', newDefaultColDef);
   };
 
   // Handler for number inputs
@@ -87,11 +87,8 @@ onChange('defaultColDef', colDefForGrid);
       defaultColDef: newDefaultColDef
     }));
     
-    // Pass the entire defaultColDef object to the parent component
-    // Strip out deprecated alignment props before passing to AG Grid
-type ColDefGrid = typeof newDefaultColDef;
-const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
-onChange('defaultColDef', colDefForGrid);
+    // Pass the entire defaultColDef object to the parent component, including alignment
+    onChange('defaultColDef', newDefaultColDef);
   };
 
   // Handler for text inputs
@@ -107,18 +104,36 @@ onChange('defaultColDef', colDefForGrid);
       defaultColDef: newDefaultColDef
     }));
     
-    // Pass the entire defaultColDef object to the parent component
-    // Strip out deprecated alignment props before passing to AG Grid
-type ColDefGrid = typeof newDefaultColDef;
-const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
-onChange('defaultColDef', colDefForGrid);
+    // Pass the entire defaultColDef object to the parent component, including alignment
+    onChange('defaultColDef', newDefaultColDef);
   };
+
+  // Helper: generate cellStyle function for flex alignment
+  function generateCellStyle(verticalAlign?: string, horizontalAlign?: string) {
+    if (!verticalAlign && !horizontalAlign) return undefined;
+    return () => {
+      const style: React.CSSProperties = { display: 'flex' };
+      if (verticalAlign && verticalAlign !== 'default') {
+        style.alignItems =
+          verticalAlign === 'start' ? 'flex-start' :
+          verticalAlign === 'center' ? 'center' :
+          verticalAlign === 'end' ? 'flex-end' : undefined;
+      }
+      if (horizontalAlign && horizontalAlign !== 'default') {
+        style.justifyContent =
+          horizontalAlign === 'left' ? 'flex-start' :
+          horizontalAlign === 'center' ? 'center' :
+          horizontalAlign === 'right' ? 'flex-end' : undefined;
+      }
+      return style;
+    };
+  }
 
   // Handler for select options
   const handleSelectChange = (option: string, value: string) => {
     // Store alignment values
     let newDefaultColDef = { ...localSettings.defaultColDef };
-    
+
     // Update alignment options
     if (option === 'verticalAlign' || option === 'horizontalAlign') {
       // Handle default selection (revert to default)
@@ -127,9 +142,22 @@ onChange('defaultColDef', colDefForGrid);
       } else {
         newDefaultColDef[option] = value as any;
       }
-      
-      // Update the cellStyle function
-      updateCellStyleFunction(newDefaultColDef);
+      // DEBUG: Before setLocalSettings
+      console.debug('[ColumnDefaults] handleSelectChange set', option, value, 'newDefaultColDef:', newDefaultColDef);
+      setLocalSettings(prev => {
+        const next = { ...prev, defaultColDef: newDefaultColDef };
+        // DEBUG: After setLocalSettings
+        console.debug('[ColumnDefaults] setLocalSettings next:', next);
+        return next;
+      });
+      // Compose cellStyle function based on alignment
+      const cellStyle = generateCellStyle(newDefaultColDef.verticalAlign, newDefaultColDef.horizontalAlign);
+      const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as any;
+      if (cellStyle) colDefForGrid.cellStyle = cellStyle;
+      else delete colDefForGrid.cellStyle;
+      // DEBUG: Before onChange
+      console.debug('[ColumnDefaults] onChange defaultColDef:', colDefForGrid);
+      setTimeout(() => onChange('defaultColDef', colDefForGrid), 0);
     } else {
       // For other select options that aren't alignment related
       newDefaultColDef = {
@@ -143,11 +171,8 @@ onChange('defaultColDef', colDefForGrid);
       defaultColDef: newDefaultColDef
     }));
     
-    // Pass the entire defaultColDef object to the parent component
-    // Strip out deprecated alignment props before passing to AG Grid
-type ColDefGrid = typeof newDefaultColDef;
-const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
-onChange('defaultColDef', colDefForGrid);
+    // Pass the entire defaultColDef object to the parent component, including alignment
+    onChange('defaultColDef', newDefaultColDef);
   };
 
   // Helper to generate the cellStyle function based on alignment settings
@@ -332,7 +357,7 @@ onChange('defaultColDef', colDefForGrid);
           <div className="space-y-2 pt-4">
             <Label htmlFor="verticalAlign">Vertical Cell Alignment</Label>
             <Select
-              value={localSettings.defaultColDef?.verticalAlign || 'default'}
+              value={typeof localSettings.defaultColDef?.verticalAlign === 'string' ? localSettings.defaultColDef.verticalAlign : 'default'}
               onValueChange={(value) => handleSelectChange('verticalAlign', value)}
             >
               <SelectTrigger id="verticalAlign">
@@ -355,7 +380,7 @@ onChange('defaultColDef', colDefForGrid);
           <div className="space-y-2 pt-2">
             <Label htmlFor="horizontalAlign">Horizontal Cell Alignment</Label>
             <Select
-              value={localSettings.defaultColDef?.horizontalAlign || 'default'}
+              value={typeof localSettings.defaultColDef?.horizontalAlign === 'string' ? localSettings.defaultColDef.horizontalAlign : 'default'}
               onValueChange={(value) => handleSelectChange('horizontalAlign', value)}
             >
               <SelectTrigger id="horizontalAlign">
