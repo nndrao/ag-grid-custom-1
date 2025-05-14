@@ -70,8 +70,9 @@ export function GridSettingsDialog({
       // This ensures that stored options (from profile) take precedence
       let mergedSettings = { ...defaultOptions, ...currentGridSettings, ...storedOptions };
 
-      // Utility to strip deprecated/invalid AG Grid properties
+      // Utility to convert and strip deprecated/invalid AG Grid properties
       const stripInvalidGridProps = (settings: any) => {
+        // Extract deprecated properties
         const {
           verticalAlign,
           horizontalAlign,
@@ -82,17 +83,89 @@ export function GridSettingsDialog({
           suppressBrowserResizeObserver,
           debug,
           stopEditingWhenCellsLoseFocus,
+          groupUseEntireRow,  // Deprecated in v33+
+          enterMovesDown,     // Deprecated in v33+
+          enterMovesDownAfterEdit, // Deprecated in v33+
+          enableCellChangeFlash, // Deprecated in v33+
+          exporterCsvFilename,  // Deprecated in v33+
+          exporterExcelFilename, // Deprecated in v33+
+          getRowNodeId,        // Deprecated in v33+
+          enableRangeHandle,   // Deprecated in v33+
           ...rest
         } = settings;
-        // Also recursively strip from defaultColDef if present
+        
+        // Convert rowSelection string to object format for v33+
+        if (rest.rowSelection && typeof rest.rowSelection === 'string') {
+          // Map 'single' to 'singleRow' and 'multiple' to 'multiRow'
+          const mode = rest.rowSelection === 'single' ? 'singleRow' : 
+                      rest.rowSelection === 'multiple' ? 'multiRow' : rest.rowSelection;
+          
+          rest.rowSelection = { mode };
+        }
+        
+        // Convert enableRangeSelection to cellSelection object
+        if (rest.enableRangeSelection !== undefined) {
+          if (rest.enableRangeSelection) {
+            rest.cellSelection = rest.cellSelection || {};
+          } else {
+            rest.cellSelection = false;
+          }
+          delete rest.enableRangeSelection;
+        }
+        
+        // Handle enableRangeHandle -> cellSelection.handle
+        if (enableRangeHandle !== undefined) {
+          if (typeof rest.cellSelection !== 'boolean') {
+            rest.cellSelection = rest.cellSelection || {};
+            rest.cellSelection.handle = !!enableRangeHandle;
+          }
+        }
+        
+        // Handle suppressCellSelection -> cellSelection = false
+        if (suppressCellSelection) {
+          rest.cellSelection = false;
+        }
+        
+        // Also recursively update defaultColDef if present
         if (rest.defaultColDef) {
           const {
             verticalAlign,
             horizontalAlign,
             ...colDefRest
           } = rest.defaultColDef;
+          
+          // Convert alignment properties to cellStyle if needed
+          if (verticalAlign || horizontalAlign) {
+            const cellStyleFn = (params: any) => {
+              const style: Record<string, string> = { display: 'flex' };
+              
+              if (verticalAlign) {
+                style.alignItems = verticalAlign === 'middle' ? 'center' : verticalAlign;
+              }
+              
+              if (horizontalAlign) {
+                switch (horizontalAlign) {
+                  case 'left':
+                    style.justifyContent = 'flex-start';
+                    break;
+                  case 'center':
+                    style.justifyContent = 'center';
+                    break;
+                  case 'right':
+                    style.justifyContent = 'flex-end';
+                    break;
+                }
+              }
+              
+              return style;
+            };
+            
+            colDefRest.cellStyle = cellStyleFn;
+          }
+          
           rest.defaultColDef = colDefRest;
         }
+        
         return rest;
       };
       mergedSettings = stripInvalidGridProps(mergedSettings);
@@ -191,18 +264,6 @@ export function GridSettingsDialog({
         groupDisplayType: storedOptions.groupDisplayType || gridApi.getGridOption('groupDisplayType'),
       };
       
-      // Editing Options
-      currentSettings.editing = {
-        editType: storedOptions.editType || gridApi.getGridOption('editType'),
-        singleClickEdit: storedOptions.singleClickEdit ?? gridApi.getGridOption('singleClickEdit'),
-        suppressClickEdit: storedOptions.suppressClickEdit ?? gridApi.getGridOption('suppressClickEdit'),
-        enterMovesDown: storedOptions.enterMovesDown ?? gridApi.getGridOption('enterMovesDown'),
-        enterMovesDownAfterEdit: storedOptions.enterMovesDownAfterEdit ?? gridApi.getGridOption('enterMovesDownAfterEdit'),
-        undoRedoCellEditing: storedOptions.undoRedoCellEditing ?? gridApi.getGridOption('undoRedoCellEditing'),
-        undoRedoCellEditingLimit: storedOptions.undoRedoCellEditingLimit || gridApi.getGridOption('undoRedoCellEditingLimit'),
-      };
-      
-      // Column Features
       currentSettings.columns = {
         suppressDragLeaveHidesColumns: storedOptions.suppressDragLeaveHidesColumns ?? gridApi.getGridOption('suppressDragLeaveHidesColumns'),
         suppressMovableColumns: storedOptions.suppressMovableColumns ?? gridApi.getGridOption('suppressMovableColumns'),
@@ -212,32 +273,42 @@ export function GridSettingsDialog({
       
       // Data & Rendering
       currentSettings.data = {
+        // Use AG Grid v33+ properties
         rowBuffer: storedOptions.rowBuffer || gridApi.getGridOption('rowBuffer'),
         valueCache: storedOptions.valueCache ?? gridApi.getGridOption('valueCache'),
-        immutableData: storedOptions.immutableData ?? gridApi.getGridOption('immutableData'),
-        enableCellChangeFlash: storedOptions.enableCellChangeFlash ?? gridApi.getGridOption('enableCellChangeFlash'),
-        asyncTransactionWaitMillis: storedOptions.asyncTransactionWaitMillis || gridApi.getGridOption('asyncTransactionWaitMillis'),
+        // Convert deprecated properties to v33+ equivalents
+        cellFlashDuration: storedOptions.cellFlashDuration ?? storedOptions.enableCellChangeFlash ?? 
+                          gridApi.getGridOption('cellFlashDuration') ?? gridApi.getGridOption('enableCellChangeFlash'),
+        getRowId: storedOptions.getRowId ?? storedOptions.getRowNodeId ?? 
+                 gridApi.getGridOption('getRowId') ?? gridApi.getGridOption('getRowNodeId'),
       };
       
       // Clipboard & Export
       currentSettings.clipboard = {
+        // Use AG Grid v33+ properties
         enableCellTextSelection: storedOptions.enableCellTextSelection ?? gridApi.getGridOption('enableCellTextSelection'),
         suppressCopyRowsToClipboard: storedOptions.suppressCopyRowsToClipboard ?? gridApi.getGridOption('suppressCopyRowsToClipboard'),
         suppressCopySingleCellRanges: storedOptions.suppressCopySingleCellRanges ?? gridApi.getGridOption('suppressCopySingleCellRanges'),
         clipboardDelimiter: storedOptions.clipboardDelimiter || gridApi.getGridOption('clipboardDelimiter'),
-        suppressExcelExport: storedOptions.suppressExcelExport ?? gridApi.getGridOption('suppressExcelExport'),
-        suppressCsvExport: storedOptions.suppressCsvExport ?? gridApi.getGridOption('suppressCsvExport'),
-        exporterCsvFilename: storedOptions.exporterCsvFilename || gridApi.getGridOption('exporterCsvFilename'),
-        exporterExcelFilename: storedOptions.exporterExcelFilename || gridApi.getGridOption('exporterExcelFilename'),
+        // Convert deprecated properties to v33+ equivalents
+        csvFilename: storedOptions.csvFilename ?? storedOptions.exporterCsvFilename ?? 
+                    gridApi.getGridOption('csvFilename') ?? gridApi.getGridOption('exporterCsvFilename'),
+        excelFilename: storedOptions.excelFilename ?? storedOptions.exporterExcelFilename ?? 
+                      gridApi.getGridOption('excelFilename') ?? gridApi.getGridOption('exporterExcelFilename'),
       };
       
       // Advanced Features
       currentSettings.advanced = {
+        // Use AG Grid v33+ properties
         enableCharts: storedOptions.enableCharts ?? gridApi.getGridOption('enableCharts'),
         masterDetail: storedOptions.masterDetail ?? gridApi.getGridOption('masterDetail'),
-        treeData: storedOptions.treeData ?? gridApi.getGridOption('treeData'),
-        getDataPath: storedOptions.getDataPath?.toString() || gridApi.getGridOption('getDataPath')?.toString(),
-        getRowNodeId: storedOptions.getRowNodeId?.toString() || gridApi.getGridOption('getRowNodeId')?.toString(),
+        // Convert deprecated properties to v33+ equivalents
+        groupDisplayType: storedOptions.groupDisplayType ?? 
+                         (storedOptions.groupUseEntireRow ? 'groupRows' : 'singleColumn') ?? 
+                         gridApi.getGridOption('groupDisplayType'),
+        suppressAggFuncInHeader: storedOptions.suppressAggFuncInHeader ?? gridApi.getGridOption('suppressAggFuncInHeader'),
+        suppressColumnVirtualisation: storedOptions.suppressColumnVirtualisation ?? gridApi.getGridOption('suppressColumnVirtualisation'),
+        suppressRowVirtualisation: storedOptions.suppressRowVirtualisation ?? gridApi.getGridOption('suppressRowVirtualisation'),
       };
       
       // UI Components
@@ -296,7 +367,36 @@ export function GridSettingsDialog({
     // Keep track of which specific options have changed from their initial values
     const changedOptions = new Set<string>();
     
+    // Special handling for Column Defaults to make sure alignments are preserved
+    if (gridSettings.defaults?.defaultColDef) {
+      console.debug('[GridSettingsDialog] Processing defaults first:', gridSettings.defaults.defaultColDef);
+      
+      // Important: directly capture alignment values before they get lost
+      const defaultColDef = { ...gridSettings.defaults.defaultColDef };
+      const verticalAlign = defaultColDef.verticalAlign;
+      const horizontalAlign = defaultColDef.horizontalAlign;
+      
+      // Store these values explicitly in the flattened settings
+      flattenedSettings.defaultColDef = defaultColDef;
+      
+      // Create special properties just for our processing 
+      // These will be used later but won't be passed to AG Grid
+      flattenedSettings._preservedVerticalAlign = verticalAlign;
+      flattenedSettings._preservedHorizontalAlign = horizontalAlign;
+      
+      changedOptions.add('defaultColDef');
+      
+      console.debug('[GridSettingsDialog] Preserved alignment separately:', { 
+        verticalAlign, 
+        horizontalAlign,
+        defaultColDef
+      });
+    }
+    
     Object.entries(gridSettings).forEach(([category, categorySettings]) => {
+      // Skip defaults since we already processed it
+      if (category === 'defaults') return;
+      
       Object.entries(categorySettings).forEach(([option, value]) => {
         if (value !== undefined) {
           // Explicitly skip processing the 'theme' string option here
@@ -430,19 +530,38 @@ export function GridSettingsDialog({
     
     // Process alignment settings to regenerate cellStyle function for defaultColDef
     if (flattenedSettings.defaultColDef) {
-      const colDef = flattenedSettings.defaultColDef as any; // Type as any to handle custom properties
-      const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
-      const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
+      // Important: need to cast to any to access custom UI properties not in AG Grid's types
+      const colDef = flattenedSettings.defaultColDef as any;
+      
+      // Get alignment from preserved values, not from colDef which may have lost them
+      const verticalAlign = flattenedSettings._preservedVerticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
+      const horizontalAlign = flattenedSettings._preservedHorizontalAlign as 'left' | 'center' | 'right' | undefined;
+      
+      console.debug('[GridSettingsDialog] Using preserved alignment values:', { 
+        verticalAlign, 
+        horizontalAlign,
+        fullColDef: colDef
+      });
       
       // Only create cellStyle if at least one alignment is specified
       if (verticalAlign || horizontalAlign) {
         // Create a function that returns the style object
-        colDef.cellStyle = () => {
+        colDef.cellStyle = (params: any) => {
+          // Create a style object for flexbox alignment
           const styleObj: any = { display: 'flex' };
           
           // Add vertical alignment
           if (verticalAlign) {
-            styleObj.alignItems = verticalAlign;
+            // Map UI values to flexbox properties
+            if (verticalAlign === 'top' || verticalAlign === 'start') {
+              styleObj.alignItems = 'flex-start';
+            } else if (verticalAlign === 'middle' || verticalAlign === 'center') {
+              styleObj.alignItems = 'center';
+            } else if (verticalAlign === 'bottom' || verticalAlign === 'end') {
+              styleObj.alignItems = 'flex-end';
+            } else {
+              styleObj.alignItems = 'flex-start'; // Default to top alignment
+            }
           }
           
           // Add horizontal alignment
@@ -458,13 +577,38 @@ export function GridSettingsDialog({
                 styleObj.justifyContent = 'flex-end';
                 break;
             }
+          } else if (params.colDef.type === 'numericColumn') {
+            styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+          } else {
+            styleObj.justifyContent = 'flex-start'; // Left align text by default
           }
           
+          console.debug(`[GridSettingsDialog] Generated cell style for ${verticalAlign}:`, styleObj);
           return styleObj;
         };
+        
+        // Apply the cellStyle function to the grid immediately - using timeout to allow processing to complete
+        setTimeout(() => {
+          try {
+            // Test the cellStyle function to verify it works
+            if (typeof colDef.cellStyle === 'function') {
+              const testResult = colDef.cellStyle({ colDef: { type: undefined } });
+              console.debug('[GridSettingsDialog] Test cellStyle result:', testResult, 'for alignment:', verticalAlign);
+            }
+            
+            // Force refresh the grid to apply the new styles
+            gridApi.refreshCells({ force: true });
+            console.debug('[GridSettingsDialog] Grid cells refreshed to apply alignment:', verticalAlign);
+          } catch (e) {
+            console.error('[GridSettingsDialog] Error applying cellStyle:', e);
+          }
+        }, 0);
+        
+        // We DO NOT want to delete these properties yet - we need them for state persistence
+        // They will be converted to cellStyle when needed but should be stored in settings
       } else {
-        // If both alignments are unset, remove the cellStyle function
-        delete colDef.cellStyle;
+        // If both alignments are unset, use default cellStyle from DEFAULT_GRID_OPTIONS
+        colDef.cellStyle = DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle;
       }
     }
     
@@ -473,8 +617,56 @@ export function GridSettingsDialog({
       try {
         // Skip undefined values and initial properties
         if (value !== undefined && !INITIAL_PROPERTIES.includes(option) && option !== 'theme') {
+          // Special handling for defaultColDef
+          if (option === 'defaultColDef') {
+            console.debug('[GridSettingsDialog] Applying defaultColDef with custom handling:', value);
+            
+            // Add the verticalAlign and horizontalAlign back to the colDef if needed
+            if (flattenedSettings._preservedVerticalAlign) {
+              const preservedVertical = flattenedSettings._preservedVerticalAlign;
+              console.debug('[GridSettingsDialog] Reapplying preserved vertical alignment:', preservedVertical);
+              
+              // Create a copy to avoid directly modifying the object
+              const colDefWithAlignment = { ...value };
+              
+              // Create a cellStyle function if there isn't one already
+              colDefWithAlignment.cellStyle = params => {
+                const style = { display: 'flex' };
+                
+                // Apply vertical alignment
+                if (preservedVertical === 'top') {
+                  style.alignItems = 'flex-start';
+                } else if (preservedVertical === 'middle') {
+                  style.alignItems = 'center';
+                } else if (preservedVertical === 'bottom') {
+                  style.alignItems = 'flex-end';
+                }
+                
+                // Default horizontal alignment based on numeric column
+                if (params.colDef.type === 'numericColumn') {
+                  style.justifyContent = 'flex-end'; // Right align numbers by default
+                } else {
+                  style.justifyContent = 'flex-start'; // Left align text by default
+                }
+                
+                return style;
+              };
+              
+              // Apply the updated colDef to the grid
+              gridApi.setGridOption('defaultColDef', colDefWithAlignment);
+            } else {
+              // No alignment, apply normally
+              gridApi.setGridOption('defaultColDef', value);
+            }
+            
+            // Force grid to refresh cells to show the new styles
+            setTimeout(() => {
+              gridApi.refreshCells({ force: true });
+              console.debug('[GridSettingsDialog] Applied defaultColDef with alignment and refreshed cells');
+            }, 100);
+          }
           // Special handling for specific options
-          if (option === 'statusBar') {
+          else if (option === 'statusBar') {
             if (value === false) {
               // Disable status bar
               gridApi.setGridOption('statusBar', false);

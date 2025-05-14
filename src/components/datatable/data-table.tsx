@@ -69,6 +69,21 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const customGridOptions = profileManager?.activeProfile?.settings?.custom?.gridOptions
     ? deepClone(profileManager.activeProfile.settings.custom.gridOptions)
     : deepClone(DEFAULT_GRID_OPTIONS);
+    
+  // Log the defaultColDef and cellStyle to debug
+  console.log('Original DEFAULT_GRID_OPTIONS.defaultColDef:', DEFAULT_GRID_OPTIONS.defaultColDef);
+  console.log('Original cellStyle type:', typeof DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle);
+  console.log('Cloned defaultColDef:', customGridOptions.defaultColDef);
+  console.log('Cloned cellStyle type:', typeof customGridOptions.defaultColDef?.cellStyle);
+
+  // Ensure defaultColDef has the cellStyle function for vertical alignment
+  // If cellStyle is missing after cloning, use the one from DEFAULT_GRID_OPTIONS
+  if (customGridOptions.defaultColDef && 
+      (!customGridOptions.defaultColDef.cellStyle || 
+       typeof customGridOptions.defaultColDef.cellStyle !== 'function')) {
+    console.log('Restoring cellStyle function from DEFAULT_GRID_OPTIONS');
+    customGridOptions.defaultColDef.cellStyle = DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle;
+  }
 
   // Use defaultColDef and autoGroupColumnDef from gridOptions, fallback to hook if not present
   const defaultColDef = customGridOptions.defaultColDef ?? hookDefaultColDef;
@@ -92,8 +107,19 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     // Apply active profile settings if available
     if (profileManager?.activeProfile && settingsControllerRef.current) {
       settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+      
+      // Directly apply defaultColDef to ensure cellStyle is properly applied
+      if (defaultColDef) {
+        console.log('Directly applying defaultColDef in onGridReady');
+        params.api.setGridOption('defaultColDef', defaultColDef);
+        
+        // Force refresh cells to apply the styles
+        setTimeout(() => {
+          params.api.refreshCells({ force: true });
+        }, 100);
+      }
     }
-  }, [profileManager]);
+  }, [profileManager, defaultColDef]);
 
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">

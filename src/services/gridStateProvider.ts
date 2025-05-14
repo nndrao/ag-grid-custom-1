@@ -333,18 +333,39 @@ export class GridStateProvider {
     if (gridState.custom?.gridOptions?.defaultColDef) {
       try {
         const colDef = gridState.custom.gridOptions.defaultColDef as any;
-        const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
+        const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
         const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
         
+        // Check for stored explicit alignment value
+        const storedAlignValue = colDef._cellAlignItems as string | undefined;
+        
+        console.debug('[GridStateProvider] Processing defaultColDef alignment:', {
+          verticalAlign,
+          horizontalAlign,
+          storedAlignValue
+        });
+        
         // Only create cellStyle if at least one alignment is specified
-        if (verticalAlign || horizontalAlign) {
+        if (verticalAlign || horizontalAlign || storedAlignValue) {
           // Create a function that returns the style object
-          colDef.cellStyle = () => {
+          colDef.cellStyle = (params: any) => {
             const styleObj: any = { display: 'flex' };
             
             // Add vertical alignment
-            if (verticalAlign) {
-              styleObj.alignItems = verticalAlign;
+            if (storedAlignValue) {
+              // Use the explicit stored value if available
+              styleObj.alignItems = storedAlignValue;
+            } else if (verticalAlign) {
+              // Map UI values to flexbox properties
+              if (verticalAlign === 'top' || verticalAlign === 'start') {
+                styleObj.alignItems = 'flex-start';
+              } else if (verticalAlign === 'middle' || verticalAlign === 'center') {
+                styleObj.alignItems = 'center';
+              } else if (verticalAlign === 'bottom' || verticalAlign === 'end') {
+                styleObj.alignItems = 'flex-end';
+              } else {
+                styleObj.alignItems = 'flex-start'; // Default to top alignment
+              }
             }
             
             // Add horizontal alignment
@@ -360,10 +381,20 @@ export class GridStateProvider {
                   styleObj.justifyContent = 'flex-end';
                   break;
               }
+            } else if (params.colDef.type === 'numericColumn') {
+              styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+            } else {
+              styleObj.justifyContent = 'flex-start'; // Left align text by default
             }
             
+            console.debug('[GridStateProvider] Applied cell style:', styleObj, 'for', verticalAlign);
             return styleObj;
           };
+          
+          // Remove UI properties from the actual grid options
+          delete colDef.verticalAlign;
+          delete colDef.horizontalAlign;
+          delete colDef._cellAlignItems;
         }
       } catch (e) {
         console.error('Error processing defaultColDef alignments:', e);

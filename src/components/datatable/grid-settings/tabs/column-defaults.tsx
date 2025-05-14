@@ -40,19 +40,100 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     { value: 'right', label: 'Right' }
   ];
 
+  // Define specific types for alignment values to satisfy TypeScript
+  type VerticalAlignType = 'top' | 'middle' | 'bottom' | 'start' | 'center' | 'end';
+  type HorizontalAlignType = 'left' | 'center' | 'right' | 'default';
+  
+  // Track vertical and horizontal alignment separately for UI state
+  const [verticalAlign, setVerticalAlign] = useState<VerticalAlignType>(() => {
+    // Extract alignment from defaultColDef.cellStyle if it exists
+    try {
+      const colDef = settings.defaultColDef;
+      if (colDef?.cellStyle && typeof colDef.cellStyle === 'function') {
+        // Test the cellStyle function to see what alignment it's using
+        const testStyle = colDef.cellStyle({ colDef: { type: undefined } });
+        console.debug('[ColumnDefaults] Extracted style from existing cellStyle:', testStyle);
+        
+        // Map CSS alignment values to UI options
+        if (testStyle && testStyle.alignItems) {
+          if (testStyle.alignItems === 'flex-start') {
+            return 'top';
+          } else if (testStyle.alignItems === 'center') {
+            return 'middle';
+          } else if (testStyle.alignItems === 'flex-end') {
+            return 'bottom';
+          }
+        }
+      }
+      
+      // Also check for the stored verticalAlign property
+      if (colDef?.verticalAlign) {
+        return colDef.verticalAlign as VerticalAlignType;
+      }
+      
+      return 'middle'; // Default to middle as that's the default in DEFAULT_GRID_OPTIONS
+    } catch (e) {
+      console.error('[ColumnDefaults] Error extracting vertical alignment:', e);
+      return 'middle'; // Default to middle alignment
+    }
+  });
+  
+  const [horizontalAlign, setHorizontalAlign] = useState<HorizontalAlignType>(
+    (settings.defaultColDef?.horizontalAlign as HorizontalAlignType) || 'default'
+  );
+  
   // Initialize local state with defaultColDef or empty object
   const [localSettings, setLocalSettings] = useState({
     defaultColDef: settings.defaultColDef || {}
   });
-  // DEBUG: Initial state
-  console.debug('[ColumnDefaults] Initial localSettings.defaultColDef:', settings.defaultColDef);
+  
+  console.debug('[ColumnDefaults] Initial state:', {
+    verticalAlign,
+    horizontalAlign,
+    defaultColDef: settings.defaultColDef
+  });
   
   // Update local state when settings prop changes
   useEffect(() => {
-    console.debug('[ColumnDefaults] useEffect settings.defaultColDef:', settings.defaultColDef);
+    console.debug('[ColumnDefaults] Settings changed:', settings.defaultColDef);
+    
+    // Update local settings
     setLocalSettings({
       defaultColDef: settings.defaultColDef || {}
     });
+    
+    // Update alignment state variables
+    if (settings.defaultColDef) {
+      // First check for explicit verticalAlign property
+      if (settings.defaultColDef.verticalAlign) {
+        setVerticalAlign(settings.defaultColDef.verticalAlign as VerticalAlignType);
+      } 
+      // Otherwise try to extract from cellStyle function
+      else if (settings.defaultColDef.cellStyle && typeof settings.defaultColDef.cellStyle === 'function') {
+        try {
+          // Test the cellStyle function to see what alignment it's using
+          const testStyle = settings.defaultColDef.cellStyle({ colDef: { type: undefined } });
+          console.debug('[ColumnDefaults] Extracted style from settings cellStyle:', testStyle);
+          
+          // Map CSS alignment values to UI options
+          if (testStyle && testStyle.alignItems) {
+            if (testStyle.alignItems === 'flex-start') {
+              setVerticalAlign('top');
+            } else if (testStyle.alignItems === 'center') {
+              setVerticalAlign('middle');
+            } else if (testStyle.alignItems === 'flex-end') {
+              setVerticalAlign('bottom');
+            }
+          }
+        } catch (e) {
+          console.error('[ColumnDefaults] Error extracting alignment from cellStyle:', e);
+        }
+      }
+      
+      if (settings.defaultColDef.horizontalAlign) {
+        setHorizontalAlign(settings.defaultColDef.horizontalAlign as HorizontalAlignType);
+      }
+    }
   }, [settings]);
 
   // Handler for checkbox options
@@ -111,108 +192,222 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
   // Helper: generate cellStyle function for flex alignment
   function generateCellStyle(verticalAlign?: string, horizontalAlign?: string) {
     if (!verticalAlign && !horizontalAlign) return undefined;
-    return () => {
-      const style: React.CSSProperties = { display: 'flex' };
+    
+    // Debug the input values
+    console.debug('[ColumnDefaults] generateCellStyle input values:', { verticalAlign, horizontalAlign });
+    
+    return (params: any) => {
+      // Create a style object for flexbox alignment
+      const style: Record<string, string> = { display: 'flex' };
+      
+      // Map UI vertical alignment values to CSS flexbox alignItems values
       if (verticalAlign && verticalAlign !== 'default') {
-        style.alignItems =
-          verticalAlign === 'start' ? 'flex-start' :
-          verticalAlign === 'center' ? 'center' :
-          verticalAlign === 'end' ? 'flex-end' : undefined;
+        if (verticalAlign === 'top' || verticalAlign === 'start') {
+          style.alignItems = 'flex-start';
+        } else if (verticalAlign === 'middle' || verticalAlign === 'center') {
+          style.alignItems = 'center';
+        } else if (verticalAlign === 'bottom' || verticalAlign === 'end') {
+          style.alignItems = 'flex-end';
+        }
       }
+      
+      // Map UI horizontal alignment values to CSS flexbox justifyContent values
       if (horizontalAlign && horizontalAlign !== 'default') {
-        style.justifyContent =
-          horizontalAlign === 'left' ? 'flex-start' :
-          horizontalAlign === 'center' ? 'center' :
-          horizontalAlign === 'right' ? 'flex-end' : undefined;
+        if (horizontalAlign === 'left') {
+          style.justifyContent = 'flex-start';
+        } else if (horizontalAlign === 'center') {
+          style.justifyContent = 'center';
+        } else if (horizontalAlign === 'right') {
+          style.justifyContent = 'flex-end';
+        }
       }
+      
+      // Handle numeric column type for right alignment
+      if (!horizontalAlign && params.colDef.type === 'numericColumn') {
+        style.justifyContent = 'flex-end'; // Right align numbers by default
+      } else if (!horizontalAlign) {
+        style.justifyContent = 'flex-start'; // Left align text by default
+      }
+      
+      console.debug('[ColumnDefaults] cellStyle generated for', verticalAlign, ':', style);
       return style;
     };
   }
 
   // Handler for select options
-  const handleSelectChange = (option: string, value: string) => {
-    // Store alignment values
-    let newDefaultColDef = { ...localSettings.defaultColDef };
-
-    // Update alignment options
-    if (option === 'verticalAlign' || option === 'horizontalAlign') {
+  const handleSelectChange = (option: string, value: any) => {
+    console.debug(`[ColumnDefaults] handleSelectChange: ${option} = ${value}`);
+    
+    // Update the appropriate state variable based on the option
+    if (option === 'verticalAlign') {
+      setVerticalAlign(value as VerticalAlignType);
+    } else if (option === 'horizontalAlign') {
+      setHorizontalAlign(value as HorizontalAlignType);
+    }
+    
+    // Create a new defaultColDef object with the updated property
+    let newDefaultColDef = { ...localSettings.defaultColDef } as Record<string, any>;
+    
+    // Special direct handling for vertical alignment
+    if (option === 'verticalAlign') {
+      try {
+        // Determine the CSS value for the selected alignment
+        let alignValue = 'flex-start'; // Default for 'top'
+        
+        if (value === 'middle') {
+          alignValue = 'center';
+        } else if (value === 'bottom') {
+          alignValue = 'flex-end';
+        }
+        
+        console.debug(`[ColumnDefaults] Converting vertical alignment: ${value} → ${alignValue}`);
+        
+        // Create a simple cellStyle function that aligns vertically
+        const cellStyleFn = (params: any) => {
+          // Create style with correct vertical alignment
+          const style: Record<string, string> = {
+            display: 'flex',
+            alignItems: alignValue
+          };
+          
+          // Add horizontal alignment based on column type
+          if (params.colDef.type === 'numericColumn') {
+            style.justifyContent = 'flex-end';  // Right align numbers
+          } else {
+            style.justifyContent = 'flex-start'; // Left align text
+          }
+          
+          return style;
+        };
+        
+        // Create new defaultColDef with the alignment function AND the UI value
+        const alignedColDef = {
+          ...newDefaultColDef,
+          cellStyle: cellStyleFn,
+          // IMPORTANT: Store the UI value so it can be serialized and restored
+          verticalAlign: value,
+          // Also add a serializable version of the alignment for storage
+          // This helps in cases where cellStyle function doesn't get serialized
+          _cellAlignItems: alignValue
+        };
+        
+        // Apply to local state
+        setLocalSettings(prev => ({
+          ...prev,
+          defaultColDef: alignedColDef
+        }));
+        
+        // Test to make sure it works
+        const testStyle = cellStyleFn({ colDef: { type: undefined } });
+        console.debug('[ColumnDefaults] Test vertical alignment style:', testStyle);
+        
+        // Send to parent including the metadata properties
+        onChange('defaultColDef', alignedColDef);
+        
+        // Force a refresh of the grid
+        setTimeout(() => {
+          console.debug('[ColumnDefaults] Vertical alignment applied:', value);
+        }, 50);
+        
+        return; // Skip the rest of the function
+      } catch (err) {
+        console.error('[ColumnDefaults] Error applying vertical alignment:', err);
+      }
+    }
+    // Standard handling for horizontal alignment or non-alignment options
+    else if (option === 'horizontalAlign' || option === 'verticalAlign') {
       // Handle default selection (revert to default)
       if (value === 'default') {
         delete newDefaultColDef[option];
       } else {
-        newDefaultColDef[option] = value as any;
+        newDefaultColDef[option] = value;
       }
-      // DEBUG: Before setLocalSettings
-      console.debug('[ColumnDefaults] handleSelectChange set', option, value, 'newDefaultColDef:', newDefaultColDef);
-      setLocalSettings(prev => {
-        const next = { ...prev, defaultColDef: newDefaultColDef };
-        // DEBUG: After setLocalSettings
-        console.debug('[ColumnDefaults] setLocalSettings next:', next);
-        return next;
+      
+      // Update local settings state
+      setLocalSettings(prev => ({
+        ...prev,
+        defaultColDef: newDefaultColDef
+      }));
+      
+      // For alignment options, create a cellStyle function
+      // Get the current values for both alignments
+      const currentVertical = option === 'verticalAlign' ? value : verticalAlign;
+      const currentHorizontal = option === 'horizontalAlign' ? value : horizontalAlign;
+      
+      console.debug('[ColumnDefaults] Current alignment values:', { 
+        currentVertical, 
+        currentHorizontal 
       });
-      // Compose cellStyle function based on alignment
-      const cellStyle = generateCellStyle(newDefaultColDef.verticalAlign, newDefaultColDef.horizontalAlign);
-      const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as any;
-      if (cellStyle) colDefForGrid.cellStyle = cellStyle;
-      else delete colDefForGrid.cellStyle;
-      // DEBUG: Before onChange
-      console.debug('[ColumnDefaults] onChange defaultColDef:', colDefForGrid);
-      setTimeout(() => onChange('defaultColDef', colDefForGrid), 0);
+      
+      // Generate the cellStyle function
+      const cellStyle = generateCellStyle(
+        currentVertical === 'default' ? undefined : currentVertical,
+        currentHorizontal === 'default' ? undefined : currentHorizontal
+      );
+      
+      // Create a grid-ready version of the column definition
+      const colDefForGrid = { ...newDefaultColDef };
+      
+      // Add the cellStyle function if we have alignment settings
+      if (cellStyle) {
+        colDefForGrid.cellStyle = cellStyle;
+        
+        // Test the cellStyle function with a mock parameter
+        const testStyle = cellStyle({ 
+          colDef: { type: undefined } 
+        });
+        console.debug('[ColumnDefaults] Test cellStyle result:', testStyle);
+      } else {
+        delete colDefForGrid.cellStyle;
+      }
+      
+      // Remove UI-only properties before sending to the grid
+      delete colDefForGrid.verticalAlign;
+      delete colDefForGrid.horizontalAlign;
+      
+      console.debug('[ColumnDefaults] Applying to grid:', {
+        option,
+        value,
+        verticalAlign: currentVertical,
+        horizontalAlign: currentHorizontal,
+        hasFunction: !!cellStyle,
+        colDefForGrid
+      });
+      
+      // Apply the changes to the grid
+      onChange('defaultColDef', colDefForGrid);
+      
+      // Add a slight delay then check if our cellStyle was applied correctly
+      setTimeout(() => {
+        try {
+          // This logging is for debugging only
+          console.debug('[ColumnDefaults] Verifying cellStyle was applied...');
+          
+          // Test the cellStyle again - this would be in the context of the actual grid
+          if (colDefForGrid.cellStyle) {
+            const testResult = colDefForGrid.cellStyle({ 
+              colDef: { type: undefined } 
+            });
+            console.debug('[ColumnDefaults] Final cellStyle result:', testResult);
+          }
+        } catch (err) {
+          console.error('[ColumnDefaults] Error verifying cellStyle:', err);
+        }
+      }, 100);
     } else {
-      // For other select options that aren't alignment related
-      newDefaultColDef = {
-        ...newDefaultColDef,
-        [option]: value
-      };
+      // For non-alignment options
+      newDefaultColDef[option] = value;
+      
+      setLocalSettings(prev => ({
+        ...prev,
+        defaultColDef: newDefaultColDef
+      }));
+      
+      onChange('defaultColDef', newDefaultColDef);
     }
-    
-    setLocalSettings(prev => ({
-      ...prev,
-      defaultColDef: newDefaultColDef
-    }));
-    
-    // Pass the entire defaultColDef object to the parent component, including alignment
-    onChange('defaultColDef', newDefaultColDef);
   };
 
-  // Helper to generate the cellStyle function based on alignment settings
-  const updateCellStyleFunction = (colDef: any) => {
-    const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
-    const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
-    
-    // Only create cellStyle if at least one alignment is specified
-    if (verticalAlign || horizontalAlign) {
-      // Create a function that returns the style object
-      colDef.cellStyle = () => {
-        const styleObj: any = { display: 'flex' };
-        
-        // Add vertical alignment
-        if (verticalAlign) {
-          styleObj.alignItems = verticalAlign;
-        }
-        
-        // Add horizontal alignment
-        if (horizontalAlign) {
-          switch (horizontalAlign) {
-            case 'left':
-              styleObj.justifyContent = 'flex-start';
-              break;
-            case 'center':
-              styleObj.justifyContent = 'center';
-              break;
-            case 'right':
-              styleObj.justifyContent = 'flex-end';
-              break;
-          }
-        }
-        
-        return styleObj;
-      };
-    } else {
-      // If both alignments are unset, remove the cellStyle function
-      delete colDef.cellStyle;
-    }
-  };
+  // Note: The generateCellStyle function above handles all cell styling needs
 
   return (
     <div className="space-y-6">
@@ -357,8 +552,20 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
           <div className="space-y-2 pt-4">
             <Label htmlFor="verticalAlign">Vertical Cell Alignment</Label>
             <Select
-              value={typeof localSettings.defaultColDef?.verticalAlign === 'string' ? localSettings.defaultColDef.verticalAlign : 'middle'}
-              onValueChange={(value) => handleSelectChange('verticalAlign', value)}
+              value={verticalAlign}
+              onValueChange={(value) => {
+                console.debug('[ColumnDefaults] Vertical alignment selected in dropdown:', value);
+                // Debug current settings before change
+                if (typeof localSettings.defaultColDef?.cellStyle === 'function') {
+                  try {
+                    const testStyle = localSettings.defaultColDef.cellStyle({ colDef: { type: undefined } });
+                    console.debug('[ColumnDefaults] Current cellStyle before change:', testStyle);
+                  } catch (e) {
+                    console.error('[ColumnDefaults] Error testing current cellStyle:', e);
+                  }
+                }
+                handleSelectChange('verticalAlign', value);
+              }}
             >
               <SelectTrigger id="verticalAlign">
                 <SelectValue placeholder="Choose alignment" />
@@ -379,8 +586,11 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
           <div className="space-y-2 pt-2">
             <Label htmlFor="horizontalAlign">Horizontal Cell Alignment</Label>
             <Select
-              value={typeof localSettings.defaultColDef?.horizontalAlign === 'string' ? localSettings.defaultColDef.horizontalAlign : 'default'}
-              onValueChange={(value) => handleSelectChange('horizontalAlign', value)}
+              value={horizontalAlign}
+              onValueChange={(value) => {
+                console.log('Horizontal alignment selected:', value);
+                handleSelectChange('horizontalAlign', value);
+              }}
             >
               <SelectTrigger id="horizontalAlign">
                 <SelectValue placeholder="Choose alignment" />

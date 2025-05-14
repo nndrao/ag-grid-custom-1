@@ -56,7 +56,7 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
   
   // Reset grid settings to profile defaults
   const resetToProfileDefaults = async () => {
-    if (!settingsController || !profileManager?.activeProfile) {
+    if (!settingsController || !gridApi || !profileManager?.activeProfile) {
       toast({
         title: "No Active Profile",
         description: "Please select or create a profile first.",
@@ -66,13 +66,26 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
     }
 
     try {
-      // Deep clone the default grid options
+      console.log("Original DEFAULT_GRID_OPTIONS:", DEFAULT_GRID_OPTIONS);
+      console.log("Original cellStyle type:", typeof DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle);
+      
+      // Deep clone the default grid options with our improved deepClone function
       const defaults = deepClone(DEFAULT_GRID_OPTIONS);
+      console.log("Cloned defaults with cellStyle:", defaults.defaultColDef?.cellStyle);
+      console.log("Cloned cellStyle type:", typeof defaults.defaultColDef?.cellStyle);
+      
+      // Directly apply the default column definition with cellStyle function
+      if (defaults.defaultColDef) {
+        console.log("Applying defaultColDef directly to grid");
+        gridApi.setGridOption('defaultColDef', defaults.defaultColDef);
+      }
+      
       // Update the active profile's settings (custom.gridOptions)
       if (profileManager.activeProfile.settings?.custom) {
         profileManager.activeProfile.settings.custom.gridOptions = defaults;
       }
-      // Apply the defaults to the grid
+      
+      // Apply the defaults to the grid through settings controller
       settingsController.applyProfileSettings({
         ...profileManager.activeProfile.settings,
         custom: {
@@ -80,10 +93,19 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
           gridOptions: defaults
         }
       });
+      
+      // Force refresh to apply the new styles
+      console.log("Forcing cell refresh");
+      gridApi.refreshCells({ force: true });
+      
+      // Verify the cellStyle function is still present after all operations
+      const currentDefaultColDef = gridApi.getGridOption('defaultColDef');
+      console.log("Current grid defaultColDef after reset:", currentDefaultColDef);
+      console.log("Current cellStyle type after reset:", typeof currentDefaultColDef?.cellStyle);
+      
       toast({
         title: "Settings Reset",
         description: `Grid settings reset to profile defaults.`,
-
         variant: "default",
         duration: 2000,
       });
