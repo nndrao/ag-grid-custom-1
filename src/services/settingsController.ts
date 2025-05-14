@@ -88,6 +88,13 @@ export class SettingsController {
       console.warn("⚠️ Profile has no toolbar settings, using defaults");
     }
     
+    // Apply custom grid options first if they exist
+    // This ensures DEFAULT_GRID_OPTIONS are applied for new profiles
+    if (settings.custom?.gridOptions) {
+      console.log("🔧 Applying custom grid options:", settings.custom.gridOptions);
+      this.updateGridOptions(settings.custom.gridOptions);
+    }
+    
     // Apply grid settings
     if (settings.grid) {
       const columnWidthsToApply: { key: string; newWidth: number }[] = [];
@@ -197,18 +204,29 @@ export class SettingsController {
               const colDef = value as any;
               
               // Process vertical and horizontal alignment
-              const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
+              const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
               const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
+              
+              console.debug('[SettingsController] Processing verticalAlign from storage:', verticalAlign);
               
               // Only create cellStyle if at least one alignment is specified
               if (verticalAlign || horizontalAlign) {
                 // Create a function that returns the style object
-                colDef.cellStyle = () => {
+                colDef.cellStyle = (params: any) => {
                   const styleObj: any = { display: 'flex' };
                   
-                  // Add vertical alignment
+                  // Add vertical alignment - mapping UI values to CSS flexbox values
                   if (verticalAlign) {
-                    styleObj.alignItems = verticalAlign;
+                    // Map 'top'/'middle'/'bottom' to flexbox alignItems values
+                    if (verticalAlign === 'top' || verticalAlign === 'start') {
+                      styleObj.alignItems = 'flex-start';
+                    } else if (verticalAlign === 'middle' || verticalAlign === 'center') {
+                      styleObj.alignItems = 'center';
+                    } else if (verticalAlign === 'bottom' || verticalAlign === 'end') {
+                      styleObj.alignItems = 'flex-end';
+                    } else {
+                      styleObj.alignItems = 'center'; // Default to center
+                    }
                   }
                   
                   // Add horizontal alignment
@@ -223,14 +241,30 @@ export class SettingsController {
                       case 'right':
                         styleObj.justifyContent = 'flex-end';
                         break;
+                      default:
+                        styleObj.justifyContent = 'flex-start'; // Default to left
                     }
+                  } else if (params.colDef.type === 'numericColumn') {
+                    styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+                  } else {
+                    styleObj.justifyContent = 'flex-start'; // Left align text by default
                   }
                   
+                  // Debug the style object to help troubleshoot alignment issues
+                  console.debug(`[SettingsController] Cell style for ${verticalAlign}:`, styleObj);
                   return styleObj;
                 };
+                
+                // Keep vertical/horizontal values for UI state
+                // These properties aren't used by AG Grid but are needed to restore UI state
+                processedOptions.defaultColDef = {
+                  ...colDef,
+                  verticalAlign,
+                  horizontalAlign
+                };
+              } else {
+                processedOptions.defaultColDef = colDef;
               }
-              
-              processedOptions.defaultColDef = colDef;
             }
             break;
           case 'groupSelectsChildren':

@@ -6,12 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface SelectionOptionsProps {
   settings: {
-    rowSelection?: string;
+    rowSelection?: any; // Can be string or object in v33+
     rowMultiSelectWithClick?: boolean;
     suppressRowClickSelection?: boolean;
-    suppressCellSelection?: boolean;
-    enableRangeSelection?: boolean;
-    enableRangeHandle?: boolean;
+    cellSelection?: any; // Object in v33+
     suppressRowDeselection?: boolean;
   };
   onChange: (option: string, value: any) => void;
@@ -27,7 +25,7 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
   }, [settings]);
 
   // Handler for radio options
-  const handleRadioChange = (option: string, value: string) => {
+  const handleRadioChange = (option: string, value: any) => {
     setLocalSettings(prev => ({ ...prev, [option]: value }));
     onChange(option, value);
   };
@@ -35,11 +33,7 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
   // Handler for checkbox options
   const handleCheckboxChange = (option: string, checked: boolean) => {
     setLocalSettings(prev => ({ ...prev, [option]: checked }));
-    if (option === 'suppressCellSelection') {
-  // Do not pass suppressCellSelection to AG Grid
-  return;
-}
-onChange(option, checked);
+    onChange(option, checked);
   };
 
   return (
@@ -55,16 +49,18 @@ onChange(option, checked);
           <div className="space-y-3">
             <Label>Selection Type</Label>
             <RadioGroup
-              value={localSettings.rowSelection || 'single'}
-              onValueChange={(value) => handleRadioChange('rowSelection', value)}
+              value={typeof localSettings.rowSelection === 'object' ? 
+                localSettings.rowSelection?.mode || 'singleRow' : 
+                localSettings.rowSelection || 'singleRow'}
+              onValueChange={(value) => handleRadioChange('rowSelection', { mode: value })}
               className="flex flex-col space-y-1"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="single" id="single" />
+                <RadioGroupItem value="singleRow" id="single" />
                 <Label htmlFor="single" className="font-normal">Single row selection</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="multiple" id="multiple" />
+                <RadioGroupItem value="multiRow" id="multiple" />
                 <Label htmlFor="multiple" className="font-normal">Multiple row selection</Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -77,23 +73,33 @@ onChange(option, checked);
           <div className="space-y-3 pt-3">
             <div className="flex items-center space-x-2">
               <Checkbox 
-                id="rowMultiSelectWithClick" 
-                checked={!!localSettings.rowMultiSelectWithClick}
-                onCheckedChange={(checked) => handleCheckboxChange('rowMultiSelectWithClick', !!checked)} 
+                id="enableSelectionWithoutKeys" 
+                checked={typeof localSettings.rowSelection === 'object' ? 
+                  !!localSettings.rowSelection?.enableSelectionWithoutKeys : false}
+                onCheckedChange={(checked) => {
+                  const rowSelection = typeof localSettings.rowSelection === 'object' ? 
+                    {...localSettings.rowSelection} : { mode: 'singleRow' };
+                  onChange('rowSelection', { ...rowSelection, enableSelectionWithoutKeys: !!checked });
+                }} 
               />
-              <Label htmlFor="rowMultiSelectWithClick" className="font-normal">
-                Row multi-select with single click
+              <Label htmlFor="enableSelectionWithoutKeys" className="font-normal">
+                Enable selection without modifier keys
               </Label>
             </div>
             
             <div className="flex items-center space-x-2">
               <Checkbox 
-                id="suppressRowClickSelection" 
-                checked={!!localSettings.suppressRowClickSelection}
-                onCheckedChange={(checked) => handleCheckboxChange('suppressRowClickSelection', !!checked)} 
+                id="enableClickSelection" 
+                checked={typeof localSettings.rowSelection === 'object' ? 
+                  localSettings.rowSelection?.enableClickSelection !== false : true}
+                onCheckedChange={(checked) => {
+                  const rowSelection = typeof localSettings.rowSelection === 'object' ? 
+                    {...localSettings.rowSelection} : { mode: 'singleRow' };
+                  onChange('rowSelection', { ...rowSelection, enableClickSelection: !!checked });
+                }} 
               />
-              <Label htmlFor="suppressRowClickSelection" className="font-normal">
-                Prevent row selection on click
+              <Label htmlFor="enableClickSelection" className="font-normal">
+                Enable row selection on click
               </Label>
             </div>
             
@@ -122,33 +128,52 @@ onChange(option, checked);
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <Checkbox 
-                id="suppressCellSelection" 
-                checked={!!localSettings.suppressCellSelection}
-                onCheckedChange={(checked) => handleCheckboxChange('suppressCellSelection', !!checked)} 
+                id="cellSelectionEnabled" 
+                checked={typeof localSettings.cellSelection === 'object' ? 
+                  localSettings.cellSelection !== false : true}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    onChange('cellSelection', {});
+                  } else {
+                    onChange('cellSelection', false);
+                  }
+                }} 
               />
-              <Label htmlFor="suppressCellSelection" className="font-normal">
-                Prevent cell selection
+              <Label htmlFor="cellSelectionEnabled" className="font-normal">
+                Enable cell selection
               </Label>
             </div>
             
             <div className="flex items-center space-x-2">
               <Checkbox 
-                id="enableRangeSelection" 
-                checked={!!localSettings.enableRangeSelection}
-                onCheckedChange={(checked) => handleCheckboxChange('enableRangeSelection', !!checked)} 
+                id="cellSelectionMulti" 
+                checked={typeof localSettings.cellSelection === 'object' ? 
+                  localSettings.cellSelection?.multi !== false : true}
+                onCheckedChange={(checked) => {
+                  const cellSelection = typeof localSettings.cellSelection === 'object' ? 
+                    {...localSettings.cellSelection} : {};
+                  onChange('cellSelection', { ...cellSelection, multi: !!checked });
+                }}
+                disabled={typeof localSettings.cellSelection !== 'object'}
               />
-              <Label htmlFor="enableRangeSelection" className="font-normal">
-                Enable range selection (multiple cells)
+              <Label htmlFor="cellSelectionMulti" className="font-normal">
+                Enable multiple cell selection
               </Label>
             </div>
             
             <div className="flex items-center space-x-2">
               <Checkbox 
-                id="enableRangeHandle" 
-                checked={!!localSettings.enableRangeHandle}
-                onCheckedChange={(checked) => handleCheckboxChange('enableRangeHandle', !!checked)} 
+                id="cellSelectionHandle" 
+                checked={typeof localSettings.cellSelection === 'object' ? 
+                  !!localSettings.cellSelection?.handle : false}
+                onCheckedChange={(checked) => {
+                  const cellSelection = typeof localSettings.cellSelection === 'object' ? 
+                    {...localSettings.cellSelection} : {};
+                  onChange('cellSelection', { ...cellSelection, handle: !!checked });
+                }}
+                disabled={typeof localSettings.cellSelection !== 'object'}
               />
-              <Label htmlFor="enableRangeHandle" className="font-normal">
+              <Label htmlFor="cellSelectionHandle" className="font-normal">
                 Show range handle for extending selection
               </Label>
             </div>

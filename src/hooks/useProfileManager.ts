@@ -3,6 +3,7 @@ import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
 import { SettingsController } from '@/services/settingsController';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
+import { deepClone } from '@/utils/deepClone';
 
 export const useProfileManager = (settingsController: SettingsController | null) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -44,10 +45,28 @@ export const useProfileManager = (settingsController: SettingsController | null)
                 console.warn(`Fixing missing custom settings for profile: ${active.name}`);
               }
               
+              // Check if grid options have been set for this profile
+              if (!active.settings.custom.gridOptions) {
+                console.log(`No grid options found for profile: ${active.name}, applying defaults`);
+                active.settings.custom.gridOptions = deepClone(DEFAULT_GRID_OPTIONS);
+              }
+              
               // Now apply settings
               settingsController.applyProfileSettings(active.settings);
             } else {
-              console.warn(`Profile ${active.name} has no settings, skipping apply`);
+              console.warn(`Profile ${active.name} has no settings, creating default settings`);
+              
+              // Create default settings for this profile
+              active.settings = {
+                toolbar: { fontFamily: 'monospace' },
+                grid: {},
+                custom: {
+                  gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
+                }
+              };
+              
+              // Apply the default settings
+              settingsController.applyProfileSettings(active.settings);
             }
           }
         }
@@ -151,11 +170,29 @@ export const useProfileManager = (settingsController: SettingsController | null)
           console.warn(`Fixing missing custom settings for profile: ${freshProfile.name}`);
         }
         
+        // Check if grid options have been set for this profile
+        if (!freshProfile.settings.custom.gridOptions) {
+          console.log(`No grid options found for profile: ${freshProfile.name}, applying defaults`);
+          freshProfile.settings.custom.gridOptions = deepClone(DEFAULT_GRID_OPTIONS);
+        }
+        
         // Apply the fresh settings
         console.log(`Applying latest settings for profile: ${freshProfile.name}`);
         settingsController.applyProfileSettings(freshProfile.settings);
       } else {
-        console.warn(`Profile ${freshProfile.name} has no settings, skipping apply`);
+        console.warn(`Profile ${freshProfile.name} has no settings, creating default settings`);
+        
+        // Create default settings for this profile
+        freshProfile.settings = {
+          toolbar: { fontFamily: 'monospace' },
+          grid: {},
+          custom: {
+            gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
+          }
+        };
+        
+        // Apply the default settings
+        settingsController.applyProfileSettings(freshProfile.settings);
       }
     } catch (error) {
       console.error('Error selecting profile:', error);
@@ -176,7 +213,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
         toolbar: defaultToolbarSettings,
         grid: {}, // Empty grid state (columns will use defaults)
         custom: {
-          gridOptions: DEFAULT_GRID_OPTIONS // Use default grid options instead of current ones
+          gridOptions: deepClone(DEFAULT_GRID_OPTIONS) // Use a deep clone of default grid options
         }
       };
       

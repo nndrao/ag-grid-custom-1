@@ -1,4 +1,4 @@
-import { CellSelectionOptions, ColDef, GridOptions, RowSelectionOptions } from 'ag-grid-community';
+import { CellSelectionOptions, ColDef, GridOptions } from 'ag-grid-community';
 
 /**
  * A utility type that allows indexing with strings while maintaining proper typing
@@ -21,7 +21,7 @@ export const ROW_SELECTION_MODE_MAP = {
  */
 export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // Basic grid configuration
-  rowHeight: 30,  // Default row height
+  rowHeight: 80,  // Default row height
   headerHeight: 40,  // Default header height
   rowModelType: 'clientSide',  // Default row model
   
@@ -37,7 +37,35 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
     enableRowGroup: true,
     enablePivot: true,
     sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
-    cellStyle: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }), // Alignment via flex
+    // AG Grid v33+ alignment using function-based cellStyle
+    cellStyle: params => {
+      // Note: In JavaScript style objects, we use camelCase (alignItems) instead of kebab-case (align-items)
+      const style: Record<string, string> = {
+        display: 'flex',
+        alignItems: 'center'  // Center align vertically by default
+      };
+      
+      // Adjust horizontal alignment based on data type
+      if (params.colDef.type === 'numericColumn') {
+        style.justifyContent = 'flex-end';  // Right align numbers
+      } else {
+        style.justifyContent = 'flex-start'; // Left align text
+      }
+      
+      // Support for custom alignment if defined in the column user properties
+      // Access via userProvidedColDef to avoid TypeScript errors
+      const colDefAny = params.colDef as any;
+      if (colDefAny.userProperties?.cellAlign) {
+        if (colDefAny.userProperties.cellAlign === 'center') {
+          style.justifyContent = 'center';
+        } else if (colDefAny.userProperties.cellAlign === 'right') {
+          style.justifyContent = 'flex-end';
+        }
+      }
+      
+      console.debug('[DEFAULT_GRID_OPTIONS] Applied cellStyle:', style);
+      return style;
+    },
   },
 
   // Selection options

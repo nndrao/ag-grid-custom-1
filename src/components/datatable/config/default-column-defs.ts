@@ -9,6 +9,11 @@ export function useDefaultColumnDefs() {
     enableValue: true,
     enableRowGroup: true,
     enablePivot: true,
+    cellStyle: {
+      'display': 'flex',
+      'align-items': 'flex-start',   // Vertical top
+      'justify-content': 'flex-end'  // Horizontal right
+    },
     sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
   }), []);
 
