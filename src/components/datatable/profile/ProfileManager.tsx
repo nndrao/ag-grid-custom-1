@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +14,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 interface ProfileManagerProps {
   onCreate: (name: string) => Promise<void>;
+  iconOnly?: boolean;
 }
 
-export function ProfileManager({ onCreate }: ProfileManagerProps) {
+export function ProfileManager({ onCreate, iconOnly = false }: ProfileManagerProps) {
   const [open, setOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -40,12 +47,23 @@ export function ProfileManager({ onCreate }: ProfileManagerProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          New Profile
-        </Button>
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size={iconOnly ? "icon" : "sm"}
+              className={cn(iconOnly && "h-7 w-7")}
+            >
+              <Plus className={cn(iconOnly ? "h-3.5 w-3.5" : "h-4 w-4 mr-2")} />
+              {!iconOnly && "New Profile"}
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={8}>
+          Create New Profile
+        </TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Profile</DialogTitle>

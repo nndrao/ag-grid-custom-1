@@ -1,14 +1,10 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Download, Filter, RefreshCw, Settings } from 'lucide-react';
-import { Cross2Icon } from "@radix-ui/react-icons";
-import { FontSelector } from './font-selector'; // Updated path
-import { ProfileSelector } from './profile/ProfileSelector';
-import { ProfileSaveButton } from './profile/ProfileSaveButton';
-import { ProfileDeleteButton } from './profile/ProfileDeleteButton';
-import { ProfileManager } from './profile/ProfileManager';
 import { useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast'; // Fixed import path
+import { useToast } from '@/components/ui/use-toast';
+import { SettingsController } from '@/services/settingsController';
+import { ProfileButtonGroup } from './profile/ProfileButtonGroup';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
+import { GridApi } from 'ag-grid-community';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -22,21 +18,20 @@ interface ProfileManagerInterface {
 
 interface DataTableToolbarProps<TData> {
   table: any;
-  onFontChange?: (font: string) => void;
-  currentFontValue: string;
   profileManager?: ProfileManagerInterface | null;
   className?: string;
+  settingsController?: SettingsController | null;
+  gridApi?: GridApi | null;
 }
 
 export function DataTableToolbar<TData>({ 
   table, 
-  onFontChange, 
-  currentFontValue, 
   profileManager,
-  className 
+  className,
+  settingsController,
+  gridApi
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table ? table.getState().columnFilters.length > 0 : false;
-  const { toast } = useToast(); // Use the hook at component level
+  const { toast } = useToast();
   
   const handleCreateProfile = useCallback(async (name: string) => {
     if (profileManager) {
@@ -57,52 +52,54 @@ export function DataTableToolbar<TData>({
       // Save current settings without re-applying them
       await profileManager.saveCurrentProfile();
       
-      // Show success message
+      // Show enhanced success message
       toast({
-        title: "Profile Saved",
-        description: "Your grid profile has been successfully updated.",
+        title: "Profile Saved Successfully",
+        description: `Profile "${profileManager.activeProfile.name}" has been updated with your current grid settings and preferences.`,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+        duration: 3000,
       });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to save profile. Please try again.",
-        variant: "destructive"
+        title: "Error Saving Profile",
+        description: "Failed to save profile. Please try again or check console for details.",
+        variant: "destructive",
+        duration: 5000,
       });
     }
   }, [profileManager, toast]);
 
   return (
-    <div className={`h-[60px] flex items-center justify-between gap-4 border-b border-border bg-muted/40 backdrop-blur-sm px-4 ${className || ''}`}>
-      <div className="flex items-center gap-2">
-        {profileManager && !profileManager.loading && profileManager.profiles && (
-          <>
-            <ProfileSelector 
+    <TooltipProvider>
+      <div className={`h-[60px] flex items-center border-b border-border bg-muted/40 backdrop-blur-sm px-4 relative z-10 ${className || ''}`}>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {profileManager && !profileManager.loading && profileManager.profiles && (
+            <ProfileButtonGroup
               profiles={profileManager.profiles}
               activeProfile={profileManager.activeProfile}
               onSelectProfile={profileManager.selectProfile}
-            />
-            <ProfileSaveButton 
               onSave={onSaveProfile}
-              disabled={!profileManager.activeProfile}
-            />
-            <ProfileDeleteButton 
               onDelete={handleDeleteProfile}
-              disabled={!profileManager.activeProfile}
-              profileName={profileManager.activeProfile?.name}
-            />
-            <ProfileManager 
               onCreate={handleCreateProfile}
             />
-          </>
-        )}
+          )}
+        </div>
+        
+        {/* Empty space in the middle */}
+        <div className="flex-grow"></div>
+        
+        {/* Grid settings menu on the right */}
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          {gridApi && (
+            <GridSettingsMenu 
+              gridApi={gridApi} 
+              settingsController={settingsController} 
+            />
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <FontSelector 
-          onFontChange={onFontChange} 
-          currentFontValue={currentFontValue}
-        />
-      </div>
-    </div>
+    </TooltipProvider>
   );
 } 

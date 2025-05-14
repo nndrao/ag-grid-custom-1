@@ -1,0 +1,17 @@
+/* Tooltip fixes to ensure they're always visible */
+
+/* Ensure Radix UI portals are always on top of other UI elements */
+[data-radix-tooltip-content] {
+  z-index: 9999999 !important;
+  position: fixed !important;
+}
+
+/* Ensure portals don't get clipped by overflow */
+body {
+  overflow-clip-margin: 50px;
+}
+
+/* Additional transform for top tooltips to push them further up */
+[data-side="top"][data-radix-tooltip-content] {
+  transform: translateY(-8px) !important;
+} 

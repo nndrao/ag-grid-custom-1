@@ -61,13 +61,3 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
-
-/* AG Grid Styles */
-.ag-theme-quartz,
-.ag-theme-quartz-dark {
-  --ag-font-family: inherit;
-  --ag-font-size: 14px;
-  --ag-grid-size: 6px;
-  --ag-list-item-height: 30px;
-  height: 100%;
-}

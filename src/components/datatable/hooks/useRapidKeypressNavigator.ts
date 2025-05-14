@@ -130,7 +130,7 @@ export const useRapidKeypressNavigator = (
     
     // Only clear focus if not doing range selection
     if (!shiftKey) {
-      gridApi.clearFocusedCell();
+      gridApi.clearCellSelection();
     }
     
     // Ensure column visibility when navigating to row edges
@@ -208,7 +208,7 @@ export const useRapidKeypressNavigator = (
     
     // Only clear focus if not doing range selection
     if (!shiftKey) {
-      gridApi.clearFocusedCell();
+      gridApi.clearCellSelection();
     }
     
     gridApi.ensureIndexVisible(endIndex);
@@ -402,7 +402,7 @@ export const useRapidKeypressNavigator = (
     
     // Only clear focus if not doing range selection with Shift key
     if (!shiftKey || forward) {
-      gridApi.clearFocusedCell();
+      gridApi.clearCellSelection();
     }
     
     // Ensure the target row is visible

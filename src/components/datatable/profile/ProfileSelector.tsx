@@ -7,22 +7,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Profile } from "@/types/profile.types";
+import { cn } from "@/lib/utils";
+import { User } from "lucide-react";
 
 interface ProfileSelectorProps {
   profiles: Profile[];
   activeProfile: Profile | null;
   onSelectProfile: (profileId: string) => void;
+  compact?: boolean;
 }
 
-export function ProfileSelector({ profiles, activeProfile, onSelectProfile }: ProfileSelectorProps) {
+export function ProfileSelector({ 
+  profiles, 
+  activeProfile, 
+  onSelectProfile,
+  compact = false
+}: ProfileSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Profile:</span>
+    <div className="flex items-center gap-1">
+      {!compact && <span className="text-sm text-muted-foreground">Profile:</span>}
       <Select 
         value={activeProfile?.id || ""}
         onValueChange={onSelectProfile}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className={cn(
+          compact ? "w-[130px] h-8 text-xs" : "w-[180px]",
+          "flex gap-1"
+        )}>
+          {compact && <User className="h-3.5 w-3.5 opacity-70" />}
           <SelectValue placeholder="Select profile" />
         </SelectTrigger>
         <SelectContent>
