@@ -3,6 +3,7 @@ import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
 import { SettingsController } from '@/services/settingsController';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
+import { deepClone } from '@/utils/deepClone';
 
 export const useProfileManager = (settingsController: SettingsController | null) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -176,7 +177,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
         toolbar: defaultToolbarSettings,
         grid: {}, // Empty grid state (columns will use defaults)
         custom: {
-          gridOptions: DEFAULT_GRID_OPTIONS // Use default grid options instead of current ones
+          gridOptions: deepClone(DEFAULT_GRID_OPTIONS) // Use a deep clone of default grid options
         }
       };
       

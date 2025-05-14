@@ -8,6 +8,8 @@ import { SettingsController } from '@/services/settingsController';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProfileManager } from '@/hooks/useProfileManager';
+import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
+import { deepClone } from '@/utils/deepClone';
 
 interface GridSettingsMenuProps {
   gridApi: GridApi | null;
@@ -64,12 +66,24 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
     }
 
     try {
-      // Re-apply the profile settings, effectively resetting any unsaved changes
-      settingsController.applyProfileSettings(profileManager.activeProfile.settings);
-      
+      // Deep clone the default grid options
+      const defaults = deepClone(DEFAULT_GRID_OPTIONS);
+      // Update the active profile's settings (custom.gridOptions)
+      if (profileManager.activeProfile.settings?.custom) {
+        profileManager.activeProfile.settings.custom.gridOptions = defaults;
+      }
+      // Apply the defaults to the grid
+      settingsController.applyProfileSettings({
+        ...profileManager.activeProfile.settings,
+        custom: {
+          ...profileManager.activeProfile.settings.custom,
+          gridOptions: defaults
+        }
+      });
       toast({
         title: "Settings Reset",
         description: `Grid settings reset to profile defaults.`,
+
         variant: "default",
         duration: 2000,
       });
@@ -82,6 +96,7 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
       });
     }
   };
+
 
   return (
     <>

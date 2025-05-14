@@ -29,9 +29,9 @@ interface ColumnDefaultsProps {
 export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
   // Available alignment options
   const verticalAlignOptions = [
-    { value: 'start', label: 'Top' },
-    { value: 'center', label: 'Middle' },
-    { value: 'end', label: 'Bottom' }
+    { value: 'top', label: 'Top' },
+    { value: 'middle', label: 'Middle' },
+    { value: 'bottom', label: 'Bottom' }
   ];
 
   const horizontalAlignOptions = [
@@ -357,14 +357,13 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
           <div className="space-y-2 pt-4">
             <Label htmlFor="verticalAlign">Vertical Cell Alignment</Label>
             <Select
-              value={typeof localSettings.defaultColDef?.verticalAlign === 'string' ? localSettings.defaultColDef.verticalAlign : 'default'}
+              value={typeof localSettings.defaultColDef?.verticalAlign === 'string' ? localSettings.defaultColDef.verticalAlign : 'middle'}
               onValueChange={(value) => handleSelectChange('verticalAlign', value)}
             >
               <SelectTrigger id="verticalAlign">
                 <SelectValue placeholder="Choose alignment" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">Default</SelectItem>
                 {verticalAlignOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}

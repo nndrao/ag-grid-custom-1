@@ -37,7 +37,7 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
     enableRowGroup: true,
     enablePivot: true,
     sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
-    cellStyle: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }), // Alignment via flex
+    verticalAlign: 'middle', // AG Grid v33+ vertical alignment
   },
 
   // Selection options

@@ -15,6 +15,8 @@ import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
+import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
+import { deepClone } from '@/utils/deepClone';
 
 // Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
 import './tooltip-fixes.css';
@@ -56,7 +58,23 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   // Use type assertion to bypass type checking for profileManager
   useAgGridProfileSync(gridReady, profileManager as unknown as ProfileManager, settingsControllerRef.current);
-  const { defaultColDef, autoGroupColumnDef, getContextMenuItems } = useDefaultColumnDefs();
+  // Always call the hook once, unconditionally
+  const {
+    defaultColDef: hookDefaultColDef,
+    autoGroupColumnDef: hookAutoGroupColumnDef,
+    getContextMenuItems
+  } = useDefaultColumnDefs();
+
+  // Use profile's gridOptions if available, otherwise fallback to DEFAULT_GRID_OPTIONS
+  const customGridOptions = profileManager?.activeProfile?.settings?.custom?.gridOptions
+    ? deepClone(profileManager.activeProfile.settings.custom.gridOptions)
+    : deepClone(DEFAULT_GRID_OPTIONS);
+
+  // Use defaultColDef and autoGroupColumnDef from gridOptions, fallback to hook if not present
+  const defaultColDef = customGridOptions.defaultColDef ?? hookDefaultColDef;
+  const autoGroupColumnDef = customGridOptions.autoGroupColumnDef ?? hookAutoGroupColumnDef;
+  // getContextMenuItems is always from the hook
+
 
   // Memoize important values to prevent re-renders
   const memoizedToolbarProps = useMemo(() => ({
