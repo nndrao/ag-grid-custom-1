@@ -480,11 +480,11 @@ export class GridStateProvider {
       }
 
       // 11. Restore range selection
-      if (gridState.rangeSelectionState && gridState.rangeSelectionState.length > 0 && this.gridApi.clearRangeSelection && this.gridApi.addCellRange) {
+      if (gridState.rangeSelectionState && gridState.rangeSelectionState.length > 0 && this.gridApi.clearCellSelection && this.gridApi.addCellRange) {
         setTimeout(() => {
           try {
             // Clear existing ranges
-            this.gridApi?.clearRangeSelection();
+            this.gridApi?.clearCellSelection();
             
             // Add saved ranges
             gridState.rangeSelectionState.forEach((range: any) => {

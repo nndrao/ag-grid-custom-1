@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -390,6 +390,9 @@ export function GridSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] h-[80vh] max-h-[700px] flex flex-col p-0 gap-0">
+        <DialogDescription>
+          Configure grid settings such as columns, appearance, selection, and advanced features. All changes apply only to this grid instance.
+        </DialogDescription>
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Grid Settings</DialogTitle>
         </DialogHeader>
