@@ -27,7 +27,11 @@ export function DataRendering({ settings, onChange }: DataRenderingProps) {
   // Handler for checkbox options
   const handleCheckboxChange = (option: string, checked: boolean) => {
     setLocalSettings(prev => ({ ...prev, [option]: checked }));
-    onChange(option, checked);
+    if (option === 'immutableData') {
+  // Do not pass immutableData to AG Grid
+  return;
+}
+onChange(option, checked);
   };
 
   // Handler for number inputs

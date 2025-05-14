@@ -9,6 +9,7 @@ export function useDefaultColumnDefs() {
     enableValue: true,
     enableRowGroup: true,
     enablePivot: true,
+    sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
   }), []);
 
   const autoGroupColumnDef = useMemo(() => ({

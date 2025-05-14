@@ -67,7 +67,34 @@ export function GridSettingsDialog({
       
       // Merge in the following order: defaults -> current -> stored
       // This ensures that stored options (from profile) take precedence
-      const mergedSettings = { ...defaultOptions, ...currentGridSettings, ...storedOptions };
+      let mergedSettings = { ...defaultOptions, ...currentGridSettings, ...storedOptions };
+
+      // Utility to strip deprecated/invalid AG Grid properties
+      const stripInvalidGridProps = (settings: any) => {
+        const {
+          verticalAlign,
+          horizontalAlign,
+          immutableData,
+          suppressCellSelection,
+          groupIncludeFooter,
+          suppressPropertyNamesCheck,
+          suppressBrowserResizeObserver,
+          debug,
+          stopEditingWhenCellsLoseFocus,
+          ...rest
+        } = settings;
+        // Also recursively strip from defaultColDef if present
+        if (rest.defaultColDef) {
+          const {
+            verticalAlign,
+            horizontalAlign,
+            ...colDefRest
+          } = rest.defaultColDef;
+          rest.defaultColDef = colDefRest;
+        }
+        return rest;
+      };
+      mergedSettings = stripInvalidGridProps(mergedSettings);
       
       // Save initial values for comparison later
       setInitialValues(mergedSettings);

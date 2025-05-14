@@ -35,7 +35,11 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
   // Handler for checkbox options
   const handleCheckboxChange = (option: string, checked: boolean) => {
     setLocalSettings(prev => ({ ...prev, [option]: checked }));
-    onChange(option, checked);
+    if (option === 'suppressCellSelection') {
+  // Do not pass suppressCellSelection to AG Grid
+  return;
+}
+onChange(option, checked);
   };
 
   return (

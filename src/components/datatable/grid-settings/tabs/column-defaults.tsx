@@ -66,7 +66,10 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     }));
     
     // Pass the entire defaultColDef object to the parent component
-    onChange('defaultColDef', newDefaultColDef);
+    // Strip out deprecated alignment props before passing to AG Grid
+type ColDefGrid = typeof newDefaultColDef;
+const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
+onChange('defaultColDef', colDefForGrid);
   };
 
   // Handler for number inputs
@@ -85,7 +88,10 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     }));
     
     // Pass the entire defaultColDef object to the parent component
-    onChange('defaultColDef', newDefaultColDef);
+    // Strip out deprecated alignment props before passing to AG Grid
+type ColDefGrid = typeof newDefaultColDef;
+const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
+onChange('defaultColDef', colDefForGrid);
   };
 
   // Handler for text inputs
@@ -102,7 +108,10 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     }));
     
     // Pass the entire defaultColDef object to the parent component
-    onChange('defaultColDef', newDefaultColDef);
+    // Strip out deprecated alignment props before passing to AG Grid
+type ColDefGrid = typeof newDefaultColDef;
+const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
+onChange('defaultColDef', colDefForGrid);
   };
 
   // Handler for select options
@@ -135,7 +144,10 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     }));
     
     // Pass the entire defaultColDef object to the parent component
-    onChange('defaultColDef', newDefaultColDef);
+    // Strip out deprecated alignment props before passing to AG Grid
+type ColDefGrid = typeof newDefaultColDef;
+const { verticalAlign, horizontalAlign, ...colDefForGrid } = newDefaultColDef as ColDefGrid;
+onChange('defaultColDef', colDefForGrid);
   };
 
   // Helper to generate the cellStyle function based on alignment settings

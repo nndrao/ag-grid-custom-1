@@ -271,18 +271,55 @@ export class SettingsController {
       if (gridApiInstance) {
         setTimeout(() => {
           try {
-            console.log("🔧 Applying processed custom grid options:", this.currentGridOptions);
+            // Utility: list of AG Grid v33+ invalid/deprecated options
+            const INVALID_GRID_OPTIONS = [
+              'verticalAlign',
+              'horizontalAlign',
+              'immutableData',
+              'suppressCellSelection',
+              'groupIncludeFooter',
+              'suppressPropertyNamesCheck',
+              'suppressBrowserResizeObserver',
+              'debug',
+              'stopEditingWhenCellsLoseFocus',
+              'sortingOrder', // only allow on defaultColDef
+              // add more as needed
+            ];
+            function isInvalidGridOption(optKey: string, value: any): boolean {
+              if (INVALID_GRID_OPTIONS.includes(optKey)) {
+                // sortingOrder is only valid on defaultColDef
+                if (optKey === 'sortingOrder') {
+                  return true;
+                }
+                return true;
+              }
+              // Check for colDef/defaultColDef
+              if (optKey === 'defaultColDef' && value && typeof value === 'object') {
+                // Remove verticalAlign/horizontalAlign from colDef
+                if ('verticalAlign' in value) delete value.verticalAlign;
+                if ('horizontalAlign' in value) delete value.horizontalAlign;
+                if ('sortingOrder' in value && !Array.isArray(value.sortingOrder)) delete value.sortingOrder;
+              }
+              if (optKey === 'colDefs' && Array.isArray(value)) {
+                value.forEach((col: any) => {
+                  if ('verticalAlign' in col) delete col.verticalAlign;
+                  if ('horizontalAlign' in col) delete col.horizontalAlign;
+                  if ('sortingOrder' in col && !Array.isArray(col.sortingOrder)) delete col.sortingOrder;
+                });
+              }
+              return false;
+            }
+            // Actually apply only valid grid options
             Object.entries(this.currentGridOptions).forEach(([option, value]) => {
-              const optKey = option as ManagedGridOptionKey;
+              const optKey = option as string;
               if (value !== undefined && !initialProperties.includes(optKey as keyof GridOptions)) {
-                // Exclude 'theme' from being set on the grid
-                if(optKey !== 'theme'){
+                if(optKey !== 'theme' && !isInvalidGridOption(optKey, value)){
                   gridApiInstance.setGridOption(optKey, value);
                 }
               }
             });
           } catch (error) {
-            console.error("❌ Error applying grid options:", error);
+            console.error('Error applying grid options:', error);
           }
         }, 100);
       }

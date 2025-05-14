@@ -36,25 +36,18 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
     enableValue: true,
     enableRowGroup: true,
     enablePivot: true,
-    sortingOrder: ['asc', 'desc', null],  // Default sorting order
-    // Default cell alignment settings
-    cellStyle: () => ({ 
-      display: "flex", 
-      alignItems: "center" // Vertical alignment - centered by default
-    }),
-    // Custom alignment properties that will be used in the UI
-    verticalAlign: 'center',
-    horizontalAlign: 'left',
+    sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
+    cellStyle: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }), // Alignment via flex
   },
 
   // Selection options
-  rowSelection: {  // Modern AG-Grid API (v33+)
-    mode: 'multiRow',  // AG-Grid v33+ uses multiRow instead of multiple
-    enableSelectionWithoutKeys: false,  // Maps to rowMultiSelectWithClick
-    enableClickSelection: true,  // Maps to !suppressRowClickSelection
+  rowSelection: {
+    mode: 'multiRow', // AG-Grid v33+ uses multiRow instead of multiple
+    enableSelectionWithoutKeys: false, // Maps to rowMultiSelectWithClick
+    enableClickSelection: true, // Maps to !suppressRowClickSelection
     copySelectedRows: true // Maps to !suppressCopyRowsToClipboard
   },
-  cellSelection: false,  // Maps to enableRangeSelection - simpler boolean default
+  enableRangeSelection: false, // AG-Grid v33+ property for cell selection
 
   // Sorting & Filtering options
   multiSortKey: 'ctrl',  // Default multi-sort key
@@ -70,15 +63,16 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // Grouping & Pivoting options
   groupDefaultExpanded: 0,  // Default group expanded level
   groupDisplayType: 'groupRows',  // Default group display type
-  groupIncludeFooter: false,  // Default group include footer
+  // groupIncludeFooter removed: not supported in AG Grid v33+
+  // If needed, use groupRowRendererParams or similar supported options
   groupHideOpenParents: false,  // Default group hide open parents
   groupHideParentOfSingleChild: false,  // Maps to groupRemoveSingleChildren
-  
+
   // Editing options
   editType: 'fullRow',  // Default edit type - AG-Grid v33+ uses fullRow
   readOnlyEdit: false,  // Default read-only edit
   singleClickEdit: false,  // Default single click edit
-  stopEditingWhenCellsLoseFocus: true,  // Default stop editing when cells lose focus
+  // stopEditingWhenCellsLoseFocus removed: initial-only property, not supported for runtime update
   
   // Styling & Appearance options
   rowClass: '',  // Default row class
@@ -97,7 +91,6 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
   
   // Data rendering
   rowBuffer: 20,  // Default row buffer
-  immutableData: false,  // Default immutable data
   valueCache: false,  // Default value cache
   
   // Clipboard & Export
@@ -105,9 +98,9 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
   suppressCopyRowsToClipboard: false,  // Default suppress copy rows to clipboard
   
   // Advanced features
-  suppressPropertyNamesCheck: false,  // Default suppress property names check
-  suppressBrowserResizeObserver: false,  // Default suppress browser resize observer
-  debug: false,  // Default debug
+  // suppressPropertyNamesCheck removed: not supported in AG Grid v33+
+  // suppressBrowserResizeObserver removed: not supported in AG Grid v33+
+  // debug removed: initial-only property, not supported for runtime update
   
   // Localization & Accessibility
   pivotHeaderHeight: 56,  // Default pivot header height
