@@ -71,7 +71,7 @@ interface UiComponentsProps {
     suppressMovableColumns?: boolean;
     enableRangeSelection?: boolean;
     suppressColumnMoveAnimation?: boolean;
-    suppressLoadingOverlay?: boolean;
+    loading?: boolean; // Replaces suppressLoadingOverlay
     suppressNoRowsOverlay?: boolean;
     sideBar?: boolean | string;
     statusBar?: boolean | { statusPanels: StatusPanel[] };
@@ -529,11 +529,12 @@ export function UiComponents({ settings, onChange }: UiComponentsProps) {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Checkbox 
-              id="suppressLoadingOverlay" 
-              checked={!!localSettings.suppressLoadingOverlay}
-              onCheckedChange={(checked) => handleCheckboxChange('suppressLoadingOverlay', !!checked)} 
+              id="loading" 
+              // Invert logic: loading=false means hide overlay (same as suppressLoadingOverlay=true)
+              checked={localSettings.loading === false}
+              onCheckedChange={(checked) => handleCheckboxChange('loading', !checked)} 
             />
-            <Label htmlFor="suppressLoadingOverlay" className="font-normal">
+            <Label htmlFor="loading" className="font-normal">
               Hide loading overlay
             </Label>
           </div>

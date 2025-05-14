@@ -37,7 +37,25 @@ export function SizingDimensions({ settings, onChange }: SizingDimensionsProps) 
 
   // Handler for number inputs
   const handleNumberChange = (option: string, value: string) => {
-    const numValue = value ? parseInt(value, 10) : undefined;
+    // If input is empty (user deleted the value)
+    if (!value.trim()) {
+      // For rowHeight and headerHeight, revert to defaults
+      if (option === 'rowHeight') {
+        setLocalSettings(prev => ({ ...prev, [option]: 30 }));
+        onChange(option, 30);
+      } else if (option === 'headerHeight') {
+        setLocalSettings(prev => ({ ...prev, [option]: 40 }));
+        onChange(option, 40);
+      } else {
+        // For other dimensions, set to undefined to use AG-Grid defaults
+        setLocalSettings(prev => ({ ...prev, [option]: undefined }));
+        onChange(option, undefined);
+      }
+      return;
+    }
+    
+    // Normal case with a valid number input
+    const numValue = parseInt(value, 10);
     setLocalSettings(prev => ({ ...prev, [option]: numValue }));
     onChange(option, numValue);
   };
@@ -59,11 +77,11 @@ export function SizingDimensions({ settings, onChange }: SizingDimensionsProps) 
               type="number"
               value={localSettings.rowHeight || ''}
               onChange={(e) => handleNumberChange('rowHeight', e.target.value)}
-              placeholder="Default"
+              placeholder="Default (30px)"
               min={1}
             />
             <p className="text-xs text-muted-foreground">
-              Height in pixels for each row. Default varies by theme.
+              Height in pixels for each row. Default is 30px.
             </p>
           </div>
           
@@ -74,11 +92,11 @@ export function SizingDimensions({ settings, onChange }: SizingDimensionsProps) 
               type="number"
               value={localSettings.headerHeight || ''}
               onChange={(e) => handleNumberChange('headerHeight', e.target.value)}
-              placeholder="Default"
+              placeholder="Default (40px)"
               min={1}
             />
             <p className="text-xs text-muted-foreground">
-              Height in pixels for the header row. Default varies by theme.
+              Height in pixels for the header row. Default is 40px.
             </p>
           </div>
           

@@ -9,13 +9,14 @@ import { X, Plus } from 'lucide-react';
 
 interface SortingFilteringProps {
   settings: {
-    sortingOrder?: string[];
+    defaultColDef?: {
+      sortingOrder?: string[];
+      unSortIcon?: boolean;
+    };
     multiSortKey?: string;
     accentedSort?: boolean;
+    suppressMaintainUnsortedOrder?: boolean;
     enableAdvancedFilter?: boolean;
-    quickFilterText?: string;
-    cacheQuickFilter?: boolean;
-    excludeChildrenWhenTreeDataFiltering?: boolean;
   };
   onChange: (option: string, value: any) => void;
   initialProperties?: string[];
@@ -47,17 +48,17 @@ export function SortingFiltering({ settings, onChange }: SortingFilteringProps) 
     onChange(option, value);
   };
 
-  // Handler for sorting order (array of values)
-  const [sortOrder, setSortOrder] = useState<string[]>(
-    localSettings.sortingOrder || ['asc', 'desc', null]
+  // State for sort order (asc, desc, null)
+  const [sortOrder, setSortOrder] = useState<(string | null)[]>(
+    localSettings.defaultColDef?.sortingOrder || ['asc', 'desc', null]
   );
 
-  // Update sorting order
+  // Update sort order when settings change
   useEffect(() => {
-    if (localSettings.sortingOrder) {
-      setSortOrder(localSettings.sortingOrder);
+    if (localSettings.defaultColDef?.sortingOrder) {
+      setSortOrder(localSettings.defaultColDef.sortingOrder);
     }
-  }, [localSettings.sortingOrder]);
+  }, [localSettings.defaultColDef?.sortingOrder]);
 
   // Add sort option
   const addSortOption = (value: string) => {
@@ -74,9 +75,16 @@ export function SortingFiltering({ settings, onChange }: SortingFilteringProps) 
   };
 
   // Update parent on sort order change
-  const handleSortOrderChange = (newSortOrder: string[]) => {
-    setLocalSettings(prev => ({ ...prev, sortingOrder: newSortOrder }));
-    onChange('sortingOrder', newSortOrder);
+  const handleSortOrderChange = (newSortOrder: (string | null)[]) => {
+    setSortOrder(newSortOrder);
+    setLocalSettings(prev => ({
+      ...prev,
+      defaultColDef: {
+        ...prev.defaultColDef,
+        sortingOrder: newSortOrder
+      }
+    }));
+    onChange('defaultColDef.sortingOrder', newSortOrder);
   };
 
   return (

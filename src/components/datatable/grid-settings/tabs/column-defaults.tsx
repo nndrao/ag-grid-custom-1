@@ -17,6 +17,9 @@ interface ColumnDefaultsProps {
       maxWidth?: number;
       cellClass?: string;
       headerClass?: string;
+      cellStyle?: any;
+      verticalAlign?: 'start' | 'center' | 'end';
+      horizontalAlign?: 'left' | 'center' | 'right';
     };
   };
   onChange: (option: string, value: any) => void;
@@ -24,6 +27,19 @@ interface ColumnDefaultsProps {
 }
 
 export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
+  // Available alignment options
+  const verticalAlignOptions = [
+    { value: 'start', label: 'Top' },
+    { value: 'center', label: 'Middle' },
+    { value: 'end', label: 'Bottom' }
+  ];
+
+  const horizontalAlignOptions = [
+    { value: 'left', label: 'Left' },
+    { value: 'center', label: 'Center' },
+    { value: 'right', label: 'Right' }
+  ];
+
   // Initialize local state with defaultColDef or empty object
   const [localSettings, setLocalSettings] = useState({
     defaultColDef: settings.defaultColDef || {}
@@ -87,6 +103,78 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
     
     // Pass the entire defaultColDef object to the parent component
     onChange('defaultColDef', newDefaultColDef);
+  };
+
+  // Handler for select options
+  const handleSelectChange = (option: string, value: string) => {
+    // Store alignment values
+    let newDefaultColDef = { ...localSettings.defaultColDef };
+    
+    // Update alignment options
+    if (option === 'verticalAlign' || option === 'horizontalAlign') {
+      // Handle default selection (revert to default)
+      if (value === 'default') {
+        delete newDefaultColDef[option];
+      } else {
+        newDefaultColDef[option] = value as any;
+      }
+      
+      // Update the cellStyle function
+      updateCellStyleFunction(newDefaultColDef);
+    } else {
+      // For other select options that aren't alignment related
+      newDefaultColDef = {
+        ...newDefaultColDef,
+        [option]: value
+      };
+    }
+    
+    setLocalSettings(prev => ({
+      ...prev,
+      defaultColDef: newDefaultColDef
+    }));
+    
+    // Pass the entire defaultColDef object to the parent component
+    onChange('defaultColDef', newDefaultColDef);
+  };
+
+  // Helper to generate the cellStyle function based on alignment settings
+  const updateCellStyleFunction = (colDef: any) => {
+    const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
+    const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
+    
+    // Only create cellStyle if at least one alignment is specified
+    if (verticalAlign || horizontalAlign) {
+      // Create a function that returns the style object
+      colDef.cellStyle = () => {
+        const styleObj: any = { display: 'flex' };
+        
+        // Add vertical alignment
+        if (verticalAlign) {
+          styleObj.alignItems = verticalAlign;
+        }
+        
+        // Add horizontal alignment
+        if (horizontalAlign) {
+          switch (horizontalAlign) {
+            case 'left':
+              styleObj.justifyContent = 'flex-start';
+              break;
+            case 'center':
+              styleObj.justifyContent = 'center';
+              break;
+            case 'right':
+              styleObj.justifyContent = 'flex-end';
+              break;
+          }
+        }
+        
+        return styleObj;
+      };
+    } else {
+      // If both alignments are unset, remove the cellStyle function
+      delete colDef.cellStyle;
+    }
   };
 
   return (
@@ -226,6 +314,52 @@ export function ColumnDefaults({ settings, onChange }: ColumnDefaultsProps) {
             />
             <p className="text-xs text-muted-foreground">
               CSS class names to apply to all column headers.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-4">
+            <Label htmlFor="verticalAlign">Vertical Cell Alignment</Label>
+            <Select
+              value={localSettings.defaultColDef?.verticalAlign || 'default'}
+              onValueChange={(value) => handleSelectChange('verticalAlign', value)}
+            >
+              <SelectTrigger id="verticalAlign">
+                <SelectValue placeholder="Choose alignment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default</SelectItem>
+                {verticalAlignOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Vertical alignment of content within cells.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="horizontalAlign">Horizontal Cell Alignment</Label>
+            <Select
+              value={localSettings.defaultColDef?.horizontalAlign || 'default'}
+              onValueChange={(value) => handleSelectChange('horizontalAlign', value)}
+            >
+              <SelectTrigger id="horizontalAlign">
+                <SelectValue placeholder="Choose alignment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default</SelectItem>
+                {horizontalAlignOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Horizontal alignment of content within cells.
             </p>
           </div>
         </CardContent>

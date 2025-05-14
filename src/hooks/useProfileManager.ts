@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
 import { SettingsController } from '@/services/settingsController';
+import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 
 export const useProfileManager = (settingsController: SettingsController | null) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -165,18 +166,29 @@ export const useProfileManager = (settingsController: SettingsController | null)
     if (!settingsController) return;
     
     try {
-      // We'll just collect the current settings without triggering any grid updates
-      const settings = settingsController.collectCurrentSettings();
+      // Start with default toolbar settings
+      const defaultToolbarSettings = {
+        fontFamily: 'monospace'
+      };
+      
+      // Create default grid settings  
+      const defaultSettings: ProfileSettings = {
+        toolbar: defaultToolbarSettings,
+        grid: {}, // Empty grid state (columns will use defaults)
+        custom: {
+          gridOptions: DEFAULT_GRID_OPTIONS // Use default grid options instead of current ones
+        }
+      };
       
       // Create a uniqueId for the profile
       const profileId = `profile-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
-      // Create the new profile
+      // Create the new profile with default settings
       const newProfile: Profile = {
         id: profileId,
         name: profileName,
         isDefault: false,
-        settings: settings,
+        settings: defaultSettings,
         metadata: {
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -190,9 +202,12 @@ export const useProfileManager = (settingsController: SettingsController | null)
       // Add to local state (without refreshing the grid)
       setProfiles(prevProfiles => [...prevProfiles, newProfile]);
       
-      // Make it active (without applying settings, since we're already using these settings)
+      // Make it active and apply the default settings to reset the grid
       setActiveProfile(newProfile);
       await store.setActiveProfileId(newProfile.id);
+      
+      // Important: Apply the default settings to reset the grid
+      settingsController.applyProfileSettings(defaultSettings);
       
       return newProfile;
     } catch (error) {

@@ -328,6 +328,47 @@ export class GridStateProvider {
     if (!this.gridApi || !gridState) {
       return;
     }
+    
+    // Process defaultColDef to properly handle cell alignments if present
+    if (gridState.custom?.gridOptions?.defaultColDef) {
+      try {
+        const colDef = gridState.custom.gridOptions.defaultColDef as any;
+        const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | undefined;
+        const horizontalAlign = colDef.horizontalAlign as 'left' | 'center' | 'right' | undefined;
+        
+        // Only create cellStyle if at least one alignment is specified
+        if (verticalAlign || horizontalAlign) {
+          // Create a function that returns the style object
+          colDef.cellStyle = () => {
+            const styleObj: any = { display: 'flex' };
+            
+            // Add vertical alignment
+            if (verticalAlign) {
+              styleObj.alignItems = verticalAlign;
+            }
+            
+            // Add horizontal alignment
+            if (horizontalAlign) {
+              switch (horizontalAlign) {
+                case 'left':
+                  styleObj.justifyContent = 'flex-start';
+                  break;
+                case 'center':
+                  styleObj.justifyContent = 'center';
+                  break;
+                case 'right':
+                  styleObj.justifyContent = 'flex-end';
+                  break;
+              }
+            }
+            
+            return styleObj;
+          };
+        }
+      } catch (e) {
+        console.error('Error processing defaultColDef alignments:', e);
+      }
+    }
 
     try {
       // 1. Restore column state (includes sort, filter, width, visibility, pinning)
