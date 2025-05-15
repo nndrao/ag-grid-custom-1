@@ -13,7 +13,7 @@ export interface ProfileSettings {
 }
 
 export interface ToolbarSettings {
-  // Empty object now that fontFamily has been removed
+  fontFamily?: string;
 }
 
 export interface GridSettings {

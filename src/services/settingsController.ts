@@ -4,6 +4,9 @@ import { GridApi as AgGridApi, GridOptions, ManagedGridOptionKey, ColDef, Column
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import { deepClone } from '@/utils/deepClone';
 
+// Default font to use across the application
+export const DEFAULT_FONT_FAMILY = 'monospace';
+
 // Define a more specific type for grid options
 export type GridOptionValue = string | number | boolean | object | null | undefined | Function | ColDef[];
 export type GridOptionsMap = Partial<GridOptions>; // Use GridOptions for better type safety
@@ -17,6 +20,11 @@ export class SettingsController {
 
   constructor(gridStateProvider: GridStateProvider) {
     this.gridStateProvider = gridStateProvider;
+    
+    // Initialize with default settings
+    this.currentToolbarSettings = {
+      fontFamily: DEFAULT_FONT_FAMILY
+    };
   }
 
   /**
@@ -26,7 +34,7 @@ export class SettingsController {
   resetToDefaults(): void {
     // Reset toolbar settings to default
     this.currentToolbarSettings = {
-      fontFamily: 'monospace'
+      fontFamily: DEFAULT_FONT_FAMILY
     };
     
     // Reset grid options to default 

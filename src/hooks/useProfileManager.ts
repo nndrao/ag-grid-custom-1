@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
-import { SettingsController } from '@/services/settingsController';
+import { DEFAULT_FONT_FAMILY, SettingsController } from '@/services/settingsController';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import { deepClone } from '@/utils/deepClone';
 
@@ -32,7 +32,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
               // Ensure settings has all required properties
               if (!active.settings.toolbar) {
                 active.settings.toolbar = {
-                  fontFamily: 'monospace'
+                  fontFamily: DEFAULT_FONT_FAMILY
                 };
                 console.warn(`Fixing missing toolbar settings for profile: ${active.name}`);
               }
@@ -58,7 +58,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
               
               // Create default settings for this profile
               active.settings = {
-                toolbar: { fontFamily: 'monospace' },
+                toolbar: { fontFamily: DEFAULT_FONT_FAMILY },
                 grid: {},
                 custom: {
                   gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
@@ -157,7 +157,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
         // Ensure settings has all required properties
         if (!freshProfile.settings.toolbar) {
           freshProfile.settings.toolbar = {
-            fontFamily: 'monospace'
+            fontFamily: DEFAULT_FONT_FAMILY
           };
           console.warn(`Fixing missing toolbar settings for profile: ${freshProfile.name}`);
         }
@@ -184,7 +184,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
         
         // Create default settings for this profile
         freshProfile.settings = {
-          toolbar: { fontFamily: 'monospace' },
+          toolbar: { fontFamily: DEFAULT_FONT_FAMILY },
           grid: {},
           custom: {
             gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
@@ -205,7 +205,7 @@ export const useProfileManager = (settingsController: SettingsController | null)
     try {
       // Start with default toolbar settings
       const defaultToolbarSettings = {
-        fontFamily: 'monospace'
+        fontFamily: DEFAULT_FONT_FAMILY
       };
       
       // Create default grid settings with pristine DEFAULT_GRID_OPTIONS

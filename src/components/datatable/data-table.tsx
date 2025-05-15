@@ -24,6 +24,7 @@ import { keyboardThrottleConfig, rapidKeypressConfig } from './config/keyboard-t
 import { useKeyboardThrottler } from './hooks/useKeyboardThrottler';
 import { useRapidKeypressNavigator } from './hooks/useRapidKeypressNavigator';
 import { debounce } from 'lodash';
+import { GoogleFontsLoader } from '@/components/GoogleFontsLoader';
 
 // Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
 import './tooltip-fixes.css';
@@ -277,6 +278,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
+      {/* Load Google Fonts */}
+      <GoogleFontsLoader />
+      
       <DataTableToolbar 
         table={null} 
         {...memoizedToolbarProps}
