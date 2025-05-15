@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTheme } from '@/components/theme-provider';
+import { Switch } from '@/components/ui/switch';
 
 interface StylingAppearanceProps {
   settings: {
@@ -48,64 +48,62 @@ export function StylingAppearance({ settings, onChange, initialProperties = [] }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Configure the visual appearance of the grid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2 pt-0">
-            <Label htmlFor="domLayout">DOM Layout</Label>
-            <Select
-              value={getSelectValue(localSettings.domLayout, 'normal')}
-              onValueChange={(value) => handleSelectChange('domLayout', value === 'normal' ? '' : value)}
-            >
-              <SelectTrigger id="domLayout">
-                <SelectValue placeholder="Select layout" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="autoHeight">Auto Height</SelectItem>
-                <SelectItem value="print">Print</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              The DOM layout to use for the grid.
+    <div className="space-y-4">
+      <div className="flex items-center mb-2">
+        <h3 className="text-base font-medium">Appearance & Visual Styling</h3>
+      </div>
+      
+      <div className="space-y-1.5">
+        <Label htmlFor="domLayout" className="text-sm font-medium">DOM Layout</Label>
+        <Select
+          value={getSelectValue(localSettings.domLayout, 'normal')}
+          onValueChange={(value) => handleSelectChange('domLayout', value === 'normal' ? '' : value)}
+        >
+          <SelectTrigger id="domLayout" className="h-8 text-sm">
+            <SelectValue placeholder="Select layout" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="normal">Normal</SelectItem>
+            <SelectItem value="autoHeight">Auto Height</SelectItem>
+            <SelectItem value="print">Print</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">
+          Controls how the DOM is structured for the grid
+        </p>
+      </div>
+      
+      <div className="space-y-3 mt-4">
+        <h4 className="text-sm font-medium text-muted-foreground">Animation & Scroll Options</h4>
+        
+        <div className="flex items-center justify-between bg-muted/30 rounded-md p-2.5">
+          <div className="space-y-0.5">
+            <Label htmlFor="animateRows" className="text-sm">Animate Rows</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Animate row changes when sorting/filtering
             </p>
           </div>
-          
-          <div className="flex items-center space-x-2 pt-4">
-            <Checkbox 
-              id="animateRows" 
-              checked={!!localSettings.animateRows}
-              onCheckedChange={(checked) => handleCheckboxChange('animateRows', !!checked)} 
-            />
-            <Label htmlFor="animateRows" className="font-normal">
-              Animate rows
-            </Label>
-            <p className="text-xs text-muted-foreground ml-6">
-              When enabled, rows will animate when sorting or filtering.
+          <Switch 
+            id="animateRows" 
+            checked={!!localSettings.animateRows}
+            onCheckedChange={(checked) => handleCheckboxChange('animateRows', checked)} 
+          />
+        </div>
+        
+        <div className="flex items-center justify-between bg-muted/30 rounded-md p-2.5">
+          <div className="space-y-0.5">
+            <Label htmlFor="alwaysShowVerticalScroll" className="text-sm">Always Show Vertical Scroll</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Always display vertical scrollbar
             </p>
           </div>
-          
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox 
-              id="alwaysShowVerticalScroll" 
-              checked={!!localSettings.alwaysShowVerticalScroll}
-              onCheckedChange={(checked) => handleCheckboxChange('alwaysShowVerticalScroll', !!checked)} 
-            />
-            <Label htmlFor="alwaysShowVerticalScroll" className="font-normal">
-              Always show vertical scroll
-            </Label>
-            <p className="text-xs text-muted-foreground ml-6">
-              When enabled, vertical scrollbar will always be displayed.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          <Switch 
+            id="alwaysShowVerticalScroll" 
+            checked={!!localSettings.alwaysShowVerticalScroll}
+            onCheckedChange={(checked) => handleCheckboxChange('alwaysShowVerticalScroll', checked)} 
+          />
+        </div>
+      </div>
     </div>
   );
 } 
