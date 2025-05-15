@@ -11,8 +11,8 @@ export function useDefaultColumnDefs() {
     enablePivot: true,
     cellStyle: {
       'display': 'flex',
-      'align-items': 'flex-start',   // Vertical top
-      'justify-content': 'flex-end'  // Horizontal right
+      'align-items': 'center',   // Changed from 'flex-start' to 'center' to match DEFAULT_GRID_OPTIONS
+      'justify-content': 'flex-start'  // Changed from 'flex-end' to 'flex-start' as default for non-numeric columns
     },
     sortingOrder: ['asc', 'desc', null], // AG Grid v33+ sorting order
   }), []);

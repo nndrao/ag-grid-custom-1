@@ -13,7 +13,9 @@ export interface ProfileSettings {
 }
 
 export interface ToolbarSettings {
-  // Empty object now that fontFamily has been removed
+  fontFamily?: string;
+  fontSize?: number;
+  spacing?: number;
 }
 
 export interface GridSettings {
