@@ -208,12 +208,23 @@ export const useProfileManager = (settingsController: SettingsController | null)
         fontFamily: 'monospace'
       };
       
-      // Create default grid settings  
+      // Create default grid settings with pristine DEFAULT_GRID_OPTIONS
+      // Important: Reset the grid controller's state first to avoid inheriting settings
+      settingsController.resetToDefaults();
+      
+      // Get a fresh copy of default grid options
+      const defaultGridOptions = deepClone(DEFAULT_GRID_OPTIONS);
+      
+      // Add special flag to identify this as a new default profile
+      // This will be used to detect if settings should be reset when profile is selected
+      defaultGridOptions.hasBeenCustomized = false;
+      
+      // Create a completely fresh settings object with default grid options
       const defaultSettings: ProfileSettings = {
         toolbar: defaultToolbarSettings,
         grid: {}, // Empty grid state (columns will use defaults)
         custom: {
-          gridOptions: deepClone(DEFAULT_GRID_OPTIONS) // Use a deep clone of default grid options
+          gridOptions: defaultGridOptions
         }
       };
       

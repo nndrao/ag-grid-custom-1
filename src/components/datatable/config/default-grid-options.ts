@@ -21,7 +21,7 @@ export const ROW_SELECTION_MODE_MAP = {
  */
 export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // Basic grid configuration
-  rowHeight: 80,  // Default row height
+  rowHeight: 30,  // Default row height
   headerHeight: 40,  // Default header height
   rowModelType: 'clientSide',  // Default row model
   

@@ -25,6 +25,47 @@ export class GridStateProvider {
       if (columnState) {
         gridState.columnState = columnState;
         
+        // Enhance column state with additional properties that might not be captured
+        // by default getColumnState call in AG Grid v33+
+        try {
+          const enhancedColumnState = columnState.map((colState: any) => {
+            const colId = colState.colId;
+            const column = this.gridApi?.getColumn(colId);
+            if (column) {
+              // Make sure we capture the actual displayed width in the UI
+              // This is important as getColumnState may not always have the most accurate width
+              const actualWidth = column.getActualWidth();
+              if (actualWidth && actualWidth !== colState.width) {
+                colState.width = actualWidth;
+              }
+              
+              // Make sure we capture flex correctly
+              const flex = column.getFlex();
+              if (flex !== undefined && flex !== null) {
+                colState.flex = flex;
+              }
+
+              // Make sure we have correct visibility state
+              colState.hide = !column.isVisible();
+              
+              // Add additional metadata if available
+              const aggFunc = column.getAggFunc();
+              if (aggFunc) {
+                colState.aggFunc = aggFunc;
+              }
+            }
+            return colState;
+          });
+          
+          // Replace original state with our enhanced version
+          gridState.columnState = enhancedColumnState;
+          
+          // Log the column state we're saving to help debugging
+          console.log("📋 Saving column state:", JSON.stringify(enhancedColumnState));
+        } catch (err) {
+          console.error("❌ Error enhancing column state:", err);
+        }
+        
         // Extract sort state separately for easy access
         gridState.sortState = columnState
           .filter((col: any) => col.sort)
@@ -329,6 +370,134 @@ export class GridStateProvider {
       return;
     }
     
+    console.log("🔄 Starting grid state application...");
+    
+    // Create one batched update for column-related state
+    const applyGridUpdates = () => {
+      try {
+        // Consolidate all immediate grid updates into a single function
+        // This prevents multiple rapid grid refreshes
+        
+        // Process column state first (order, visibility, sort)
+        if (gridState.columnState) {
+          console.log("📋 Applying column state in batch...");
+          
+          try {
+            // First apply the column state without width
+            this.gridApi.applyColumnState({
+              state: gridState.columnState.map((col: any) => {
+                // Create a clean copy without width properties
+                const { width, actualWidth, flex, ...rest } = col;
+                return rest;
+              }),
+              applyOrder: true,
+              defaultState: { sort: null },
+              suppressColumnStateEvents: true // Suppress events to avoid multiple refreshes
+            });
+            
+            // Apply column width changes
+            const widthUpdates: {key: string, newWidth: number}[] = [];
+            
+            // Collect from columnState
+            gridState.columnState.forEach((col: any) => {
+              if (col.colId && (col.width || col.actualWidth)) {
+                const width = col.actualWidth || col.width;
+                if (width && width > 0) {
+                  widthUpdates.push({
+                    key: col.colId,
+                    newWidth: width
+                  });
+                }
+              }
+            });
+            
+            // Also collect from columnSizingState if available
+            if (gridState.columnSizingState?.columnWidths) {
+              Object.entries(gridState.columnSizingState.columnWidths).forEach(([colId, width]) => {
+                // Only add if not already in the list
+                if (!widthUpdates.some(item => item.key === colId)) {
+                  widthUpdates.push({ key: colId, newWidth: width as number });
+                }
+              });
+            }
+            
+            // Apply width updates if we have any
+            if (widthUpdates.length > 0) {
+              console.log("📏 Applying column widths in batch:", widthUpdates.length, "columns");
+              this.gridApi.setColumnWidths(widthUpdates);
+            }
+          } catch (error) {
+            console.error("❌ Error applying column state:", error);
+            
+            // Fallback: try applying the full state
+            try {
+              this.gridApi.applyColumnState({
+                state: gridState.columnState,
+                applyOrder: true,
+                defaultState: { sort: null }
+              });
+            } catch (fallbackError) {
+              console.error("❌ Fallback column state application also failed:", fallbackError);
+            }
+          }
+        }
+        
+        // Apply column group state
+        if (gridState.columnGroupState && this.gridApi.setColumnGroupState) {
+          this.gridApi.setColumnGroupState(gridState.columnGroupState);
+        }
+        
+        // Apply filter state
+        if (gridState.filterState) {
+          this.gridApi.setFilterModel(gridState.filterState);
+        }
+        
+        // Apply advanced filter state
+        if (gridState.advancedFilterState && this.gridApi.setAdvancedFilterModel) {
+          try {
+            this.gridApi.setAdvancedFilterModel(gridState.advancedFilterState);
+          } catch (e) {
+            // Advanced filter might not be available
+          }
+        }
+        
+        // Apply quick filter
+        if (gridState.quickFilterState && this.gridApi.setQuickFilter) {
+          this.gridApi.setQuickFilter(gridState.quickFilterState);
+        }
+        
+        // Apply pagination settings
+        if (gridState.paginationState) {
+          if (gridState.paginationState.pageSize && this.gridApi.paginationSetPageSize) {
+            this.gridApi.paginationSetPageSize(gridState.paginationState.pageSize);
+          }
+          if (gridState.paginationState.currentPage !== undefined && this.gridApi.paginationGoToPage) {
+            this.gridApi.paginationGoToPage(gridState.paginationState.currentPage);
+          }
+        }
+        
+        // Apply side bar state
+        if (gridState.sideBarState) {
+          if (gridState.sideBarState.visible !== undefined) {
+            if (gridState.sideBarState.visible) {
+              this.gridApi.openToolPanel(gridState.sideBarState.openedPanel || 'columns');
+            } else {
+              this.gridApi.closeToolPanel();
+            }
+          }
+        }
+        
+        // Final grid refresh - do this ONCE at the end
+        console.log("🔄 Performing final grid refresh");
+        this.gridApi.refreshHeader();
+        this.gridApi.refreshCells({ force: true });
+        
+        console.log("✅ Completed grid state application");
+      } catch (error) {
+        console.error('Error in batched grid updates:', error);
+      }
+    };
+    
     // Process defaultColDef to properly handle cell alignments if present
     if (gridState.custom?.gridOptions?.defaultColDef) {
       try {
@@ -338,12 +507,6 @@ export class GridStateProvider {
         
         // Check for stored explicit alignment value
         const storedAlignValue = colDef._cellAlignItems as string | undefined;
-        
-        console.debug('[GridStateProvider] Processing defaultColDef alignment:', {
-          verticalAlign,
-          horizontalAlign,
-          storedAlignValue
-        });
         
         // Only create cellStyle if at least one alignment is specified
         if (verticalAlign || horizontalAlign || storedAlignValue) {
@@ -387,7 +550,6 @@ export class GridStateProvider {
               styleObj.justifyContent = 'flex-start'; // Left align text by default
             }
             
-            console.debug('[GridStateProvider] Applied cell style:', styleObj, 'for', verticalAlign);
             return styleObj;
           };
           
@@ -401,179 +563,88 @@ export class GridStateProvider {
       }
     }
 
-    try {
-      // 1. Restore column state (includes sort, filter, width, visibility, pinning)
-      if (gridState.columnState) {
-        this.gridApi.applyColumnState({
-          state: gridState.columnState,
-          applyOrder: true,
-          defaultState: { sort: null },
-          // Force the column state to be applied, overriding any automatic behavior
-          suppressColumnStateEvents: false,
-          suppressSizeToFit: true
-        });
-      }
-
-      // 2. Restore column group state
-      if (gridState.columnGroupState && this.gridApi.setColumnGroupState) {
-        this.gridApi.setColumnGroupState(gridState.columnGroupState);
-      }
-
-      // 3. Restore filter state
-      if (gridState.filterState) {
-        this.gridApi.setFilterModel(gridState.filterState);
-      }
-
-      // 4. Restore advanced filter state (if available)
-      if (gridState.advancedFilterState && this.gridApi.setAdvancedFilterModel) {
+    // Apply the batched updates with a slight delay to ensure grid is ready
+    setTimeout(() => {
+      applyGridUpdates();
+      
+      // Apply deferred UI state in a second phase after data is loaded
+      // We do this in a separate timeout to ensure the main grid state is applied first
+      setTimeout(() => {
         try {
-          this.gridApi.setAdvancedFilterModel(gridState.advancedFilterState);
-        } catch (e) {
-          // Advanced filter might not be available
-        }
-      }
-
-      // 5. Restore quick filter
-      if (gridState.quickFilterState && this.gridApi.setQuickFilter) {
-        this.gridApi.setQuickFilter(gridState.quickFilterState);
-      }
-
-      // 6. Restore pagination
-      if (gridState.paginationState) {
-        if (gridState.paginationState.pageSize && this.gridApi.paginationSetPageSize) {
-          this.gridApi.paginationSetPageSize(gridState.paginationState.pageSize);
-        }
-        if (gridState.paginationState.currentPage !== undefined && this.gridApi.paginationGoToPage) {
-          this.gridApi.paginationGoToPage(gridState.paginationState.currentPage);
-        }
-      }
-
-      // 7. Restore side bar state
-      if (gridState.sideBarState) {
-        if (gridState.sideBarState.visible !== undefined) {
-          if (gridState.sideBarState.visible) {
-            this.gridApi.openToolPanel(gridState.sideBarState.openedPanel || 'columns');
-          } else {
-            this.gridApi.closeToolPanel();
-          }
-        }
-      }
-
-      // Apply column sizing directly if available
-      if (gridState.columnSizingState?.columnWidths) {
-        const columnWidths = gridState.columnSizingState.columnWidths;
-        
-        // Handle any auto-sizing or layout changes by directly setting column widths
-        // This ensures sizes are maintained even if auto-sizing occurs later
-        setTimeout(() => {
-          try {
-            const allColumns = this.gridApi?.getAllGridColumns() || [];
-            allColumns.forEach((col: any) => {
-              const colId = col.getColId();
-              if (columnWidths[colId] !== undefined) {
-                col.setActualWidth(columnWidths[colId]);
+          // 1. First set any scroll position 
+          if (gridState.viewState?.scrollPosition) {
+            try {
+              if (gridState.viewState.displayedColumns?.[0]) {
+                this.gridApi?.ensureColumnVisible(gridState.viewState.displayedColumns[0]);
               }
-            });
-            // Force grid to visually update with the new widths
-            this.gridApi?.refreshHeader();
-            this.gridApi?.refreshCells({ force: true });
-          } catch (e) {
-            console.error('Error applying column widths:', e);
-          }
-        }, 100);
-      }
-
-      // 8. Restore scroll position (should be done after data is loaded)
-      if (gridState.viewState?.scrollPosition) {
-        setTimeout(() => {
-          try {
-            this.gridApi?.ensureIndexVisible(0, 'top');
-            
-            if (gridState.viewState?.displayedColumns?.[0]) {
-              this.gridApi?.ensureColumnVisible(gridState.viewState.displayedColumns[0]);
-            }
-            
-            // Note: Direct scroll position API might vary by version
-            if (this.gridApi?.setHorizontalScrollPosition) {
-              this.gridApi.setHorizontalScrollPosition(gridState.viewState.scrollPosition.left);
-            }
-            if (this.gridApi?.setVerticalScrollPosition) {
-              this.gridApi.setVerticalScrollPosition(gridState.viewState.scrollPosition.top);
-            }
-          } catch (e) {
-            // Scroll APIs might vary
-          }
-        }, 100);
-      }
-
-      // 9. Restore focused cell
-      if (gridState.viewState?.focusedCell) {
-        setTimeout(() => {
-          try {
-            this.gridApi?.setFocusedCell(
-              gridState.viewState?.focusedCell?.rowIndex,
-              gridState.viewState?.focusedCell?.column
-            );
-          } catch (e) {
-            // Focus cell API might vary
-          }
-        }, 100);
-      }
-
-      // 10. Restore selection (should be done after data is loaded)
-      if (gridState.selectionState) {
-        const rowModel = this.gridApi.getGridOption('rowModelType');
-        const isServerSideModel = rowModel === 'serverSide';
-        
-        if (isServerSideModel && this.gridApi.getGridOption('groupSelectsChildren') && gridState.selectionState.serverSideSelection && this.gridApi.setServerSideSelectionState) {
-          // Restore server-side selection
-          setTimeout(() => {
-            try {
-              this.gridApi?.setServerSideSelectionState(gridState.selectionState.serverSideSelection);
+              
+              if (this.gridApi?.setHorizontalScrollPosition) {
+                this.gridApi.setHorizontalScrollPosition(gridState.viewState.scrollPosition.left);
+              }
+              if (this.gridApi?.setVerticalScrollPosition) {
+                this.gridApi.setVerticalScrollPosition(gridState.viewState.scrollPosition.top);
+              }
             } catch (e) {
-              // Server-side selection API might vary
+              // Scroll APIs might vary
             }
-          }, 100);
-        } else if (gridState.selectionState.selectedNodes) {
-          // Restore client-side selection
-          setTimeout(() => {
+          }
+          
+          // 2. Then restore focused cell
+          if (gridState.viewState?.focusedCell) {
             try {
+              this.gridApi?.setFocusedCell(
+                gridState.viewState?.focusedCell?.rowIndex,
+                gridState.viewState?.focusedCell?.column
+              );
+            } catch (e) {
+              // Focus cell API might vary
+            }
+          }
+          
+          // 3. Finally restore selection
+          if (gridState.selectionState) {
+            const rowModel = this.gridApi?.getGridOption('rowModelType');
+            const isServerSideModel = rowModel === 'serverSide';
+            
+            if (isServerSideModel && this.gridApi?.getGridOption('groupSelectsChildren') && 
+                gridState.selectionState.serverSideSelection && this.gridApi?.setServerSideSelectionState) {
+              // Restore server-side selection
+              this.gridApi.setServerSideSelectionState(gridState.selectionState.serverSideSelection);
+            } else if (gridState.selectionState.selectedNodes && this.gridApi) {
+              // Restore client-side selection
               gridState.selectionState.selectedNodes.forEach((nodeId: string) => {
                 const node = this.gridApi?.getRowNode(nodeId);
                 if (node) {
                   node.setSelected(true);
                 }
               });
-            } catch (e) {
-              // Selection API might vary
             }
-          }, 100);
-        }
-      }
-
-      // 11. Restore range selection
-      if (gridState.rangeSelectionState && gridState.rangeSelectionState.length > 0 && this.gridApi.clearCellSelection && this.gridApi.addCellRange) {
-        setTimeout(() => {
-          try {
-            // Clear existing ranges
-            this.gridApi?.clearCellSelection();
-            
-            // Add saved ranges
-            gridState.rangeSelectionState.forEach((range: any) => {
-              this.gridApi?.addCellRange({
-                rowStartIndex: range.startRow,
-                rowEndIndex: range.endRow,
-                columns: range.columns
-              });
-            });
-          } catch (e) {
-            // Range selection API might vary
           }
-        }, 100);
-      }
-
-    } catch (error) {
-      console.error('Error restoring grid state:', error);
-    }
+          
+          // 4. Restore range selection
+          if (gridState.rangeSelectionState?.length > 0 && 
+              this.gridApi?.clearCellSelection && this.gridApi?.addCellRange) {
+            try {
+              // Clear existing ranges
+              this.gridApi.clearCellSelection();
+              
+              // Add saved ranges
+              gridState.rangeSelectionState.forEach((range: any) => {
+                this.gridApi?.addCellRange({
+                  rowStartIndex: range.startRow,
+                  rowEndIndex: range.endRow,
+                  columns: range.columns
+                });
+              });
+            } catch (e) {
+              // Range selection API might vary
+            }
+          }
+        } catch (error) {
+          console.error('Error restoring UI state:', error);
+        }
+      }, 200);
+      
+    }, 20); // Short delay to ensure grid initialization is complete
   }
 } 
