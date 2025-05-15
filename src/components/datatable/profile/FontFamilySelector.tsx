@@ -44,7 +44,6 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
   useEffect(() => {
     if (settingsController) {
       const currentSettings = settingsController.getCurrentToolbarSettings();
-      // If fontFamily is defined in settings, use it; otherwise, use the default
       setFontFamily(currentSettings.fontFamily || DEFAULT_FONT_FAMILY);
     }
   }, [settingsController]);
@@ -54,13 +53,10 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
     if (!settingsController) return;
     
     const unsubscribe = settingsController.onToolbarSettingsChange((settings) => {
-      // If fontFamily is defined in settings, use it; otherwise, use the default
       if (settings.fontFamily) {
         setFontFamily(settings.fontFamily);
       } else {
-        // If fontFamily becomes undefined (unlikely), fall back to default
         setFontFamily(DEFAULT_FONT_FAMILY);
-        // Ensure the default is applied to toolbar settings
         settingsController.updateToolbarSettings({ fontFamily: DEFAULT_FONT_FAMILY });
       }
     });
@@ -68,59 +64,20 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
     return unsubscribe;
   }, [settingsController]);
   
-  // Apply the font family to the grid
-  const applyFontToGrid = useCallback((fontFamily: string) => {
-    if (!settingsController) return;
-    
-    // Try multiple approaches to get the grid's DOM element
-    
-    // 1. Try through grid options api
-    const gridApi = settingsController.getCurrentGridOptions()?.api;
-    if (gridApi && gridApi.gridBodyCtrl?.eGridDiv) {
-      gridApi.gridBodyCtrl.eGridDiv.style.fontFamily = fontFamily;
-      return;
-    }
-    
-    // 2. As a fallback, directly apply to all AG-grid elements
-    try {
-      // Apply to various AG Grid DOM elements to ensure it works
-      const gridElements = [
-        '.ag-root',
-        '.ag-root-wrapper',
-        '.ag-header',
-        '.ag-body-viewport',
-        '.ag-center-cols-container'
-      ];
-      
-      gridElements.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(element => {
-          (element as HTMLElement).style.fontFamily = fontFamily;
-        });
-      });
-    } catch (error) {
-      console.error('Error applying font family to grid:', error);
-    }
-  }, [settingsController]);
-  
-  // Initial application of font when component mounts
+  // Apply the font family to the grid via CSS variable
   useEffect(() => {
     if (fontFamily) {
-      applyFontToGrid(fontFamily);
+      document.documentElement.style.setProperty('--ag-font-family', fontFamily);
     }
-  }, [fontFamily, applyFontToGrid]);
+  }, [fontFamily]);
   
   const handleFontChange = useCallback((value: string) => {
     setFontFamily(value);
-    
     if (settingsController) {
-      // Update toolbar settings
       settingsController.updateToolbarSettings({ fontFamily: value });
-      
-      // Apply font to grid
-      applyFontToGrid(value);
     }
-  }, [settingsController, applyFontToGrid]);
+    // The useEffect above will update the CSS variable
+  }, [settingsController]);
   
   return (
     <div className="flex items-center">

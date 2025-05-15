@@ -61,3 +61,12 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* AG Grid font family override for all content */
+.ag-root,
+.ag-root-wrapper,
+.ag-theme-quartz,
+.ag-header,
+.ag-cell {
+  font-family: var(--ag-font-family, 'monospace') !important;
+}

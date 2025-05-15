@@ -65,12 +65,6 @@ function App() {
               <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                onClick={toggleTestPage}
-              >
-                {showTestPage ? 'Show Main App' : 'Test New Settings'}
-              </Button>
               <ThemeToggle />
             </div>
           </header>
@@ -78,15 +72,11 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 mt-16 mb-16">
-          {showTestPage ? (
-            <MigrationTestPage />
-          ) : (
-            <div className="p-6">
-              <div className="h-[calc(100vh-8rem-3rem)]">
-                <DataTable columnDefs={columns} dataRow={data} />
-              </div>
+          <div className="p-6">
+            <div className="h-[calc(100vh-8rem-3rem)]">
+              <DataTable columnDefs={columns} dataRow={data} />
             </div>
-          )}
+          </div>
         </main>
       </main>
     </ThemeProvider>

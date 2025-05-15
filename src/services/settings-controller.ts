@@ -3,6 +3,11 @@ import { GridStateProvider } from './gridStateProvider';
 import { SettingsStore } from '@/stores/settings-store';
 import { ProfileSettings } from '@/types/profile.types';
 
+export const DEFAULT_FONT_FAMILY = 'monospace';
+export const DEFAULT_FONT_SIZE = 12;
+export const DEFAULT_SPACING = 6;
+export const MIN_FONT_SIZE = 6;
+
 /**
  * SettingsController acts as a mediator between the SettingsStore and AG-Grid
  * It handles applying settings to the grid and extracting current grid settings
