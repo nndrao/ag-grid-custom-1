@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Settings, Save, RotateCcw } from 'lucide-react';
 import { GridSettingsDialog } from './grid-settings-dialog';
 import { GridApi } from 'ag-grid-community';
-import { SettingsController } from '@/services/settingsController';
+import { SettingsController } from '@/services/settings-controller';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProfileManager } from '@/hooks/useProfileManager';

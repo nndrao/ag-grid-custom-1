@@ -7,7 +7,7 @@ import {
   DEFAULT_SPACING, 
   MIN_FONT_SIZE,
   SettingsController 
-} from '@/services/settingsController';
+} from '@/services/settings-controller';
 
 // Function to set dark mode on document body for AG Grid
 function setDarkMode(enabled: boolean) {

@@ -11,8 +11,8 @@ import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
 import { DataTableToolbar } from '@/components/datatable/data-table-toolbar';
 import { GridStateProvider } from '@/services/gridStateProvider';
-import { SettingsController } from '@/services/settingsController';
-import { useProfileManager } from '@/hooks/useProfileManager';
+import { SettingsController } from '@/services/settings-controller';
+import { useProfileManager2 } from '@/hooks/useProfileManager2';
 import { useAgGridTheme } from './hooks/useAgGridTheme';
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useDefaultColumnDefs } from './config/default-column-defs';
@@ -62,7 +62,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   }, []);
 
   // Initialize profile manager - always call the hook, never conditionally
-  const profileManager = useProfileManager(settingsControllerRef.current);
+  const profileManager = useProfileManager2(settingsControllerRef.current);
 
   // Use our modular hooks with settings controller
   const { theme } = useAgGridTheme(settingsControllerRef.current);

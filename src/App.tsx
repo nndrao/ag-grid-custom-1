@@ -2,8 +2,10 @@ import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DataTable, type ColumnDef } from '@/components/datatable/data-table';
 import { generateFixedIncomeData, type FixedIncomePosition } from '@/lib/data-generator';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ThemeProvider } from "@/components/theme-provider";
+import { MigrationTestPage } from './components/datatable/migration-test-page';
+import { Button } from '@/components/ui/button';
 
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (data.length === 0) return [];
@@ -45,6 +47,12 @@ function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
 function App() {
   const data = useMemo(() => generateFixedIncomeData(10000), []); // Starting with 100 records for initial render
   const columns = useMemo(() => inferColumnDefinitions(data), [data]);
+  
+  // State to track if we're showing the test page
+  const [showTestPage, setShowTestPage] = useState(false);
+  
+  // Toggle between main app and test page
+  const toggleTestPage = () => setShowTestPage(prev => !prev);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -56,17 +64,29 @@ function App() {
               <Menu className="h-6 w-6" />
               <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={toggleTestPage}
+              >
+                {showTestPage ? 'Show Main App' : 'Test New Settings'}
+              </Button>
+              <ThemeToggle />
+            </div>
           </header>
         </div>
 
         {/* Main Content */}
         <main className="flex-1 mt-16 mb-16">
-          <div className="p-6">
-            <div className="h-[calc(100vh-8rem-3rem)]">
-              <DataTable columnDefs={columns} dataRow={data} />
+          {showTestPage ? (
+            <MigrationTestPage />
+          ) : (
+            <div className="p-6">
+              <div className="h-[calc(100vh-8rem-3rem)]">
+                <DataTable columnDefs={columns} dataRow={data} />
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </main>
     </ThemeProvider>

@@ -7,7 +7,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DEFAULT_FONT_FAMILY, SettingsController } from '@/services/settingsController';
+import { DEFAULT_FONT_FAMILY, SettingsController } from '@/services/settings-controller';
 import { GridStateProvider } from '@/services/gridStateProvider';
 
 interface FontFamilySelectorProps {

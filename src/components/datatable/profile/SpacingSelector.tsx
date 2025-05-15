@@ -7,7 +7,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DEFAULT_SPACING, SettingsController } from '@/services/settingsController';
+import { DEFAULT_SPACING, SettingsController } from '@/services/settings-controller';
 
 interface SpacingSelectorProps {
   settingsController: SettingsController | null;

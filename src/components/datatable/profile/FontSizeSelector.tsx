@@ -7,7 +7,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DEFAULT_FONT_SIZE, MIN_FONT_SIZE, SettingsController } from '@/services/settingsController';
+import { DEFAULT_FONT_SIZE, MIN_FONT_SIZE, SettingsController } from '@/services/settings-controller';
 
 interface FontSizeSelectorProps {
   settingsController: SettingsController | null;
