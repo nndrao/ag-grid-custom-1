@@ -7,7 +7,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DEFAULT_FONT_SIZE, MIN_FONT_SIZE, SettingsController } from '@/services/settingsController';
+import { DEFAULT_FONT_SIZE, MIN_FONT_SIZE, SettingsController } from '@/services/settings-controller';
+import { CircleHelp } from 'lucide-react';
 
 interface FontSizeSelectorProps {
   settingsController: SettingsController | null;
@@ -96,26 +97,26 @@ export function FontSizeSelector({ settingsController }: FontSizeSelectorProps) 
   }, [settingsController]);
   
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-2">
+      <Select value={fontSize} onValueChange={handleFontSizeChange}>
+        <SelectTrigger className="h-8 w-[80px] text-xs">
+          <SelectValue placeholder="Size" />
+        </SelectTrigger>
+        <SelectContent>
+          {fontSizeOptions.map((option) => (
+            <SelectItem 
+              key={option.value} 
+              value={option.value}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
       <Tooltip>
-        <TooltipTrigger>
-          <div>
-            <Select value={fontSize} onValueChange={handleFontSizeChange}>
-              <SelectTrigger className="h-8 w-[80px] text-xs">
-                <SelectValue placeholder="Size" />
-              </SelectTrigger>
-              <SelectContent>
-                {fontSizeOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <TooltipTrigger asChild>
+          <CircleHelp className="h-4 w-4 text-muted-foreground cursor-pointer" />
         </TooltipTrigger>
         <TooltipContent>
           <p>Change font size</p>

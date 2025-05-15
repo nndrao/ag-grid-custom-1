@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { SettingsController } from '@/services/settingsController';
+import { SettingsController } from '@/services/settings-controller';
 import { ProfileManager } from '@/types/ProfileManager';
 
 export function useAgGridProfileSync(

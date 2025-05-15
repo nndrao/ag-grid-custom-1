@@ -7,7 +7,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DEFAULT_SPACING, SettingsController } from '@/services/settingsController';
+import { DEFAULT_SPACING, SettingsController } from '@/services/settings-controller';
+import { CircleHelp } from 'lucide-react';
 
 interface SpacingSelectorProps {
   settingsController: SettingsController | null;
@@ -75,26 +76,26 @@ export function SpacingSelector({ settingsController }: SpacingSelectorProps) {
   }, [settingsController]);
   
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-2">
+      <Select value={spacing} onValueChange={handleSpacingChange}>
+        <SelectTrigger className="h-8 w-[80px] text-xs">
+          <SelectValue placeholder="Spacing" />
+        </SelectTrigger>
+        <SelectContent>
+          {spacingOptions.map((option) => (
+            <SelectItem 
+              key={option.value} 
+              value={option.value}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
       <Tooltip>
-        <TooltipTrigger>
-          <div>
-            <Select value={spacing} onValueChange={handleSpacingChange}>
-              <SelectTrigger className="h-8 w-[80px] text-xs">
-                <SelectValue placeholder="Spacing" />
-              </SelectTrigger>
-              <SelectContent>
-                {spacingOptions.map((option) => (
-                  <SelectItem 
-                    key={option.value} 
-                    value={option.value}
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <TooltipTrigger asChild>
+          <CircleHelp className="h-4 w-4 text-muted-foreground cursor-pointer" />
         </TooltipTrigger>
         <TooltipContent>
           <p>Change grid spacing</p>

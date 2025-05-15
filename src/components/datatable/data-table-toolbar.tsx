@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { SettingsController } from '@/services/settingsController';
+import { SettingsController } from '@/services/settings-controller';
 import { ProfileButtonGroup } from './profile/ProfileButtonGroup';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
@@ -8,6 +8,7 @@ import { GridApi } from 'ag-grid-community';
 import { FontFamilySelector } from './profile/FontFamilySelector';
 import { FontSizeSelector } from './profile/FontSizeSelector';
 import { SpacingSelector } from './profile/SpacingSelector';
+import { SettingsManager } from './grid-settings/settings-manager';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -110,6 +111,10 @@ export function DataTableToolbar<TData>({
               settingsController={settingsController || null} 
             />
           )}
+          <SettingsManager 
+            gridApi={gridApi} 
+            settingsController={settingsController} 
+          />
         </div>
       </div>
     </TooltipProvider>
