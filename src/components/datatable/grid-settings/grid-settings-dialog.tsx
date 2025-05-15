@@ -763,59 +763,64 @@ export function GridSettingsDialog({
   // Custom tabs style for vertical tabs
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] h-[80vh] max-h-[700px] flex flex-col p-0 gap-0">
-        <DialogDescription>
-          Configure grid settings such as columns, appearance, selection, and advanced features. All changes apply only to this grid instance.
-        </DialogDescription>
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>Grid Settings</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[900px] h-[80vh] max-h-[700px] flex flex-col p-0 gap-0 overflow-hidden">
+        <div className="flex flex-col px-6 py-3 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg font-semibold">Grid Settings</DialogTitle>
+          </div>
+          <DialogDescription className="mt-1 text-xs max-w-[75%] text-muted-foreground">
+            Configure display, behavior, and advanced features
+          </DialogDescription>
+        </div>
         
         <div className="flex flex-grow overflow-hidden">
           {/* Vertical tabs sidebar */}
-          <div className="w-48 border-r overflow-y-auto bg-muted/30">
+          <div className="w-44 border-r overflow-y-auto bg-background/95 backdrop-blur-sm shadow-sm">
             <Tabs 
               orientation="vertical" 
               value={activeTab} 
               onValueChange={setActiveTab}
               className="w-full h-full"
             >
-              <TabsList className="flex flex-col w-full bg-transparent h-auto">
-                <TabsTrigger value="basic" className="justify-start w-full py-2 px-4">Basic Configuration</TabsTrigger>
-                <TabsTrigger value="selection" className="justify-start w-full py-2 px-4">Selection Options</TabsTrigger>
-                <TabsTrigger value="sorting" className="justify-start w-full py-2 px-4">Sorting & Filtering</TabsTrigger>
-                <TabsTrigger value="pagination" className="justify-start w-full py-2 px-4">Pagination</TabsTrigger>
-                <TabsTrigger value="grouping" className="justify-start w-full py-2 px-4">Row Grouping & Pivoting</TabsTrigger>
-                <TabsTrigger value="editing" className="justify-start w-full py-2 px-4">Editing Options</TabsTrigger>
-                <TabsTrigger value="appearance" className="justify-start w-full py-2 px-4">Styling & Appearance</TabsTrigger>
-                <TabsTrigger value="columns" className="justify-start w-full py-2 px-4">Column Features</TabsTrigger>
-                <TabsTrigger value="ui" className="justify-start w-full py-2 px-4">UI Components</TabsTrigger>
-                <TabsTrigger value="data" className="justify-start w-full py-2 px-4">Data & Rendering</TabsTrigger>
-                <TabsTrigger value="clipboard" className="justify-start w-full py-2 px-4">Clipboard & Export</TabsTrigger>
-                <TabsTrigger value="advanced" className="justify-start w-full py-2 px-4">Advanced Features</TabsTrigger>
-                <TabsTrigger value="localization" className="justify-start w-full py-2 px-4">Localization</TabsTrigger>
-                <TabsTrigger value="sizing" className="justify-start w-full py-2 px-4">Sizing & Dimensions</TabsTrigger>
-                <TabsTrigger value="defaults" className="justify-start w-full py-2 px-4">Column Defaults</TabsTrigger>
+              <TabsList className="flex flex-col items-start w-full bg-transparent h-auto p-0 gap-0.5">
+                <TabsTrigger value="basic" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Basic Configuration</TabsTrigger>
+                <TabsTrigger value="selection" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Selection Options</TabsTrigger>
+                <TabsTrigger value="sorting" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Sorting & Filtering</TabsTrigger>
+                <TabsTrigger value="pagination" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Pagination</TabsTrigger>
+                <TabsTrigger value="grouping" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Row Grouping</TabsTrigger>
+                <TabsTrigger value="editing" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Editing Options</TabsTrigger>
+                <TabsTrigger value="appearance" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Styling & Appearance</TabsTrigger>
+                <TabsTrigger value="columns" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Column Features</TabsTrigger>
+                <TabsTrigger value="ui" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">UI Components</TabsTrigger>
+                <TabsTrigger value="data" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Data & Rendering</TabsTrigger>
+                <TabsTrigger value="clipboard" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Clipboard & Export</TabsTrigger>
+                <TabsTrigger value="advanced" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Advanced Features</TabsTrigger>
+                <TabsTrigger value="localization" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Localization</TabsTrigger>
+                <TabsTrigger value="sizing" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Sizing & Dimensions</TabsTrigger>
+                <TabsTrigger value="defaults" className="justify-start w-full py-1.5 px-3 text-sm rounded-none text-left">Column Defaults</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
           
           {/* Tab content with scroll area */}
           <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-[calc(80vh-130px)] max-h-[570px]">
-              <div className="p-6">
+            <ScrollArea className="h-[calc(80vh-90px)] max-h-[610px]">
+              <div className="p-4">
                 {/* Information alert about initialization-only properties */}
-                <Alert className="mb-4 bg-blue-50 dark:bg-blue-950/30">
-                  <InfoCircledIcon className="h-4 w-4" />
-                  <AlertTitle>AG Grid Version 33+ Compatibility</AlertTitle>
-                  <AlertDescription>
-                    Some properties can only be set during grid initialization and cannot be changed at runtime.
-                    Changes to these properties will be saved in your profile but will only take effect when the grid is reinitialized.
-                  </AlertDescription>
+                <Alert className="mb-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 py-2 px-3">
+                  <div className="flex gap-2 items-start">
+                    <InfoCircledIcon className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-0.5">
+                      <AlertTitle className="text-sm font-medium">AG Grid v33+ Compatible Settings</AlertTitle>
+                      <AlertDescription className="text-xs text-muted-foreground">
+                        Some properties are initialization-only and will be applied when the grid is reinitialized.
+                      </AlertDescription>
+                    </div>
+                  </div>
                 </Alert>
                 
                 <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical">
-                  <TabsContent value="basic" className="mt-0">
+                  <TabsContent value="basic" className="mt-0 pt-0">
                     <BasicGridConfig 
                       settings={gridSettings.basic || {}} 
                       onChange={(option, value) => handleSettingChange('basic', option, value)} 
@@ -823,7 +828,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="selection" className="mt-0">
+                  <TabsContent value="selection" className="mt-0 pt-0">
                     <SelectionOptions 
                       settings={gridSettings.selection || {}} 
                       onChange={(option, value) => handleSettingChange('selection', option, value)} 
@@ -831,7 +836,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="sorting" className="mt-0">
+                  <TabsContent value="sorting" className="mt-0 pt-0">
                     <SortingFiltering 
                       settings={gridSettings.sorting || {}} 
                       onChange={(option, value) => handleSettingChange('sorting', option, value)} 
@@ -839,7 +844,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="pagination" className="mt-0">
+                  <TabsContent value="pagination" className="mt-0 pt-0">
                     <PaginationOptions 
                       settings={gridSettings.pagination || {}} 
                       onChange={(option, value) => handleSettingChange('pagination', option, value)} 
@@ -847,7 +852,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="grouping" className="mt-0">
+                  <TabsContent value="grouping" className="mt-0 pt-0">
                     <RowGroupingPivoting 
                       settings={gridSettings.grouping || {}} 
                       onChange={(option, value) => handleSettingChange('grouping', option, value)} 
@@ -855,7 +860,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="editing" className="mt-0">
+                  <TabsContent value="editing" className="mt-0 pt-0">
                     <EditingOptions 
                       settings={gridSettings.editing || {}} 
                       onChange={(option, value) => handleSettingChange('editing', option, value)} 
@@ -863,7 +868,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="appearance" className="mt-0">
+                  <TabsContent value="appearance" className="mt-0 pt-0">
                     <StylingAppearance 
                       settings={gridSettings.appearance || {}} 
                       onChange={(option, value) => handleSettingChange('appearance', option, value)} 
@@ -871,7 +876,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="columns" className="mt-0">
+                  <TabsContent value="columns" className="mt-0 pt-0">
                     <ColumnFeatures 
                       settings={gridSettings.columns || {}} 
                       onChange={(option, value) => handleSettingChange('columns', option, value)} 
@@ -879,7 +884,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="ui" className="mt-0">
+                  <TabsContent value="ui" className="mt-0 pt-0">
                     <UiComponents 
                       settings={gridSettings.ui || {}} 
                       onChange={(option, value) => handleSettingChange('ui', option, value)} 
@@ -887,7 +892,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="data" className="mt-0">
+                  <TabsContent value="data" className="mt-0 pt-0">
                     <DataRendering 
                       settings={gridSettings.data || {}} 
                       onChange={(option, value) => handleSettingChange('data', option, value)} 
@@ -895,7 +900,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="clipboard" className="mt-0">
+                  <TabsContent value="clipboard" className="mt-0 pt-0">
                     <ClipboardExport 
                       settings={gridSettings.clipboard || {}} 
                       onChange={(option, value) => handleSettingChange('clipboard', option, value)} 
@@ -903,7 +908,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="advanced" className="mt-0">
+                  <TabsContent value="advanced" className="mt-0 pt-0">
                     <AdvancedFeatures 
                       settings={gridSettings.advanced || {}} 
                       onChange={(option, value) => handleSettingChange('advanced', option, value)} 
@@ -911,7 +916,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="localization" className="mt-0">
+                  <TabsContent value="localization" className="mt-0 pt-0">
                     <LocalizationAccessibility 
                       settings={gridSettings.localization || {}} 
                       onChange={(option, value) => handleSettingChange('localization', option, value)} 
@@ -919,7 +924,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="sizing" className="mt-0">
+                  <TabsContent value="sizing" className="mt-0 pt-0">
                     <SizingDimensions 
                       settings={gridSettings.sizing || {}} 
                       onChange={(option, value) => handleSettingChange('sizing', option, value)} 
@@ -927,7 +932,7 @@ export function GridSettingsDialog({
                     />
                   </TabsContent>
                   
-                  <TabsContent value="defaults" className="mt-0">
+                  <TabsContent value="defaults" className="mt-0 pt-0">
                     <ColumnDefaults 
                       settings={gridSettings.defaults || {}} 
                       onChange={(option, value) => handleSettingChange('defaults', option, value)} 
@@ -940,19 +945,18 @@ export function GridSettingsDialog({
           </div>
         </div>
         
-        <DialogFooter className="px-6 py-4 border-t">
-          <div className="flex justify-between w-full">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={applyChanges} 
-              disabled={!hasChanges}
-              className="ml-2"
-            >
-              Apply Changes
-            </Button>
-          </div>
+        <DialogFooter className="px-4 py-3 border-t flex justify-between w-full">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={applyChanges} 
+            disabled={!hasChanges}
+            size="sm"
+            className={`${hasChanges ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground'}`}
+          >
+            Apply Changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

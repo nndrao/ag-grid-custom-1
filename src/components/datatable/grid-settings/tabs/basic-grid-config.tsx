@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
@@ -50,14 +49,14 @@ export function BasicGridConfig({ settings, onChange, initialProperties = [] }: 
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="ml-2 text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950/30">
-                <InfoCircledIcon className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="ml-1.5 text-amber-500 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 py-0 px-1.5 h-5 text-[10px] font-medium">
+                <InfoCircledIcon className="h-2.5 w-2.5 mr-0.5" />
                 Init-only
               </Badge>
             </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">
-                This property can only be set when the grid is initialized. Changes will be saved but will only take effect when the grid is reinitialized.
+            <TooltipContent side="right" className="max-w-[200px] text-xs">
+              <p>
+                This property can only be set during initialization. Changes will apply when the grid is reinitialized.
               </p>
             </TooltipContent>
           </Tooltip>
@@ -68,70 +67,70 @@ export function BasicGridConfig({ settings, onChange, initialProperties = [] }: 
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Basic Grid Configuration</CardTitle>
-          <CardDescription>
-            Configure fundamental grid behavior and layout.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <Label htmlFor="rowHeight">Row Height (px)</Label>
-              {renderInitBadge('rowHeight')}
-            </div>
-            <Input
-              id="rowHeight"
-              type="number"
-              value={localSettings.rowHeight === undefined ? '' : localSettings.rowHeight}
-              onChange={(e) => handleNumberChange('rowHeight', e.target.value)}
-              placeholder="Auto"
-              min={1}
-            />
+    <div className="space-y-4">
+      <div className="flex items-center mb-2">
+        <h3 className="text-base font-medium">Basic Grid Configuration</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center">
+            <Label htmlFor="rowHeight" className="text-sm font-medium">Row Height</Label>
+            {renderInitBadge('rowHeight')}
           </div>
-          
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center">
-              <Label htmlFor="headerHeight">Header Height (px)</Label>
-              {renderInitBadge('headerHeight')}
-            </div>
-            <Input
-              id="headerHeight"
-              type="number"
-              value={localSettings.headerHeight === undefined ? '' : localSettings.headerHeight}
-              onChange={(e) => handleNumberChange('headerHeight', e.target.value)}
-              placeholder="Auto"
-              min={1}
-            />
+          <Input
+            id="rowHeight"
+            type="number"
+            value={localSettings.rowHeight === undefined ? '' : localSettings.rowHeight}
+            onChange={(e) => handleNumberChange('rowHeight', e.target.value)}
+            placeholder="Auto"
+            min={1}
+            className="h-8 text-sm"
+          />
+          <p className="text-[11px] text-muted-foreground">Height of grid rows in pixels</p>
+        </div>
+        
+        <div className="space-y-1.5">
+          <div className="flex items-center">
+            <Label htmlFor="headerHeight" className="text-sm font-medium">Header Height</Label>
+            {renderInitBadge('headerHeight')}
           </div>
-          
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center">
-              <Label htmlFor="rowModelType">Row Model Type</Label>
-              {renderInitBadge('rowModelType')}
-            </div>
-            <Select
-              value={localSettings.rowModelType || ''}
-              onValueChange={(value) => handleSelectChange('rowModelType', value)}
-            >
-              <SelectTrigger id="rowModelType">
-                <SelectValue placeholder="Select row model type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clientSide">Client Side</SelectItem>
-                <SelectItem value="infinite">Infinite</SelectItem>
-                <SelectItem value="serverSide">Server Side</SelectItem>
-                <SelectItem value="viewport">Viewport</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Defines how data is loaded into the grid. Default is 'clientSide'.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          <Input
+            id="headerHeight"
+            type="number"
+            value={localSettings.headerHeight === undefined ? '' : localSettings.headerHeight}
+            onChange={(e) => handleNumberChange('headerHeight', e.target.value)}
+            placeholder="Auto"
+            min={1}
+            className="h-8 text-sm"
+          />
+          <p className="text-[11px] text-muted-foreground">Height of column headers in pixels</p>
+        </div>
+      </div>
+      
+      <div className="space-y-1.5 pt-1">
+        <div className="flex items-center">
+          <Label htmlFor="rowModelType" className="text-sm font-medium">Row Model Type</Label>
+          {renderInitBadge('rowModelType')}
+        </div>
+        <Select
+          value={localSettings.rowModelType || ''}
+          onValueChange={(value) => handleSelectChange('rowModelType', value)}
+        >
+          <SelectTrigger id="rowModelType" className="h-8 text-sm">
+            <SelectValue placeholder="Select row model type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="clientSide">Client Side</SelectItem>
+            <SelectItem value="infinite">Infinite</SelectItem>
+            <SelectItem value="serverSide">Server Side</SelectItem>
+            <SelectItem value="viewport">Viewport</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">
+          Defines how data is loaded into the grid
+        </p>
+      </div>
     </div>
   );
 } 
