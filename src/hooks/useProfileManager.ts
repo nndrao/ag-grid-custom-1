@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
-import { DEFAULT_FONT_FAMILY, SettingsController } from '@/services/settingsController';
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, SettingsController } from '@/services/settingsController';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import { deepClone } from '@/utils/deepClone';
 
@@ -32,10 +32,17 @@ export const useProfileManager = (settingsController: SettingsController | null)
               // Ensure settings has all required properties
               if (!active.settings.toolbar) {
                 active.settings.toolbar = {
-                  fontFamily: DEFAULT_FONT_FAMILY
+                  fontFamily: DEFAULT_FONT_FAMILY,
+                  fontSize: DEFAULT_FONT_SIZE
                 };
                 console.warn(`Fixing missing toolbar settings for profile: ${active.name}`);
+              } else if (active.settings.toolbar.fontSize === undefined || active.settings.toolbar.fontSize === null) {
+                // Ensure fontSize is set even if toolbar exists but fontSize is missing
+                active.settings.toolbar.fontSize = DEFAULT_FONT_SIZE;
+                console.warn(`Fixing missing font size in toolbar settings for profile: ${active.name}`);
               }
+              
+              // Similar check for other settings
               if (!active.settings.grid) {
                 active.settings.grid = {};
                 console.warn(`Fixing missing grid settings for profile: ${active.name}`);
@@ -58,7 +65,10 @@ export const useProfileManager = (settingsController: SettingsController | null)
               
               // Create default settings for this profile
               active.settings = {
-                toolbar: { fontFamily: DEFAULT_FONT_FAMILY },
+                toolbar: { 
+                  fontFamily: DEFAULT_FONT_FAMILY,
+                  fontSize: DEFAULT_FONT_SIZE
+                },
                 grid: {},
                 custom: {
                   gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
@@ -136,6 +146,9 @@ export const useProfileManager = (settingsController: SettingsController | null)
         return;
       }
       
+      // Reset controller to defaults first to avoid inheriting settings from previous profile
+      settingsController.resetToDefaults();
+      
       // Get all profiles from localStorage to ensure we have the latest version
       const allProfiles = await store.getAllProfiles();
       const freshProfile = allProfiles.find(p => p.id === profileId);
@@ -157,10 +170,16 @@ export const useProfileManager = (settingsController: SettingsController | null)
         // Ensure settings has all required properties
         if (!freshProfile.settings.toolbar) {
           freshProfile.settings.toolbar = {
-            fontFamily: DEFAULT_FONT_FAMILY
+            fontFamily: DEFAULT_FONT_FAMILY,
+            fontSize: DEFAULT_FONT_SIZE
           };
           console.warn(`Fixing missing toolbar settings for profile: ${freshProfile.name}`);
+        } else if (freshProfile.settings.toolbar.fontSize === undefined || freshProfile.settings.toolbar.fontSize === null) {
+          // Ensure fontSize is set even if toolbar exists but fontSize is missing
+          freshProfile.settings.toolbar.fontSize = DEFAULT_FONT_SIZE;
+          console.warn(`Fixing missing font size in toolbar settings for profile: ${freshProfile.name}`);
         }
+        
         if (!freshProfile.settings.grid) {
           freshProfile.settings.grid = {};
           console.warn(`Fixing missing grid settings for profile: ${freshProfile.name}`);
@@ -184,7 +203,10 @@ export const useProfileManager = (settingsController: SettingsController | null)
         
         // Create default settings for this profile
         freshProfile.settings = {
-          toolbar: { fontFamily: DEFAULT_FONT_FAMILY },
+          toolbar: { 
+            fontFamily: DEFAULT_FONT_FAMILY,
+            fontSize: DEFAULT_FONT_SIZE
+          },
           grid: {},
           custom: {
             gridOptions: deepClone(DEFAULT_GRID_OPTIONS)
@@ -200,13 +222,21 @@ export const useProfileManager = (settingsController: SettingsController | null)
   }, [profiles, settingsController]);
 
   const createProfile = useCallback(async (profileName: string) => {
-    if (!settingsController) return;
+    if (!settingsController) {
+      console.error('Cannot create profile: settingsController is null');
+      return;
+    }
     
     try {
+      console.log('Creating profile with default font size:', DEFAULT_FONT_SIZE);
+      
       // Start with default toolbar settings
       const defaultToolbarSettings = {
-        fontFamily: DEFAULT_FONT_FAMILY
+        fontFamily: DEFAULT_FONT_FAMILY,
+        fontSize: DEFAULT_FONT_SIZE
       };
+      
+      console.log('Default toolbar settings:', defaultToolbarSettings);
       
       // Create default grid settings with pristine DEFAULT_GRID_OPTIONS
       // Important: Reset the grid controller's state first to avoid inheriting settings
@@ -227,6 +257,8 @@ export const useProfileManager = (settingsController: SettingsController | null)
           gridOptions: defaultGridOptions
         }
       };
+      
+      console.log('Created default settings for new profile:', defaultSettings);
       
       // Create a uniqueId for the profile
       const profileId = `profile-${Date.now()}-${Math.floor(Math.random() * 1000)}`;

@@ -14,6 +14,7 @@ export interface ProfileSettings {
 
 export interface ToolbarSettings {
   fontFamily?: string;
+  fontSize?: number;
 }
 
 export interface GridSettings {

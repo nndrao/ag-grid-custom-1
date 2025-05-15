@@ -125,23 +125,25 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
   return (
     <div className="flex items-center">
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Select value={fontFamily} onValueChange={handleFontChange}>
-            <SelectTrigger className="h-8 w-[160px] text-xs">
-              <SelectValue placeholder="Font Family" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {fontOptions.map((option) => (
-                <SelectItem 
-                  key={option.value} 
-                  value={option.value}
-                  style={{ fontFamily: option.value }}
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <TooltipTrigger>
+          <div>
+            <Select value={fontFamily} onValueChange={handleFontChange}>
+              <SelectTrigger className="h-8 w-[160px] text-xs">
+                <SelectValue placeholder="Font Family" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {fontOptions.map((option) => (
+                  <SelectItem 
+                    key={option.value} 
+                    value={option.value}
+                    style={{ fontFamily: option.value }}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </TooltipTrigger>
         <TooltipContent>
           <p>Change grid font family</p>

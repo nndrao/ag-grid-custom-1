@@ -6,6 +6,8 @@ import { deepClone } from '@/utils/deepClone';
 
 // Default font to use across the application
 export const DEFAULT_FONT_FAMILY = 'monospace';
+export const DEFAULT_FONT_SIZE = 14;
+export const HEADER_FONT_SIZE_OFFSET = 2;
 
 // Define a more specific type for grid options
 export type GridOptionValue = string | number | boolean | object | null | undefined | Function | ColDef[];
@@ -21,10 +23,8 @@ export class SettingsController {
   constructor(gridStateProvider: GridStateProvider) {
     this.gridStateProvider = gridStateProvider;
     
-    // Initialize with default settings
-    this.currentToolbarSettings = {
-      fontFamily: DEFAULT_FONT_FAMILY
-    };
+    // Always initialize with fresh default settings
+    this.resetToDefaults();
   }
 
   /**
@@ -34,7 +34,8 @@ export class SettingsController {
   resetToDefaults(): void {
     // Reset toolbar settings to default
     this.currentToolbarSettings = {
-      fontFamily: DEFAULT_FONT_FAMILY
+      fontFamily: DEFAULT_FONT_FAMILY,
+      fontSize: DEFAULT_FONT_SIZE
     };
     
     // Reset grid options to default 
@@ -51,7 +52,22 @@ export class SettingsController {
   }
 
   updateToolbarSettings(settings: Partial<ToolbarSettings>): void {
-    this.currentToolbarSettings = { ...this.currentToolbarSettings, ...settings };
+    // Deep copy the incoming settings to avoid reference issues
+    const validatedSettings = { ...settings };
+    
+    // Validate font size if provided
+    if (validatedSettings.fontSize !== undefined) {
+      // Ensure it's a valid number
+      if (typeof validatedSettings.fontSize !== 'number' || 
+          isNaN(validatedSettings.fontSize) || 
+          validatedSettings.fontSize <= 0) {
+        console.warn(`Invalid font size value: ${validatedSettings.fontSize}, using default`);
+        validatedSettings.fontSize = DEFAULT_FONT_SIZE;
+      }
+    }
+    
+    // Update settings
+    this.currentToolbarSettings = { ...this.currentToolbarSettings, ...validatedSettings };
     
     // Notify any listeners about the settings change
     this.settingsChangeListeners.forEach(listener => {
@@ -135,9 +151,30 @@ export class SettingsController {
     
     // Apply toolbar settings 
     if (settings.toolbar) {
-      this.updateToolbarSettings(settings.toolbar);
+      // Create a temp object with default toolbar settings as fallback
+      const defaultedToolbarSettings = {
+        fontFamily: DEFAULT_FONT_FAMILY,
+        fontSize: DEFAULT_FONT_SIZE,
+        ...settings.toolbar
+      };
+      
+      // Check explicitly for undefined/null values and replace with defaults
+      if (defaultedToolbarSettings.fontFamily === undefined || defaultedToolbarSettings.fontFamily === null) {
+        defaultedToolbarSettings.fontFamily = DEFAULT_FONT_FAMILY;
+      }
+      
+      if (defaultedToolbarSettings.fontSize === undefined || defaultedToolbarSettings.fontSize === null) {
+        defaultedToolbarSettings.fontSize = DEFAULT_FONT_SIZE;
+      }
+      
+      // Update with the properly defaulted settings
+      this.updateToolbarSettings(defaultedToolbarSettings);
     } else {
       console.warn("⚠️ Profile has no toolbar settings, using defaults");
+      this.updateToolbarSettings({
+        fontFamily: DEFAULT_FONT_FAMILY,
+        fontSize: DEFAULT_FONT_SIZE
+      });
     }
     
     // Update internal grid options state

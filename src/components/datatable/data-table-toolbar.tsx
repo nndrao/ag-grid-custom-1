@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
 import { GridApi } from 'ag-grid-community';
 import { FontFamilySelector } from './profile/FontFamilySelector';
+import { FontSizeSelector } from './profile/FontSizeSelector';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -91,10 +92,11 @@ export function DataTableToolbar<TData>({
         {/* Empty space in the middle */}
         <div className="flex-grow"></div>
         
-        {/* Font family selector */}
+        {/* Font Controls */}
         {settingsController && (
-          <div className="flex items-center mr-4">
+          <div className="flex items-center gap-3 mr-4">
             <FontFamilySelector settingsController={settingsController} />
+            <FontSizeSelector settingsController={settingsController} />
           </div>
         )}
         

@@ -63,7 +63,8 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
         }
       }
       
-      console.debug('[DEFAULT_GRID_OPTIONS] Applied cellStyle:', style);
+      // Comment out or remove the debug log to avoid console spam
+      // console.debug('[DEFAULT_GRID_OPTIONS] Applied cellStyle:', style);
       return style;
     },
   },
