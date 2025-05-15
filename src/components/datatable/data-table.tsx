@@ -50,6 +50,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Initialize services for profile management
   const gridStateProvider = useRef(new GridStateProvider());
   const settingsControllerRef = useRef<SettingsController | null>(null);
+  // Track the previous profile ID to detect profile changes
+  const previousProfileIdRef = useRef<string | null>(null);
+  const isInitialProfileAppliedRef = useRef(false);
 
   // Initialize settings controller once
   useEffect(() => {
@@ -61,8 +64,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Initialize profile manager - always call the hook, never conditionally
   const profileManager = useProfileManager(settingsControllerRef.current);
 
-  // Use our modular hooks
-  const { theme } = useAgGridTheme();
+  // Use our modular hooks with settings controller
+  const { theme } = useAgGridTheme(settingsControllerRef.current);
   
   // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
   useKeyboardThrottler({
@@ -194,9 +197,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Memoize columnDefs to prevent unnecessary rerenders
   const memoizedColumnDefs = useMemo(() => columnDefs, [columnDefs]);
 
-  // Track the previous profile ID to detect profile changes
-  const previousProfileIdRef = useRef<string | null>(null);
-
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
     gridApiRef.current = params.api;
@@ -205,11 +205,17 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     
     // Apply active profile settings if available
     if (profileManager?.activeProfile && settingsControllerRef.current) {
-      // Record the profile ID for future change detection
-      previousProfileIdRef.current = profileManager.activeProfile.id;
-      
-      // Apply settings on initial load
-      settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+      // Only apply profile settings if this is the first time or profile actually changed
+      if (!isInitialProfileAppliedRef.current) {
+        isInitialProfileAppliedRef.current = true;
+        
+        // Record the profile ID for future change detection
+        previousProfileIdRef.current = profileManager.activeProfile.id;
+        
+        // Apply settings on initial load - only once
+        console.log("📊 Initial application of profile settings");
+        settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+      }
       
       // Apply grid options using the proper AG Grid API
       if (processedDefaultColDef) {
@@ -254,23 +260,25 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
   }, [profileManager, processedDefaultColDef]);
   
-  // Detect profile changes and apply settings
+  // Detect profile changes and apply settings - optimized to reduce redundant updates
   useEffect(() => {
-    // Skip if no grid is ready or no profile manager
+    // Skip if no grid is ready or no profile manager or no active profile
     if (!gridReady || !gridApiRef.current || !profileManager?.activeProfile || !settingsControllerRef.current) {
       return;
     }
     
+    // Get current profile ID
     const currentProfileId = profileManager.activeProfile.id;
     
-    // Check if profile ID has changed
-    if (currentProfileId !== previousProfileIdRef.current) {
+    // Check if profile ID has changed AND it's not the initial application
+    if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
       console.log(`🔄 Profile changed from ${previousProfileIdRef.current} to ${currentProfileId}`);
       
       // Update reference
       previousProfileIdRef.current = currentProfileId;
       
-      // Apply the new profile settings
+      // Only apply the new profile settings after a profile change
+      console.log("📊 Applying settings after profile change");
       // This will efficiently batch updates with our optimized SettingsController
       settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
     }

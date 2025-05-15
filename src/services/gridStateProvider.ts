@@ -60,8 +60,11 @@ export class GridStateProvider {
           // Replace original state with our enhanced version
           gridState.columnState = enhancedColumnState;
           
-          // Log the column state we're saving to help debugging
-          console.log("📋 Saving column state:", JSON.stringify(enhancedColumnState));
+          // No need to log the full column state - it's too verbose
+          // Just log the count of columns
+          if (enhancedColumnState.length > 0) {
+            console.log(`📋 Saved state for ${enhancedColumnState.length} columns`);
+          }
         } catch (err) {
           console.error("❌ Error enhancing column state:", err);
         }
@@ -423,7 +426,7 @@ export class GridStateProvider {
             
             // Apply width updates if we have any
             if (widthUpdates.length > 0) {
-              console.log("📏 Applying column widths in batch:", widthUpdates.length, "columns");
+              console.log(`📏 Applying column widths to ${widthUpdates.length} columns`);
               this.gridApi.setColumnWidths(widthUpdates);
             }
           } catch (error) {

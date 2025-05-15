@@ -7,6 +7,7 @@ import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
 import { GridApi } from 'ag-grid-community';
 import { FontFamilySelector } from './profile/FontFamilySelector';
 import { FontSizeSelector } from './profile/FontSizeSelector';
+import { SpacingSelector } from './profile/SpacingSelector';
 
 interface ProfileManagerInterface {
   profiles: any[];
@@ -97,6 +98,7 @@ export function DataTableToolbar<TData>({
           <div className="flex items-center gap-3 mr-4">
             <FontFamilySelector settingsController={settingsController} />
             <FontSizeSelector settingsController={settingsController} />
+            <SpacingSelector settingsController={settingsController} />
           </div>
         )}
         

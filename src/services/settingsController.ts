@@ -6,8 +6,10 @@ import { deepClone } from '@/utils/deepClone';
 
 // Default font to use across the application
 export const DEFAULT_FONT_FAMILY = 'monospace';
-export const DEFAULT_FONT_SIZE = 14;
+export const DEFAULT_FONT_SIZE = 12;
 export const HEADER_FONT_SIZE_OFFSET = 2;
+export const DEFAULT_SPACING = 6;
+export const MIN_FONT_SIZE = 6;
 
 // Define a more specific type for grid options
 export type GridOptionValue = string | number | boolean | object | null | undefined | Function | ColDef[];
@@ -19,6 +21,8 @@ export class SettingsController {
   private currentGridOptions: GridOptionsMap = {};
   private settingsChangeListeners: Array<(settings: Partial<ToolbarSettings>) => void> = [];
   private gridOptionsChangeListeners: Array<(options: GridOptionsMap) => void> = [];
+  private pendingSettingsOperation: number | null = null;
+  private isApplyingSettings = false;
 
   constructor(gridStateProvider: GridStateProvider) {
     this.gridStateProvider = gridStateProvider;
@@ -35,7 +39,8 @@ export class SettingsController {
     // Reset toolbar settings to default
     this.currentToolbarSettings = {
       fontFamily: DEFAULT_FONT_FAMILY,
-      fontSize: DEFAULT_FONT_SIZE
+      fontSize: DEFAULT_FONT_SIZE,
+      spacing: DEFAULT_SPACING
     };
     
     // Reset grid options to default 
@@ -60,9 +65,20 @@ export class SettingsController {
       // Ensure it's a valid number
       if (typeof validatedSettings.fontSize !== 'number' || 
           isNaN(validatedSettings.fontSize) || 
-          validatedSettings.fontSize <= 0) {
+          validatedSettings.fontSize < MIN_FONT_SIZE) {
         console.warn(`Invalid font size value: ${validatedSettings.fontSize}, using default`);
         validatedSettings.fontSize = DEFAULT_FONT_SIZE;
+      }
+    }
+    
+    // Validate spacing if provided
+    if (validatedSettings.spacing !== undefined) {
+      // Ensure it's a valid number with minimum value
+      if (typeof validatedSettings.spacing !== 'number' || 
+          isNaN(validatedSettings.spacing) || 
+          validatedSettings.spacing < 2) {
+        console.warn(`Invalid spacing value: ${validatedSettings.spacing}, using default`);
+        validatedSettings.spacing = DEFAULT_SPACING;
       }
     }
     
@@ -127,6 +143,24 @@ export class SettingsController {
 
   // Apply settings from a profile
   applyProfileSettings(settings: ProfileSettings): void {
+    // Cancel any pending operations
+    if (this.pendingSettingsOperation !== null) {
+      clearTimeout(this.pendingSettingsOperation);
+      this.pendingSettingsOperation = null;
+    }
+    
+    // If already applying settings, queue this request
+    if (this.isApplyingSettings) {
+      this.pendingSettingsOperation = window.setTimeout(() => {
+        this.pendingSettingsOperation = null;
+        this.applyProfileSettings(settings);
+      }, 100);
+      return;
+    }
+    
+    // Set flag to prevent concurrent updates
+    this.isApplyingSettings = true;
+    
     console.log("🔧 Starting profile settings application");
     
     // Check if this is a NEW profile with default settings only
@@ -155,6 +189,7 @@ export class SettingsController {
       const defaultedToolbarSettings = {
         fontFamily: DEFAULT_FONT_FAMILY,
         fontSize: DEFAULT_FONT_SIZE,
+        spacing: DEFAULT_SPACING,
         ...settings.toolbar
       };
       
@@ -167,13 +202,18 @@ export class SettingsController {
         defaultedToolbarSettings.fontSize = DEFAULT_FONT_SIZE;
       }
       
+      if (defaultedToolbarSettings.spacing === undefined || defaultedToolbarSettings.spacing === null) {
+        defaultedToolbarSettings.spacing = DEFAULT_SPACING;
+      }
+      
       // Update with the properly defaulted settings
       this.updateToolbarSettings(defaultedToolbarSettings);
     } else {
       console.warn("⚠️ Profile has no toolbar settings, using defaults");
       this.updateToolbarSettings({
         fontFamily: DEFAULT_FONT_FAMILY,
-        fontSize: DEFAULT_FONT_SIZE
+        fontSize: DEFAULT_FONT_SIZE,
+        spacing: DEFAULT_SPACING
       });
     }
     
@@ -186,12 +226,11 @@ export class SettingsController {
     // Step 2: Apply the collected grid options to the grid in one batch
     const gridApiInstance = this.gridStateProvider.getGridApi();
     if (gridApiInstance) {
-      // Delay to ensure all internal state is updated first
-      // and allow the grid to stabilize
-      setTimeout(() => {
-        console.log("🔧 Applying grid options and settings to grid");
-        
+      // Use a single timeout to batch all changes
+      window.setTimeout(() => {
         try {
+          console.log("🔧 Applying grid options and settings to grid");
+          
           // Prepare processed options for AG Grid v33+
           const processedOptions: GridOptionsMap = this.processGridOptions(settings.custom?.gridOptions || {});
           
@@ -212,10 +251,24 @@ export class SettingsController {
           console.log("✅ Completed applying profile settings");
         } catch (error) {
           console.error("❌ Error applying profile settings:", error);
+        } finally {
+          // Reset flag to allow future updates
+          this.isApplyingSettings = false;
+          
+          // If there's a pending operation, run it now
+          if (this.pendingSettingsOperation !== null) {
+            clearTimeout(this.pendingSettingsOperation);
+            this.pendingSettingsOperation = null;
+            // Re-run with a slight delay to prevent stack overflow
+            setTimeout(() => {
+              this.applyProfileSettings(settings);
+            }, 50);
+          }
         }
       }, 20);
     } else {
       console.warn("⚠️ No grid API available, settings will be applied when grid is ready");
+      this.isApplyingSettings = false;
     }
   }
   
@@ -290,6 +343,15 @@ export class SettingsController {
           // Special handling for defaultColDef to ensure cell alignment properties work properly
           if (typeof value === 'object' && value !== null) {
             const colDef = value as any;
+            
+            // Ensure fontSize is always a number (for calculations later)
+            if (colDef.fontSize && typeof colDef.fontSize === 'string') {
+              // Extract numeric value if it's a string with 'px'
+              const numericValue = parseInt(colDef.fontSize.replace('px', ''), 10);
+              if (!isNaN(numericValue)) {
+                colDef.fontSize = numericValue;
+              }
+            }
             
             // Process vertical and horizontal alignment
             const verticalAlign = colDef.verticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
@@ -442,49 +504,63 @@ export class SettingsController {
       return false;
     };
     
-    // Batch all option updates
-    console.log("🔄 Applying grid options in batch");
+    // Collect all option updates for one batch operation
+    const optionsToApply = new Map<string, any>();
     
+    console.log("🔄 Collecting grid options for batch update");
+    
+    // Special handling for key options
+    if (options.defaultColDef) {
+      optionsToApply.set('defaultColDef', options.defaultColDef);
+    }
+    
+    if (options.rowSelection) {
+      optionsToApply.set('rowSelection', options.rowSelection);
+    }
+    
+    if (options.cellSelection !== undefined) {
+      optionsToApply.set('cellSelection', options.cellSelection);
+    }
+    
+    // Collect remaining options
+    Object.entries(options).forEach(([optKey, value]) => {
+      // Skip special options already handled
+      if (['defaultColDef', 'rowSelection', 'cellSelection'].includes(optKey)) {
+        return;
+      }
+      
+      // Skip initial properties and invalid options
+      if (value !== undefined && 
+          !initialProperties.includes(optKey as any) && 
+          optKey !== 'theme' && 
+          !isInvalidGridOption(optKey, value)) {
+        optionsToApply.set(optKey, value);
+      }
+    });
+    
+    // Now apply all options in one batch transaction
+    console.log("🔄 Applying all grid options in single batch");
     try {
-      // Special handling for key options
-      if (options.defaultColDef) {
-        console.log("🔄 Setting defaultColDef");
-        gridApi.setGridOption('defaultColDef', options.defaultColDef);
-      }
+      // Set transaction flag - use 'as any' to bypass type checking
+      (gridApi as any).setGridOption('suppressColumnStateEvents', true);
       
-      if (options.rowSelection) {
-        console.log("🔄 Setting rowSelection");
-        gridApi.setGridOption('rowSelection', options.rowSelection);
-      }
-      
-      if (options.cellSelection !== undefined) {
-        console.log("🔄 Setting cellSelection");
-        gridApi.setGridOption('cellSelection', options.cellSelection);
-      }
-      
-      // Apply remaining options
-      Object.entries(options).forEach(([optKey, value]) => {
-        // Skip special options already handled
-        if (['defaultColDef', 'rowSelection', 'cellSelection'].includes(optKey)) {
-          return;
-        }
-        
-        // Skip initial properties and invalid options
-        if (value !== undefined && 
-            !initialProperties.includes(optKey as any) && 
-            optKey !== 'theme' && 
-            !isInvalidGridOption(optKey, value)) {
-          try {
-            // Safe cast for AG Grid API
-            (gridApi as any).setGridOption(optKey, value);
-          } catch (e) {
-            console.error(`Error setting grid option ${optKey}:`, e);
-          }
+      // Apply all options at once
+      optionsToApply.forEach((value, key) => {
+        try {
+          // Use 'as any' to bypass type checking for dynamic keys
+          (gridApi as any).setGridOption(key, value);
+        } catch (e) {
+          console.error(`Error setting grid option ${key}:`, e);
         }
       });
       
+      // Only do a single refresh after all options are applied
+      console.log("🔄 Single refresh after applying all options");
+      
+      // Reset transaction flag - use 'as any' to bypass type checking
+      (gridApi as any).setGridOption('suppressColumnStateEvents', false);
+      
       // Force a single refresh after all options are applied
-      console.log("🔄 Refreshing grid after applying options");
       gridApi.refreshHeader();
       gridApi.refreshCells({ force: true });
     } catch (error) {
