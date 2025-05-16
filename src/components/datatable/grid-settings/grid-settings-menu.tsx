@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Settings, Save, RotateCcw } from 'lucide-react';
+import { Settings, Save, RotateCcw, Columns } from 'lucide-react';
 import { GridSettingsDialog } from './grid-settings-dialog';
+import { ColumnSettingsDialog } from './column-settings-dialog';
 import { GridApi } from 'ag-grid-community';
 import { SettingsController } from '@/services/settings-controller';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,6 +19,7 @@ interface GridSettingsMenuProps {
 
 export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMenuProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // We'll use the profile manager to save settings directly
@@ -143,6 +145,11 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
             Edit Grid Settings
           </DropdownMenuItem>
           
+          <DropdownMenuItem onClick={() => setColumnDialogOpen(true)}>
+            <Columns className="h-4 w-4 mr-2" />
+            Column Settings
+          </DropdownMenuItem>
+          
           <DropdownMenuSeparator />
           
           <DropdownMenuItem onClick={saveToProfile} disabled={!profileManager?.activeProfile}>
@@ -162,6 +169,12 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         onOpenChange={setDialogOpen} 
         gridApi={gridApi}
         settingsController={settingsController}
+      />
+      
+      <ColumnSettingsDialog
+        open={columnDialogOpen}
+        onOpenChange={setColumnDialogOpen}
+        gridApi={gridApi}
       />
     </>
   );
