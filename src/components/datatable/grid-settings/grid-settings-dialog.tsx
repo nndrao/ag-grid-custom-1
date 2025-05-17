@@ -183,12 +183,23 @@ export function GridSettingsDialog({
         rowModelType: mergedSettings.rowModelType,
       };
       
-      // Column defaults - ensure this is properly hydrated
-      // DEBUG: Log mergedSettings.defaultColDef to check for alignment properties
+      // Column defaults - ensure this is properly hydrated with alignment values
       console.debug('[GridSettingsDialog] mergedSettings.defaultColDef:', mergedSettings.defaultColDef);
+      
+      // Extract alignment values from the defaultColDef if they exist
+      const defaultColDef = mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef;
+      
+      // If defaultColDef has verticalAlign or horizontalAlign, preserve them
       currentSettings.defaults = {
-        defaultColDef: mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef
+        defaultColDef: {
+          ...defaultColDef,
+          // Ensure alignment values are preserved from stored settings
+          verticalAlign: defaultColDef?.verticalAlign,
+          horizontalAlign: defaultColDef?.horizontalAlign
+        }
       };
+      
+      console.debug('[GridSettingsDialog] Column defaults with alignment:', currentSettings.defaults);
       
       // Selection options - handling both modern AG-Grid v33+ API and backward compatibility
       const rowSelection = mergedSettings.rowSelection as any;
@@ -747,6 +758,10 @@ export function GridSettingsDialog({
       const filteredSettings = { ...flattenedSettings };
       INITIAL_PROPERTIES.forEach(prop => delete filteredSettings[prop]);
       
+      // Also remove our temporary preserved alignment properties
+      delete filteredSettings._preservedVerticalAlign;
+      delete filteredSettings._preservedHorizontalAlign;
+      
       // Only persist options that have actually changed
       const changedSettings: GridOptionsMap = {};
       changedOptions.forEach(option => {
@@ -755,6 +770,7 @@ export function GridSettingsDialog({
         }
       });
       
+      console.log('[GridSettingsDialog] Sending changed settings to controller:', changedSettings);
       settingsController.updateGridOptions(changedSettings);
     }
     
