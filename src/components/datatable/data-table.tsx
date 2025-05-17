@@ -159,47 +159,60 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Memoize columnDefs
   const memoizedColumnDefs = useMemo(() => columnDefs, [columnDefs]);
   
-  // Memoize static configurations
-  const staticConfigs = useMemo(() => ({
-    rowSelection: {
-      mode: 'multiRow',
-      enableClickSelection: true,
-      enableSelectionWithoutKeys: true
-    },
-    dataTypeDefinitions: {
-      string: {
-        baseDataType: 'text',
-        extendsDataType: 'text',
+  // Get dynamic configurations from customGridOptions and fallback to defaults
+  const dynamicConfigs = useMemo(() => {
+    // Default configurations
+    const defaults = {
+      rowSelection: {
+        mode: 'multiRow',
+        enableClickSelection: true,
+        enableSelectionWithoutKeys: true,
+        checkboxes: false
+      },
+      dataTypeDefinitions: {
+        string: {
+          baseDataType: 'text',
+          extendsDataType: 'text',
+        }
+      },
+      sideBar: {
+        toolPanels: [
+          {
+            id: 'columns',
+            labelDefault: 'Columns',
+            labelKey: 'columns',
+            iconKey: 'columns',
+            toolPanel: 'agColumnsToolPanel',
+          },
+          {
+            id: 'filters',
+            labelDefault: 'Filters',
+            labelKey: 'filters',
+            iconKey: 'filter',
+            toolPanel: 'agFiltersToolPanel',
+          },
+        ],
+      },
+      statusBar: {
+        statusPanels: [
+          { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+          { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+          { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
+          { statusPanel: 'agAggregationComponent', align: 'right' },
+          { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
+        ],
       }
-    },
-    sideBar: {
-      toolPanels: [
-        {
-          id: 'columns',
-          labelDefault: 'Columns',
-          labelKey: 'columns',
-          iconKey: 'columns',
-          toolPanel: 'agColumnsToolPanel',
-        },
-        {
-          id: 'filters',
-          labelDefault: 'Filters',
-          labelKey: 'filters',
-          iconKey: 'filter',
-          toolPanel: 'agFiltersToolPanel',
-        },
-      ],
-    },
-    statusBar: {
-      statusPanels: [
-        { statusPanel: 'agTotalRowCountComponent', align: 'left' },
-        { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
-        { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
-        { statusPanel: 'agAggregationComponent', align: 'right' },
-        { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
-      ],
-    }
-  }), []);
+    };
+    
+    // Merge with custom options from profile/settings
+    return {
+      rowSelection: customGridOptions.rowSelection || defaults.rowSelection,
+      dataTypeDefinitions: customGridOptions.dataTypeDefinitions || defaults.dataTypeDefinitions,
+      sideBar: customGridOptions.sideBar ?? defaults.sideBar,
+      statusBar: customGridOptions.statusBar ?? defaults.statusBar,
+      cellSelection: customGridOptions.cellSelection ?? true
+    };
+  }, [customGridOptions]);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
@@ -266,12 +279,12 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
             rowGroupPanelShow="always"
             groupDisplayType="singleColumn"
             groupDefaultExpanded={-1}
-            cellSelection={true}
-            rowSelection={staticConfigs.rowSelection}
+            cellSelection={dynamicConfigs.cellSelection}
+            rowSelection={dynamicConfigs.rowSelection}
             loading={false}
-            dataTypeDefinitions={staticConfigs.dataTypeDefinitions}
-            sideBar={staticConfigs.sideBar}
-            statusBar={staticConfigs.statusBar}
+            dataTypeDefinitions={dynamicConfigs.dataTypeDefinitions}
+            sideBar={dynamicConfigs.sideBar}
+            statusBar={dynamicConfigs.statusBar}
             getContextMenuItems={getContextMenuItems}
             onGridReady={onGridReady}
             theme={theme}

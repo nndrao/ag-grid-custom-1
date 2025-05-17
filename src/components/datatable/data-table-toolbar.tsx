@@ -9,8 +9,6 @@ import { FontFamilySelector } from './profile/FontFamilySelector';
 import { FontSizeSelector } from './profile/FontSizeSelector';
 import { SpacingSelector } from './profile/SpacingSelector';
 import { GridApi } from 'ag-grid-community';
-import { ProfileManager } from './types/ProfileManager';
-import { SettingsController } from './services/settings-controller';
 
 interface DataTableToolbarProps<TData = any> {
   table: any; // This is legacy from TanStack Table but we keep it for compatibility

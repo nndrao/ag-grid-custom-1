@@ -73,7 +73,8 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
     mode: 'multiRow', // AG-Grid v33+ uses multiRow instead of multiple
     enableSelectionWithoutKeys: false, // Maps to rowMultiSelectWithClick
     enableClickSelection: true, // Maps to !suppressRowClickSelection
-    copySelectedRows: true // Maps to !suppressCopyRowsToClipboard
+    copySelectedRows: true, // Maps to !suppressCopyRowsToClipboard
+    checkboxes: false // Disable checkbox column
   },
   enableRangeSelection: false, // AG-Grid v33+ property for cell selection
 
@@ -191,6 +192,9 @@ export function normalizeRowSelection(selection: any): any {
     const result = { ...selection };
     if (result.mode === 'multiple') result.mode = 'multiRow';
     if (result.mode === 'single') result.mode = 'singleRow';
+    
+    // Make sure all properties are preserved (like checkboxes)
+    // This is important for grid settings persistence
     return result;
   }
   

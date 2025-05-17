@@ -41,34 +41,22 @@ interface GridSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   gridApi: GridApi | null;
   settingsController: SettingsController | null;
-  profileManager?: any;
 }
 
 export function GridSettingsDialog({
   open,
   onOpenChange,
   gridApi,
-  settingsController,
-  profileManager
+  settingsController
 }: GridSettingsDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [gridSettings, setGridSettings] = useState<GridSettingsState>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [initialValues, setInitialValues] = useState<GridOptionsMap>({});
   
-  // Refs for batching state updates
-  const pendingUpdates = useRef<Record<string, { category: string, option: string, value: any }>>({});
+  // Use a ref to track pending updates
+  const pendingUpdates = useRef<{ [key: string]: any }>({});
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      // Clear any pending timeout when component unmounts
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Load current grid settings when dialog opens
   // Only rehydrate gridSettings when dialog is first opened
@@ -81,11 +69,7 @@ export function GridSettingsDialog({
       const currentGridSettings = extractCurrentGridSettings(gridApi);
       
       // Get stored options from profile if available
-      // First try to get from active profile, then fall back to settings controller
-      const profileSettings = profileManager?.activeProfile?.settings;
-      const storedOptions = profileSettings?.custom?.gridOptions || 
-                            settingsController?.getCurrentGridOptions() || {};
-      
+      const storedOptions = settingsController?.getCurrentGridOptions() || {};
       
       // Merge in the following order: defaults -> current -> stored
       // This ensures that stored options (from profile) take precedence
@@ -231,18 +215,8 @@ export function GridSettingsDialog({
          rowSelection.mode) : 
         (typeof rowSelection === 'string' ? rowSelection : 'multiple');
       
-      
       currentSettings.selection = {
-        rowSelection: typeof rowSelection === 'object' ? {
-          mode: normalizedRowMode,
-          enableSelectionWithoutKeys: rowSelection.enableSelectionWithoutKeys !== undefined ? 
-            rowSelection.enableSelectionWithoutKeys : !!mergedSettings.rowMultiSelectWithClick,
-          enableClickSelection: rowSelection.enableClickSelection !== undefined ?
-            rowSelection.enableClickSelection : !mergedSettings.suppressRowClickSelection,
-          checkboxes: rowSelection.checkboxes !== undefined ?
-            rowSelection.checkboxes : true,
-          groupSelects: rowSelection.groupSelects || (mergedSettings.groupSelectsChildren ? 'descendants' : 'none')
-        } : normalizedRowMode,
+        rowSelection: normalizedRowMode,
         rowMultiSelectWithClick: typeof rowSelection === 'object' && 'enableSelectionWithoutKeys' in rowSelection ? 
           !!rowSelection.enableSelectionWithoutKeys : 
           !!mergedSettings.rowMultiSelectWithClick,
@@ -256,7 +230,9 @@ export function GridSettingsDialog({
           cellSelection : 
           !!cellSelection,
         enableRangeHandle: mergedSettings.enableRangeHandle || false,
-        suppressRowDeselection: mergedSettings.suppressRowDeselection,
+        suppressRowDeselection: typeof rowSelection === 'object' && 'enableClickSelection' in rowSelection ? 
+          !rowSelection.enableClickSelection : 
+          !!mergedSettings.suppressRowDeselection,
         groupSelectsChildren: typeof rowSelection === 'object' && 'groupSelects' in rowSelection ? 
           (rowSelection.groupSelects === 'descendants') : 
           !!mergedSettings.groupSelectsChildren,
@@ -296,22 +272,10 @@ export function GridSettingsDialog({
         groupSelectsChildren: storedOptions.groupSelectsChildren ?? gridApi.getGridOption('groupSelectsChildren'),
         groupRemoveSingleChildren: storedOptions.groupRemoveSingleChildren ?? gridApi.getGridOption('groupRemoveSingleChildren'),
         pivotMode: storedOptions.pivotMode ?? gridApi.getGridOption('pivotMode'),
-        pivotPanelShow: storedOptions.pivotPanelShow ?? gridApi.getGridOption('pivotPanelShow'),
+        pivotPanelShow: storedOptions.pivotPanelShow || gridApi.getGridOption('pivotPanelShow'),
         groupDefaultExpanded: storedOptions.groupDefaultExpanded ?? gridApi.getGridOption('groupDefaultExpanded'),
-        rowGroupPanelShow: storedOptions.rowGroupPanelShow ?? gridApi.getGridOption('rowGroupPanelShow'),
-        // Fix groupDisplayType to ensure it loads from stored options
-        groupDisplayType: storedOptions.groupDisplayType ?? gridApi.getGridOption('groupDisplayType') ?? 'singleColumn',
-      };
-      
-      // Editing options
-      currentSettings.editing = {
-        editType: storedOptions.editType ?? gridApi.getGridOption('editType') ?? 'none',
-        singleClickEdit: storedOptions.singleClickEdit ?? gridApi.getGridOption('singleClickEdit'),
-        suppressClickEdit: storedOptions.suppressClickEdit ?? gridApi.getGridOption('suppressClickEdit'),
-        enterMovesDown: storedOptions.enterMovesDown ?? gridApi.getGridOption('enterMovesDown'),
-        enterMovesDownAfterEdit: storedOptions.enterMovesDownAfterEdit ?? gridApi.getGridOption('enterMovesDownAfterEdit'),
-        undoRedoCellEditing: storedOptions.undoRedoCellEditing ?? gridApi.getGridOption('undoRedoCellEditing'),
-        undoRedoCellEditingLimit: storedOptions.undoRedoCellEditingLimit ?? gridApi.getGridOption('undoRedoCellEditingLimit'),
+        rowGroupPanelShow: storedOptions.rowGroupPanelShow || gridApi.getGridOption('rowGroupPanelShow'),
+        groupDisplayType: storedOptions.groupDisplayType || gridApi.getGridOption('groupDisplayType'),
       };
       
       currentSettings.columns = {
@@ -352,6 +316,10 @@ export function GridSettingsDialog({
         // Use AG Grid v33+ properties
         enableCharts: storedOptions.enableCharts ?? gridApi.getGridOption('enableCharts'),
         masterDetail: storedOptions.masterDetail ?? gridApi.getGridOption('masterDetail'),
+        // Convert deprecated properties to v33+ equivalents
+        groupDisplayType: storedOptions.groupDisplayType ?? 
+                         (storedOptions.groupUseEntireRow ? 'groupRows' : 'singleColumn') ?? 
+                         gridApi.getGridOption('groupDisplayType'),
         suppressAggFuncInHeader: storedOptions.suppressAggFuncInHeader ?? gridApi.getGridOption('suppressAggFuncInHeader'),
         suppressColumnVirtualisation: storedOptions.suppressColumnVirtualisation ?? gridApi.getGridOption('suppressColumnVirtualisation'),
         suppressRowVirtualisation: storedOptions.suppressRowVirtualisation ?? gridApi.getGridOption('suppressRowVirtualisation'),
@@ -369,33 +337,26 @@ export function GridSettingsDialog({
         statusBar: storedOptions.statusBar ?? gridApi.getGridOption('statusBar')
       };
       
-      // Sizing & Dimensions
-      currentSettings.sizing = {
-        headerHeight: storedOptions.headerHeight ?? gridApi.getGridOption('headerHeight'),
-        rowHeight: storedOptions.rowHeight ?? gridApi.getGridOption('rowHeight'),
-        floatingFiltersHeight: storedOptions.floatingFiltersHeight ?? gridApi.getGridOption('floatingFiltersHeight'),
-        pivotHeaderHeight: storedOptions.pivotHeaderHeight ?? gridApi.getGridOption('pivotHeaderHeight'),
-        pivotGroupHeaderHeight: storedOptions.pivotGroupHeaderHeight ?? gridApi.getGridOption('pivotGroupHeaderHeight'),
-        groupHeaderHeight: storedOptions.groupHeaderHeight ?? gridApi.getGridOption('groupHeaderHeight'),
-        suppressAutoSize: storedOptions.suppressAutoSize ?? gridApi.getGridOption('suppressAutoSize'),
-        suppressSizeToFit: storedOptions.suppressSizeToFit ?? gridApi.getGridOption('suppressSizeToFit'),
-        suppressColumnVirtualisation: storedOptions.suppressColumnVirtualisation ?? gridApi.getGridOption('suppressColumnVirtualisation'),
-        suppressRowVirtualisation: storedOptions.suppressRowVirtualisation ?? gridApi.getGridOption('suppressRowVirtualisation'),
-      };
-      
       // Fetch all settings categories from the grid
       setGridSettings(currentSettings);
       setHasChanges(false);
+      
+      // Clear any pending updates when dialog opens
+      pendingUpdates.current = {};
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
     }
-  }, [open, gridApi, profileManager, settingsController]);
+  }, [open, gridApi]);
 
-  // Handler for changes to grid settings with batching
+  // Handler for changes to grid settings - with debouncing
   const handleSettingChange = useCallback((category: string, option: string, value: any) => {
     // Store the update in our pending updates
     const key = `${category}.${option}`;
     pendingUpdates.current[key] = { category, option, value };
     
-    // Clear existing timeout if any
+    // Clear existing timeout
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
     }
@@ -834,6 +795,15 @@ export function GridSettingsDialog({
     onOpenChange(false);
   }, [gridApi, gridSettings, hasChanges, settingsController, onOpenChange, initialValues]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Custom tabs style for vertical tabs
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1021,15 +991,7 @@ export function GridSettingsDialog({
         </div>
         
         <DialogFooter className="px-4 py-3 border-t flex justify-between w-full">
-          <Button variant="ghost" size="sm" onClick={() => {
-            // Clear any pending updates
-            if (updateTimeoutRef.current) {
-              clearTimeout(updateTimeoutRef.current);
-              updateTimeoutRef.current = null;
-            }
-            pendingUpdates.current = {};
-            onOpenChange(false);
-          }}>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button 
@@ -1045,4 +1007,4 @@ export function GridSettingsDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}

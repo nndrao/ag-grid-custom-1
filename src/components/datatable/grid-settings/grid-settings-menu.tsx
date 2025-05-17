@@ -159,6 +159,7 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         onOpenChange={setDialogOpen} 
         gridApi={gridApi}
         settingsController={settingsController}
+        profileManager={profileManager}
       />
       
       <ColumnSettingsDialog
