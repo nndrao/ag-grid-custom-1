@@ -175,26 +175,11 @@ export function GridSettingsDialog({
     // Save current grid state before applying changes
     const currentGridState = settingsController?.gridStateProvider?.extractGridState();
     
-    // Convert gridSettings to flat GridOptionsMap for optimized application
-    const flattenedSettings: GridOptionsMap = {};
-    
-    // Flatten the nested settings structure
-    Object.entries(gridSettings).forEach(([category, categorySettings]) => {
-      if (category === 'defaults' && categorySettings.defaultColDef) {
-        flattenedSettings.defaultColDef = categorySettings.defaultColDef;
-      } else {
-        Object.entries(categorySettings).forEach(([option, value]) => {
-          if (value !== undefined) {
-            flattenedSettings[option] = value;
-          }
-        });
-      }
-    });
-    
-    // Apply settings using optimized function
+    // Pass the gridSettings structure as-is to applySettingsOptimized
+    // The preprocessSettings function will handle proper flattening
     const result = await applySettingsOptimized(
       gridApi,
-      flattenedSettings,
+      gridSettings,
       initialValues,
       settingsController
     );

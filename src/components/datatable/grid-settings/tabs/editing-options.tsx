@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface EditingOptionsProps {
   settings: {
-    editType?: string;
+    editType?: string; // 'fullRow' or 'singleClick' in v33+
     singleClickEdit?: boolean;
     suppressClickEdit?: boolean;
-    enterMovesDown?: boolean;
-    enterMovesDownAfterEdit?: boolean;
+    enterNavigatesVertically?: boolean; // v33+ replaces enterMovesDown
+    enterNavigatesVerticallyAfterEdit?: boolean; // v33+ replaces enterMovesDownAfterEdit
     undoRedoCellEditing?: boolean;
     undoRedoCellEditingLimit?: number;
   };
@@ -116,23 +116,23 @@ export function EditingOptions({ settings, onChange }: EditingOptionsProps) {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Checkbox 
-              id="enterMovesDown" 
-              checked={!!localSettings.enterMovesDown}
-              onCheckedChange={(checked) => handleCheckboxChange('enterMovesDown', !!checked)} 
+              id="enterNavigatesVertically" 
+              checked={!!localSettings.enterNavigatesVertically}
+              onCheckedChange={(checked) => handleCheckboxChange('enterNavigatesVertically', !!checked)} 
             />
-            <Label htmlFor="enterMovesDown" className="font-normal">
-              Enter key moves focus down
+            <Label htmlFor="enterNavigatesVertically" className="font-normal">
+              Enter key navigates vertically
             </Label>
           </div>
           
           <div className="flex items-center space-x-2">
             <Checkbox 
-              id="enterMovesDownAfterEdit" 
-              checked={!!localSettings.enterMovesDownAfterEdit}
-              onCheckedChange={(checked) => handleCheckboxChange('enterMovesDownAfterEdit', !!checked)} 
+              id="enterNavigatesVerticallyAfterEdit" 
+              checked={!!localSettings.enterNavigatesVerticallyAfterEdit}
+              onCheckedChange={(checked) => handleCheckboxChange('enterNavigatesVerticallyAfterEdit', !!checked)} 
             />
-            <Label htmlFor="enterMovesDownAfterEdit" className="font-normal">
-              Enter key moves down after editing
+            <Label htmlFor="enterNavigatesVerticallyAfterEdit" className="font-normal">
+              Enter key navigates vertically after editing
             </Label>
           </div>
         </CardContent>

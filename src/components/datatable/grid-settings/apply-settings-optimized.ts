@@ -122,6 +122,68 @@ export async function applySettingsOptimized(
 }
 
 /**
+ * Define properties that should be applied at the column level, not grid level
+ */
+const COLUMN_DEF_PROPERTIES = [
+  'sortable', 'resizable', 'filter', 'editable', 'flex', 'minWidth', 'maxWidth',
+  'enableValue', 'enableRowGroup', 'enablePivot', 'sortingOrder', 
+  'checkboxSelection', 'headerCheckboxSelection', 'cellStyle',
+  'cellEditor', 'cellRenderer'
+];
+
+/**
+ * Define properties that are part of rowSelection object in v33+
+ */
+const ROW_SELECTION_PROPERTIES = [
+  'mode', 'enableSelectionWithoutKeys', 'enableClickSelection', 'checkboxes',
+  'groupSelects', 'copySelectedRows', 'enableDeselection', 'enableMultiSelectWithClick'
+];
+
+/**
+ * Transform deprecated properties to their v32+ equivalents
+ */
+function transformDeprecatedProperties(option: string, value: any): [string, any] | null {
+  switch (option) {
+    case 'rowMultiSelectWithClick':
+      // Convert to rowSelection.enableSelectionWithoutKeys
+      return ['rowSelection', { 
+        mode: 'multiRow',
+        enableSelectionWithoutKeys: value 
+      }];
+    
+    case 'suppressRowClickSelection':
+      // Convert to rowSelection.enableClickSelection (inverse)
+      return ['rowSelection', {
+        mode: 'singleRow',
+        enableClickSelection: !value
+      }];
+    
+    case 'suppressCellSelection':
+      // Convert to cellSelection = false
+      return ['cellSelection', false];
+    
+    case 'enableRangeSelection':
+      // Convert to cellSelection = true
+      return ['cellSelection', value];
+    
+    case 'groupRemoveSingleChildren':
+      // Convert to groupHideParentOfSingleChild
+      return ['groupHideParentOfSingleChild', value];
+    
+    case 'suppressCopyRowsToClipboard':
+      // Convert to rowSelection.copySelectedRows (inverse)
+      // Note: This should be merged with existing rowSelection object
+      return ['rowSelection', {
+        copySelectedRows: !value  // Inverted because it's "suppress"
+      }];
+    
+    default:
+      // Not a deprecated property
+      return null;
+  }
+}
+
+/**
  * Preprocess settings for optimal application
  */
 function preprocessSettings(gridSettings: GridOptionsMap, initialValues: GridOptionsMap) {
@@ -139,44 +201,161 @@ function preprocessSettings(gridSettings: GridOptionsMap, initialValues: GridOpt
     OTHER: []
   };
 
-  // Flatten and categorize settings
+  // Process settings with proper nesting
   Object.entries(gridSettings).forEach(([category, categorySettings]) => {
     if (typeof categorySettings === 'object' && categorySettings !== null) {
-      Object.entries(categorySettings).forEach(([option, value]) => {
-        if (value !== undefined && option !== 'theme') {
-          flattenedSettings[option] = value;
-
-          // Check if value has changed
-          const initialValue = initialValues[option];
-          if (JSON.stringify(initialValue) !== JSON.stringify(value)) {
-            changedOptions.add(option);
-
-            // Categorize the option
-            let categorized = false;
-            for (const [cat, options] of Object.entries(OPTION_CATEGORIES)) {
-              if (options.includes(option)) {
-                categorizedSettings[cat].push([option, value]);
-                categorized = true;
-                break;
+      // Handle category-based structure from grid settings dialog
+      switch (category) {
+        case 'defaults':
+          // This category contains defaultColDef settings
+          if (categorySettings.defaultColDef) {
+            const colDef: any = {};
+            Object.entries(categorySettings.defaultColDef).forEach(([prop, value]) => {
+              // Only include valid column definition properties
+              if (COLUMN_DEF_PROPERTIES.includes(prop) || prop === 'cellStyle') {
+                colDef[prop] = value;
               }
-            }
-            if (!categorized) {
-              categorizedSettings.OTHER.push([option, value]);
+            });
+            if (Object.keys(colDef).length > 0) {
+              flattenedSettings.defaultColDef = colDef;
+              changedOptions.add('defaultColDef');
+              categorizedSettings.SPECIAL.push(['defaultColDef', colDef]);
             }
           }
-        }
-      });
+          break;
+
+        case 'selection':
+          // Handle selection tab settings
+          Object.entries(categorySettings).forEach(([option, value]) => {
+            // Skip initial properties that cannot be updated at runtime
+            if (INITIAL_PROPERTIES.includes(option)) {
+              return;
+            }
+            
+            // Check for deprecated properties first
+            const transformed = transformDeprecatedProperties(option, value);
+            
+            if (transformed) {
+              const [newOption, newValue] = transformed;
+              
+              // Skip if the transformed option is an initial property
+              if (INITIAL_PROPERTIES.includes(newOption)) {
+                return;
+              }
+              
+              // For rowSelection, merge with existing value if present
+              if (newOption === 'rowSelection' && flattenedSettings.rowSelection) {
+                flattenedSettings.rowSelection = {
+                  ...flattenedSettings.rowSelection,
+                  ...newValue
+                };
+              } else if (newOption === 'cellSelection' && typeof flattenedSettings.cellSelection === 'object') {
+                flattenedSettings.cellSelection = {
+                  ...flattenedSettings.cellSelection,
+                  ...newValue
+                };
+              } else {
+                flattenedSettings[newOption] = newValue;
+              }
+              
+              changedOptions.add(newOption);
+              categorizedSettings.SELECTION.push([newOption, flattenedSettings[newOption]]);
+            } else if (option === 'rowSelection') {
+              // rowSelection is an object in v33+
+              const normalizedRowSelection = normalizeRowSelection(value);
+              flattenedSettings.rowSelection = normalizedRowSelection;
+              changedOptions.add('rowSelection');
+              categorizedSettings.SELECTION.push(['rowSelection', normalizedRowSelection]);
+            } else if (option === 'cellSelection') {
+              flattenedSettings.cellSelection = normalizeCellSelection(value);
+              changedOptions.add('cellSelection');
+              categorizedSettings.SELECTION.push(['cellSelection', flattenedSettings.cellSelection]);
+            } else if (!ROW_SELECTION_PROPERTIES.includes(option) && !COLUMN_DEF_PROPERTIES.includes(option)) {
+              // Other selection options like suppressRowDeselection
+              flattenedSettings[option] = value;
+              changedOptions.add(option);
+              categorizedSettings.SELECTION.push([option, value]);
+            }
+          });
+          break;
+
+        default:
+          // Process all other categories
+          Object.entries(categorySettings).forEach(([option, value]) => {
+            // Skip nested properties that shouldn't be at grid level
+            if (COLUMN_DEF_PROPERTIES.includes(option) || 
+                ROW_SELECTION_PROPERTIES.includes(option) ||
+                /^\d+$/.test(option)) { // Skip numeric indices
+              return;
+            }
+
+            if (value !== undefined && option !== 'theme') {
+              // Skip initial properties that cannot be updated at runtime
+              if (INITIAL_PROPERTIES.includes(option)) {
+                return;
+              }
+              
+              // Check for deprecated properties first
+              const transformed = transformDeprecatedProperties(option, value);
+              
+              if (transformed) {
+                const [newOption, newValue] = transformed;
+                
+                // Skip if the transformed option is an initial property
+                if (INITIAL_PROPERTIES.includes(newOption)) {
+                  return;
+                }
+                
+                // For rowSelection, merge with existing value if present
+                if (newOption === 'rowSelection' && flattenedSettings.rowSelection) {
+                  flattenedSettings.rowSelection = {
+                    ...flattenedSettings.rowSelection,
+                    ...newValue
+                  };
+                } else {
+                  flattenedSettings[newOption] = newValue;
+                }
+                
+                changedOptions.add(newOption);
+                
+                // Categorize the transformed option
+                if (newOption === 'rowSelection' || newOption === 'cellSelection') {
+                  categorizedSettings.SELECTION.push([newOption, flattenedSettings[newOption]]);
+                } else {
+                  categorizedSettings.OTHER.push([newOption, newValue]);
+                }
+              } else {
+                // Not a deprecated property, process normally
+                flattenedSettings[option] = value;
+
+                // Check if value has changed
+                const initialValue = initialValues[option];
+                const hasChanged = JSON.stringify(initialValue) !== JSON.stringify(value);
+                
+                // Always include statusBar and sideBar for special handling
+                if (hasChanged || option === 'statusBar' || option === 'sideBar') {
+                  changedOptions.add(option);
+
+                  // Categorize the option
+                  let categorized = false;
+                  for (const [cat, options] of Object.entries(OPTION_CATEGORIES)) {
+                    if (options.includes(option)) {
+                      categorizedSettings[cat].push([option, value]);
+                      categorized = true;
+                      break;
+                    }
+                  }
+                  if (!categorized) {
+                    categorizedSettings.OTHER.push([option, value]);
+                  }
+                }
+              }
+            }
+          });
+          break;
+      }
     }
   });
-
-  // Apply normalizations
-  if (flattenedSettings.rowSelection) {
-    flattenedSettings.rowSelection = normalizeRowSelection(flattenedSettings.rowSelection);
-  }
-
-  if (flattenedSettings.cellSelection !== undefined) {
-    flattenedSettings.cellSelection = normalizeCellSelection(flattenedSettings.cellSelection);
-  }
 
   return { flattenedSettings, changedOptions, categorizedSettings };
 }
@@ -249,7 +428,17 @@ async function applyBatch(
       }
 
       batch.forEach(([option, value]) => {
-        gridApi.setGridOption(option, value);
+        try {
+          // Skip initial properties
+          if (INITIAL_PROPERTIES.includes(option)) {
+            console.warn(`Skipping initial property '${option}' - cannot be updated at runtime`);
+            return;
+          }
+          
+          gridApi.setGridOption(option, value);
+        } catch (error) {
+          console.error(`Failed to apply setting '${option}':`, error);
+        }
       });
 
       if (OPTIMIZATION_FLAGS.USE_TRANSACTION && gridApi.completeUpdateTransaction) {
@@ -284,7 +473,9 @@ async function applySpecialSetting(gridApi: GridApi, option: string, value: any)
           computedValueCache.set(cacheKey, cellStyle);
         }
         
-        const colDefWithStyle = { ...value, cellStyle };
+        // Remove alignment properties before passing to AG-Grid
+        const { verticalAlign, horizontalAlign, ...cleanedValue } = value;
+        const colDefWithStyle = { ...cleanedValue, cellStyle };
         gridApi.setGridOption('defaultColDef', colDefWithStyle);
       } else {
         gridApi.setGridOption('defaultColDef', value);
@@ -292,20 +483,20 @@ async function applySpecialSetting(gridApi: GridApi, option: string, value: any)
       break;
 
     case 'statusBar':
-      // Optimize statusBar setting
-      if (!value || value === false || (value.statusPanels && value.statusPanels.length === 0)) {
-        gridApi.setGridOption('statusBar', false);
+      // Handle statusBar using updateGridOptions for proper UI update
+      if (!value || value === false || (value?.statusPanels && value.statusPanels.length === 0)) {
+        gridApi.updateGridOptions({ statusBar: null });
       } else {
-        gridApi.setGridOption('statusBar', value);
+        gridApi.updateGridOptions({ statusBar: value });
       }
       break;
 
     case 'sideBar':
-      // Optimize sideBar setting
+      // Handle sideBar using updateGridOptions for proper UI update
       if (value === false || value === '' || value === 'none') {
-        gridApi.setGridOption('sideBar', false);
+        gridApi.updateGridOptions({ sideBar: false });
       } else {
-        gridApi.setGridOption('sideBar', value);
+        gridApi.updateGridOptions({ sideBar: value });
       }
       break;
 

@@ -114,13 +114,13 @@ export class SettingsController {
       'rowClass', 'rowStyle', 'getRowClass', 'rowClassRules',
       'rowSelection', 'cellSelection', 'pagination',
       'paginationPageSize', 'domLayout', 'enableCellTextSelection',
-      'animateRows', 'suppressRowTransform', 'suppressColumnVirtualisation',
+      'animateRows', 'suppressRowTransform',
       'suppressCellFocus', 'suppressMovableColumns', 'suppressFieldDotNotation',
       'floatingFiltersHeight', 'groupDefaultExpanded', 'groupIncludeFooter',
       'groupIncludeTotalFooter', 'suppressRowHoverHighlight',
-      'suppressCopyRowsToClipboard', 'copyHeadersToClipboard',
+      'copyHeadersToClipboard',
       'clipboardDelimiter', 'suppressLastEmptyLineOnPaste',
-      'sideBar', 'statusBar', 'enableRangeSelection', 'enableRangeHandle',
+      'sideBar', 'statusBar', 'cellSelection', 'enableRangeHandle',
       'suppressMultiRangeSelection', 'rowGroupPanelShow',
       'pivotPanelShow', 'suppressContextMenu', 'preventDefaultOnContextMenu',
       'allowContextMenuWithControlKey', 'multiSortKey', 'alwaysShowHorizontalScroll',
@@ -129,7 +129,7 @@ export class SettingsController {
       'suppressClipboardCut', 'accentedSort', 'unSortIcon', 'suppressMultiSort',
       'autoSizePadding', 'skipHeaderOnAutoSize',
       'groupSelectsChildren', 'groupSelectsFiltered',
-      'suppressRowClickSelection', 'suppressRowDeselection',
+      'suppressRowDeselection',
       'suppressAggFuncInHeader', 'suppressColumnMoveAnimation',
       'suppressDragLeaveHidesColumns', 'suppressRowGroupHidesColumns',
       'suppressMakeColumnVisibleAfterUnGroup'
@@ -160,24 +160,27 @@ export class SettingsController {
           
           // Reconstruct cellStyle if alignment properties exist
           if (processedColDef.verticalAlign || processedColDef.horizontalAlign) {
+            const verticalAlign = processedColDef.verticalAlign;
+            const horizontalAlign = processedColDef.horizontalAlign;
+            
             processedColDef.cellStyle = (params: any) => {
               const styleObj: any = { display: 'flex' };
               
               // Apply vertical alignment
-              if (processedColDef.verticalAlign === 'top') {
+              if (verticalAlign === 'top') {
                 styleObj.alignItems = 'flex-start';
-              } else if (processedColDef.verticalAlign === 'middle') {
+              } else if (verticalAlign === 'middle') {
                 styleObj.alignItems = 'center';
-              } else if (processedColDef.verticalAlign === 'bottom') {
+              } else if (verticalAlign === 'bottom') {
                 styleObj.alignItems = 'flex-end';
               }
               
               // Apply horizontal alignment
-              if (processedColDef.horizontalAlign === 'left') {
+              if (horizontalAlign === 'left') {
                 styleObj.justifyContent = 'flex-start';
-              } else if (processedColDef.horizontalAlign === 'center') {
+              } else if (horizontalAlign === 'center') {
                 styleObj.justifyContent = 'center';
-              } else if (processedColDef.horizontalAlign === 'right') {
+              } else if (horizontalAlign === 'right') {
                 styleObj.justifyContent = 'flex-end';
               } else if (params.colDef.type === 'numericColumn') {
                 styleObj.justifyContent = 'flex-end'; // Right align numbers by default
@@ -187,6 +190,10 @@ export class SettingsController {
               
               return styleObj;
             };
+            
+            // Remove alignment properties from the column definition
+            delete processedColDef.verticalAlign;
+            delete processedColDef.horizontalAlign;
           }
           
           gridApi.setGridOption(optionKey, processedColDef);
@@ -299,24 +306,28 @@ export class SettingsController {
         
         // Reconstruct cellStyle function from stored alignment metadata
         if (defaultColDef.verticalAlign || defaultColDef.horizontalAlign) {
+          // Store the alignment values before deleting them
+          const verticalAlign = defaultColDef.verticalAlign;
+          const horizontalAlign = defaultColDef.horizontalAlign;
+          
           defaultColDef.cellStyle = (params: any) => {
             const styleObj: any = { display: 'flex' };
             
             // Apply vertical alignment
-            if (defaultColDef.verticalAlign === 'top') {
+            if (verticalAlign === 'top') {
               styleObj.alignItems = 'flex-start';
-            } else if (defaultColDef.verticalAlign === 'middle') {
+            } else if (verticalAlign === 'middle') {
               styleObj.alignItems = 'center';
-            } else if (defaultColDef.verticalAlign === 'bottom') {
+            } else if (verticalAlign === 'bottom') {
               styleObj.alignItems = 'flex-end';
             }
             
             // Apply horizontal alignment
-            if (defaultColDef.horizontalAlign === 'left') {
+            if (horizontalAlign === 'left') {
               styleObj.justifyContent = 'flex-start';
-            } else if (defaultColDef.horizontalAlign === 'center') {
+            } else if (horizontalAlign === 'center') {
               styleObj.justifyContent = 'center';
-            } else if (defaultColDef.horizontalAlign === 'right') {
+            } else if (horizontalAlign === 'right') {
               styleObj.justifyContent = 'flex-end';
             } else if (params.colDef.type === 'numericColumn') {
               styleObj.justifyContent = 'flex-end'; // Right align numbers by default
@@ -326,6 +337,10 @@ export class SettingsController {
             
             return styleObj;
           };
+          
+          // Remove alignment properties as they're not valid ColDef properties
+          delete defaultColDef.verticalAlign;
+          delete defaultColDef.horizontalAlign;
         }
         
         this.gridApi.setGridOption('defaultColDef', defaultColDef);

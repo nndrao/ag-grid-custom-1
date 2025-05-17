@@ -105,19 +105,8 @@ onChange(option, checked);
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="immutableData" 
-              checked={!!localSettings.immutableData}
-              onCheckedChange={(checked) => handleCheckboxChange('immutableData', !!checked)} 
-            />
-            <Label htmlFor="immutableData" className="font-normal">
-              Treat data objects as immutable
-            </Label>
-            <p className="text-xs text-muted-foreground ml-6">
-              When enabled, the grid optimizes for immutable data objects.
-            </p>
-          </div>
+          {/* immutableData property removed in AG Grid v33+ */}
+          {/* This property is no longer supported in v33+ as the grid now automatically handles data changes efficiently */}
           
           <div className="flex items-center space-x-2 pt-2">
             <Checkbox 

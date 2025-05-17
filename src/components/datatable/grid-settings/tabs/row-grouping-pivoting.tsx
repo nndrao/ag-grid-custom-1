@@ -9,12 +9,13 @@ interface RowGroupingPivotingProps {
   settings: {
     groupUseEntireRow?: boolean;
     groupSelectsChildren?: boolean;
-    groupRemoveSingleChildren?: boolean;
+    groupHideParentOfSingleChild?: boolean; // v33+ name
     pivotMode?: boolean;
     pivotPanelShow?: string;
     groupDefaultExpanded?: number;
     rowGroupPanelShow?: string;
     groupDisplayType?: string;
+    groupRemoveLowestSingleChildren?: boolean; // v33+ additional option
   };
   onChange: (option: string, value: any) => void;
   initialProperties?: string[];
@@ -148,12 +149,12 @@ export function RowGroupingPivoting({ settings, onChange }: RowGroupingPivotingP
           
           <div className="flex items-center space-x-2 pt-2">
             <Checkbox 
-              id="groupRemoveSingleChildren" 
-              checked={!!localSettings.groupRemoveSingleChildren}
-              onCheckedChange={(checked) => handleCheckboxChange('groupRemoveSingleChildren', !!checked)} 
+              id="groupHideParentOfSingleChild" 
+              checked={!!localSettings.groupHideParentOfSingleChild}
+              onCheckedChange={(checked) => handleCheckboxChange('groupHideParentOfSingleChild', !!checked)} 
             />
-            <Label htmlFor="groupRemoveSingleChildren" className="font-normal">
-              Remove single children from groups
+            <Label htmlFor="groupHideParentOfSingleChild" className="font-normal">
+              Hide parent of single child
             </Label>
           </div>
         </CardContent>
