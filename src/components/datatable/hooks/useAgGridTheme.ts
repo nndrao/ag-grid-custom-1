@@ -115,7 +115,21 @@ export function useAgGridTheme(settingsController?: SettingsController | null) {
       const fontSize = validateFontSize(settings.fontSize) || DEFAULT_FONT_SIZE;
       const spacing = settings.spacing || DEFAULT_SPACING;
       
-      setThemeParams(getBaseThemeParams(fontFamily, fontSize, spacing));
+      // Only update if values actually changed
+      setThemeParams(prevParams => {
+        const prevLight = prevParams.light;
+        if (
+          prevLight.fontFamily === fontFamily &&
+          prevLight.fontSize === fontSize &&
+          prevLight.spacing === spacing
+        ) {
+          // No changes, return same reference
+          return prevParams;
+        }
+        
+        // Values changed, create new params
+        return getBaseThemeParams(fontFamily, fontSize, spacing);
+      });
     };
     
     // Update theme now
@@ -129,12 +143,20 @@ export function useAgGridTheme(settingsController?: SettingsController | null) {
     return unsubscribe;
   }, [settingsController]);
 
-  // Create theme with parameters
+  // Create theme with parameters - use deep comparison for stability
   const agGridTheme = useMemo(() => {
     return themeQuartz
       .withParams(themeParams.light, "light")
       .withParams(themeParams.dark, "dark");
-  }, [themeParams]);
+  }, [
+    // Use individual properties for comparison instead of the whole object
+    themeParams.light.fontFamily,
+    themeParams.light.fontSize,
+    themeParams.light.spacing,
+    themeParams.dark.fontFamily,
+    themeParams.dark.fontSize,
+    themeParams.dark.spacing
+  ]);
 
   return {
     theme: agGridTheme,

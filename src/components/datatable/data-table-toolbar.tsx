@@ -53,6 +53,9 @@ export function DataTableToolbar<TData>({
     if (!profileManager || !profileManager.activeProfile) return;
     
     try {
+      // Add a small delay to ensure all grid state is settled
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Save current settings without re-applying them
       await profileManager.saveCurrentProfile();
       

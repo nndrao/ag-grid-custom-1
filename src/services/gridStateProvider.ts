@@ -370,10 +370,19 @@ export class GridStateProvider {
 
   applyGridState(gridState: GridSettings): void {
     if (!this.gridApi || !gridState) {
+      console.log("❌ Cannot apply grid state - no API or state", { hasApi: !!this.gridApi, hasState: !!gridState });
       return;
     }
     
-    console.log("🔄 Starting grid state application...");
+    console.log("🔄 Starting grid state application with state:", {
+      hasColumnState: !!gridState.columnState,
+      columnCount: gridState.columnState?.length || 0,
+      hasFilterState: !!gridState.filterState,
+      hasSelectionState: !!gridState.selectionState,
+      hasSortState: !!gridState.sortState,
+      hasPaginationState: !!gridState.paginationState,
+      fullState: gridState
+    });
     
     // Create one batched update for column-related state
     const applyGridUpdates = () => {

@@ -361,6 +361,10 @@ export function GridSettingsDialog({
   const applyChanges = useCallback(() => {
     if (!gridApi || !hasChanges) return;
     
+    // Save current grid state before applying changes
+    const currentGridState = settingsController?.gridStateProvider?.extractGridState();
+    console.log("🔒 Preserving current grid state before applying settings:", currentGridState);
+    
     // Flatten all settings into a single object
     const flattenedSettings: GridOptionsMap = {};
     
@@ -752,6 +756,14 @@ export function GridSettingsDialog({
       });
       
       settingsController.updateGridOptions(changedSettings);
+    }
+    
+    // Restore the grid state after applying settings
+    if (currentGridState && settingsController) {
+      console.log("🔓 Restoring grid state after applying settings");
+      setTimeout(() => {
+        settingsController.gridStateProvider?.applyGridState(currentGridState);
+      }, 100);
     }
     
     setHasChanges(false);
