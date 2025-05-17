@@ -17,7 +17,8 @@ import { Plus } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
-  TooltipTrigger
+  TooltipTrigger,
+  TooltipProvider
 } from "@/components/ui/tooltip";
 
 interface ProfileManagerProps {
@@ -64,35 +65,37 @@ export function ProfileManager({ onCreate, iconOnly = false }: ProfileManagerPro
         </TooltipContent>
       </Tooltip>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Create New Profile</DialogTitle>
-          <DialogDescription>
-            Create a new profile to save your current grid and toolbar settings.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input
-              id="name"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-              className="col-span-3"
-              placeholder="My Profile"
-            />
+        <TooltipProvider>
+          <DialogHeader>
+            <DialogTitle>Create New Profile</DialogTitle>
+            <DialogDescription>
+              Create a new profile to save your current grid and toolbar settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                className="col-span-3"
+                placeholder="My Profile"
+              />
+            </div>
           </div>
-        </div>
-        <DialogFooter>
-          <Button 
-            type="submit" 
-            onClick={handleCreate}
-            disabled={!profileName.trim() || creating}
-          >
-            {creating ? "Creating..." : "Create Profile"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button 
+              type="submit" 
+              onClick={handleCreate}
+              disabled={!profileName.trim() || creating}
+            >
+              {creating ? "Creating..." : "Create Profile"}
+            </Button>
+          </DialogFooter>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );

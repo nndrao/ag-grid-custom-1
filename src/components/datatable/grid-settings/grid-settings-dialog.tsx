@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -763,6 +764,7 @@ export function GridSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] h-[80vh] max-h-[700px] flex flex-col p-0 gap-0 overflow-hidden">
+        <TooltipProvider>
         <div className="flex flex-col px-6 py-3 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">Grid Settings</DialogTitle>
@@ -957,6 +959,7 @@ export function GridSettingsDialog({
             Apply Changes
           </Button>
         </DialogFooter>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );

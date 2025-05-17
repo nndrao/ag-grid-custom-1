@@ -1,0 +1,55 @@
+{
+  "name": "@yourcompany/ag-grid-datatable",
+  "version": "1.0.0",
+  "description": "A customizable AG-Grid wrapper with profile management and runtime customization",
+  "main": "index.ts",
+  "type": "module",
+  "files": [
+    "*.tsx",
+    "*.ts",
+    "*.css",
+    "config/**/*",
+    "cell-renderers/**/*",
+    "grid-settings/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "profile/**/*",
+    "services/**/*",
+    "stores/**/*",
+    "theme/**/*",
+    "types/**/*",
+    "utils/**/*"
+  ],
+  "dependencies": {
+    "ag-grid-community": "^33.0.0",
+    "ag-grid-enterprise": "^33.0.0",
+    "ag-grid-react": "^33.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "lodash": "^4.17.21",
+    "lucide-react": "^0.263.1"
+  },
+  "peerDependencies": {
+    "@/components/ui": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/lodash": "^4.14.195",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "ag-grid",
+    "react",
+    "datatable",
+    "grid",
+    "profile-management",
+    "customizable"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourcompany/ag-grid-datatable.git"
+  }
+}

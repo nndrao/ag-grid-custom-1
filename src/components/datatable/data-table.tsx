@@ -8,17 +8,19 @@ import {
 } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
-import { DataTableToolbar } from '@/components/datatable/data-table-toolbar';
-import { GridStateProvider } from '@/services/gridStateProvider';
-import { SettingsController } from '@/services/settings-controller';
-import { useProfileManager2 } from '@/hooks/useProfileManager2';
+import { DataTableToolbar } from './data-table-toolbar';
+import { GridStateProvider } from './services/gridStateProvider';
+import { SettingsController } from './services/settings-controller';
+import { useProfileManager2 } from './hooks/useProfileManager2';
 import { useAgGridTheme } from './hooks/useAgGridTheme';
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
 import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation';
 import { useDefaultColumnDefs } from './config/default-column-defs';
-import { ProfileManager } from '@/types/ProfileManager';
-import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
-import { GoogleFontsLoader } from '@/components/GoogleFontsLoader';
+import { ProfileManager } from './types/ProfileManager';
+import { DEFAULT_GRID_OPTIONS } from './config/default-grid-options';
+import { GoogleFontsLoader } from './theme/GoogleFontsLoader';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/toaster';
 import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -248,32 +250,36 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   }, [gridReady, profileManager?.activeProfile?.id]);
 
   return (
-    <div className="h-full w-full flex flex-col box-border overflow-hidden">
-      <GoogleFontsLoader />
-      
-      <MemoizedToolbar {...memoizedToolbarProps} />
+    <TooltipProvider>
+      <div className="h-full w-full flex flex-col box-border overflow-hidden">
+        <GoogleFontsLoader />
+        
+        <MemoizedToolbar {...memoizedToolbarProps} />
 
-      <div className="flex-1 overflow-hidden">
-        <AgGridReact
-          ref={gridRef}
-          rowData={dataRow}
-          columnDefs={memoizedColumnDefs}
-          defaultColDef={processedDefaultColDef}
-          autoGroupColumnDef={autoGroupColumnDef}
-          rowGroupPanelShow="always"
-          groupDisplayType="singleColumn"
-          groupDefaultExpanded={-1}
-          cellSelection={true}
-          rowSelection={staticConfigs.rowSelection}
-          loading={false}
-          dataTypeDefinitions={staticConfigs.dataTypeDefinitions}
-          sideBar={staticConfigs.sideBar}
-          statusBar={staticConfigs.statusBar}
-          getContextMenuItems={getContextMenuItems}
-          onGridReady={onGridReady}
-          theme={theme}
-        />
+        <div className="flex-1 overflow-hidden">
+          <AgGridReact
+            ref={gridRef}
+            rowData={dataRow}
+            columnDefs={memoizedColumnDefs}
+            defaultColDef={processedDefaultColDef}
+            autoGroupColumnDef={autoGroupColumnDef}
+            rowGroupPanelShow="always"
+            groupDisplayType="singleColumn"
+            groupDefaultExpanded={-1}
+            cellSelection={true}
+            rowSelection={staticConfigs.rowSelection}
+            loading={false}
+            dataTypeDefinitions={staticConfigs.dataTypeDefinitions}
+            sideBar={staticConfigs.sideBar}
+            statusBar={staticConfigs.statusBar}
+            getContextMenuItems={getContextMenuItems}
+            onGridReady={onGridReady}
+            theme={theme}
+          />
+        </div>
+        
+        <Toaster />
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

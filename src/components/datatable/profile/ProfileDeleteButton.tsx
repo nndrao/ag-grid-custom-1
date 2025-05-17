@@ -16,7 +16,8 @@ import {
 import { 
   Tooltip,
   TooltipContent,
-  TooltipTrigger
+  TooltipTrigger,
+  TooltipProvider
 } from "@/components/ui/tooltip";
 
 interface ProfileDeleteButtonProps {
@@ -48,16 +49,18 @@ export function ProfileDeleteButton({ onDelete, disabled, profileName, iconOnly 
         </TooltipContent>
       </Tooltip>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Profile</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete the profile "{profileName}"? This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
-        </AlertDialogFooter>
+        <TooltipProvider>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the profile "{profileName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </TooltipProvider>
       </AlertDialogContent>
     </AlertDialog>
   );
