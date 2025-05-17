@@ -198,10 +198,9 @@ export class SettingsController {
       }
     });
 
-    // Only refresh if we applied any changes
+    // Don't refresh here - we'll do it once at the end of applyProfileSettings
     if (appliedOptions.size > 0) {
-      console.log(`🔄 Refreshing grid after applying ${appliedOptions.size} changes`);
-      gridApi.refreshCells({ force: true });
+      console.log(`✅ Applied ${appliedOptions.size} grid options, refresh pending`);
     }
   }
 
@@ -354,16 +353,16 @@ export class SettingsController {
         this.gridApi.setGridOption('columnDefs', settings.custom.columnDefs);
       }
       
-      // Force grid refresh after all settings are applied
+      // Single grid refresh after all settings are applied
       if (this.gridApi) {
-        // Use setTimeout to ensure all settings have been applied
-        setTimeout(() => {
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
           if (this.gridApi) {
-            console.log("🔄 Final grid refresh after all settings applied");
-            this.gridApi.refreshCells({ force: true });
+            console.log("🔄 Single final grid refresh after all settings applied");
             this.gridApi.refreshHeader();
+            this.gridApi.refreshCells({ force: true });
           }
-        }, 200);
+        });
       }
     } finally {
       // Reset flag

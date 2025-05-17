@@ -51,9 +51,8 @@ export function useAgGridProfileSync(
             profileSettings.custom = {};
           }
           
-          // Apply settings to grid
-          console.log("🔄 Profile sync applying settings:", profileSettings);
-          settingsController.applyProfileSettings(profileSettings);
+          // Settings are already applied by ProfileManager, just handle fonts
+          console.log("🔄 Profile sync updating fonts only");
           
           // Also directly update the font if it exists in the profile
           if (profileSettings.toolbar?.fontFamily) {

@@ -499,12 +499,8 @@ export class GridStateProvider {
           }
         }
         
-        // Final grid refresh - do this ONCE at the end
-        console.log("🔄 Performing final grid refresh");
-        this.gridApi.refreshHeader();
-        this.gridApi.refreshCells({ force: true });
-        
-        console.log("✅ Completed grid state application");
+        // Don't refresh here - let the caller handle refreshing to avoid multiple refreshes
+        console.log("✅ Completed grid state application (refresh pending)");
       } catch (error) {
         console.error('Error in batched grid updates:', error);
       }

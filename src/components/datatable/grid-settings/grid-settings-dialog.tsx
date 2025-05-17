@@ -602,22 +602,15 @@ export function GridSettingsDialog({
           return styleObj;
         };
         
-        // Apply the cellStyle function to the grid immediately - using timeout to allow processing to complete
-        setTimeout(() => {
-          try {
-            // Test the cellStyle function to verify it works
-            if (typeof colDef.cellStyle === 'function') {
-              const testResult = colDef.cellStyle({ colDef: { type: undefined } });
-              console.debug('[GridSettingsDialog] Test cellStyle result:', testResult, 'for alignment:', verticalAlign);
-            }
-            
-            // Force refresh the grid to apply the new styles
-            gridApi.refreshCells({ force: true });
-            console.debug('[GridSettingsDialog] Grid cells refreshed to apply alignment:', verticalAlign);
-          } catch (e) {
-            console.error('[GridSettingsDialog] Error applying cellStyle:', e);
+        // Test the cellStyle function to verify it works
+        try {
+          if (typeof colDef.cellStyle === 'function') {
+            const testResult = colDef.cellStyle({ colDef: { type: undefined } });
+            console.debug('[GridSettingsDialog] Test cellStyle result:', testResult, 'for alignment:', verticalAlign);
           }
-        }, 0);
+        } catch (e) {
+          console.error('[GridSettingsDialog] Error testing cellStyle:', e);
+        }
         
         // We DO NOT want to delete these properties yet - we need them for state persistence
         // They will be converted to cellStyle when needed but should be stored in settings
@@ -674,11 +667,8 @@ export function GridSettingsDialog({
               gridApi.setGridOption('defaultColDef', value);
             }
             
-            // Force grid to refresh cells to show the new styles
-            setTimeout(() => {
-              gridApi.refreshCells({ force: true });
-              console.debug('[GridSettingsDialog] Applied defaultColDef with alignment and refreshed cells');
-            }, 100);
+            // Don't refresh here - we'll do a single refresh at the end
+            console.debug('[GridSettingsDialog] Applied defaultColDef with alignment (refresh pending)');
           }
           // Special handling for specific options
           else if (option === 'statusBar') {
@@ -777,9 +767,15 @@ export function GridSettingsDialog({
     // Restore the grid state after applying settings
     if (currentGridState && settingsController) {
       console.log("🔓 Restoring grid state after applying settings");
-      setTimeout(() => {
-        settingsController.gridStateProvider?.applyGridState(currentGridState);
-      }, 100);
+      // Apply immediately - the grid state provider won't refresh
+      settingsController.gridStateProvider?.applyGridState(currentGridState);
+      
+      // Single refresh after everything is applied
+      requestAnimationFrame(() => {
+        gridApi.refreshHeader();
+        gridApi.refreshCells({ force: true });
+        console.log("✅ Grid settings applied and refreshed");
+      });
     }
     
     setHasChanges(false);

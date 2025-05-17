@@ -283,10 +283,10 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
   }, [profileManager, processedDefaultColDef]);
   
-  // Detect profile changes and apply settings - only when profile ID changes, not on save
+  // Track profile changes only - ProfileManager handles applying settings
   useEffect(() => {
     // Skip if no grid is ready or no profile manager or no active profile
-    if (!gridReady || !gridApiRef.current || !profileManager?.activeProfile || !settingsControllerRef.current) {
+    if (!gridReady || !profileManager?.activeProfile) {
       return;
     }
     
@@ -297,21 +297,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
       console.log(`🔄 Profile switched from ${previousProfileIdRef.current} to ${currentProfileId}`);
       
-      // Update reference
+      // Update reference only - ProfileManager handles applying settings
       previousProfileIdRef.current = currentProfileId;
-      
-      // Ensure settings controller has the latest grid API
-      if (gridApiRef.current) {
-        settingsControllerRef.current.setGridApi(gridApiRef.current);
-      }
-      
-      // Apply the new profile settings after a profile SWITCH with delay
-      console.log("📊 Applying settings after profile switch");
-      setTimeout(() => {
-        if (settingsControllerRef.current && profileManager.activeProfile) {
-          settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
-        }
-      }, 100); // Small delay to ensure grid is ready
     }
   }, [gridReady, profileManager?.activeProfile?.id]);
 
