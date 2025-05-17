@@ -67,23 +67,28 @@ export function DataTableToolbar<TData>({
   return (
     <div className={cn(
       "flex items-center justify-between px-6 py-3",
-      "bg-gradient-to-r from-background/95 to-background",
-      "border-b border-border/50",
-      "backdrop-blur-sm",
-      "shadow-sm",
+      "bg-gradient-to-r from-muted/40 to-background/80",
+      "border-b border-border",
+      "backdrop-blur-md",
+      "shadow-md",
+      "relative",
+      "before:absolute before:inset-0",
+      "before:bg-gradient-to-r before:from-primary/5 before:to-transparent",
+      "before:pointer-events-none",
+      "dark:bg-gradient-to-r dark:from-muted/20 dark:to-background/60",
       "animate-in fade-in slide-in-from-top-1 duration-300",
       className
     )}>
       {/* Left Section - Profile Management */}
-      <div className="flex items-center">
+      <div className="flex items-center relative z-10">
         {profileManager && renderProfileManagement()}
       </div>
 
       {/* Center Section - Display Settings */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 relative z-10">
         {settingsController && (
           <>
-            {profileManager && <Separator orientation="vertical" className="h-6 mr-2" />}
+            {profileManager && <Separator orientation="vertical" className="h-6 mr-2 bg-border/50" />}
             <div className="flex items-center gap-2">
               <FontFamilySelector settingsController={settingsController} />
               <FontSizeSelector settingsController={settingsController} />
@@ -94,7 +99,7 @@ export function DataTableToolbar<TData>({
       </div>
 
       {/* Right Section - Grid Settings */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative z-10">
         {gridApi && settingsController && (
           <GridSettingsMenu 
             gridApi={gridApi} 

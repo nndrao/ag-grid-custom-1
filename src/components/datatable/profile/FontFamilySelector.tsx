@@ -86,7 +86,7 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
       <TooltipTrigger asChild>
         <div className="inline-block">
           <Select value={fontFamily} onValueChange={handleFontChange}>
-            <SelectTrigger className="h-8 w-[140px] text-xs border-border/50 bg-background/50 hover:bg-accent/50 transition-colors">
+            <SelectTrigger className="h-8 w-[140px] text-xs border-border/60 bg-background/95 hover:bg-background hover:border-border shadow-sm transition-all">
               <Type className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Font Family" />
             </SelectTrigger>

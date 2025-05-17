@@ -81,7 +81,7 @@ export function SpacingSelector({ settingsController }: SpacingSelectorProps) {
       <TooltipTrigger asChild>
         <div className="inline-block">
           <Select value={spacing} onValueChange={handleSpacingChange}>
-            <SelectTrigger className="h-8 w-[100px] text-xs border-border/50 bg-background/50 hover:bg-accent/50 transition-colors">
+            <SelectTrigger className="h-8 w-[100px] text-xs border-border/60 bg-background/95 hover:bg-background hover:border-border shadow-sm transition-all">
               <Rows3 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Spacing" />
             </SelectTrigger>

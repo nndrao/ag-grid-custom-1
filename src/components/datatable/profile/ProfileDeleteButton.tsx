@@ -77,7 +77,7 @@ export function ProfileDeleteButton({ onDelete, disabled, profileName, iconOnly 
               className={cn(
                 iconOnly && "h-8 w-8",
                 !iconOnly && "h-8",
-                "border-border/50 bg-background/50 hover:bg-red-50 hover:text-destructive hover:border-red-300 transition-all",
+                "border-border/60 bg-background/95 hover:bg-red-50 hover:text-destructive hover:border-red-300 shadow-sm transition-all",
                 isDeleting && "opacity-60"
               )}
             >

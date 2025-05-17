@@ -72,10 +72,11 @@ export function ProfileSelector({
       <SelectTrigger className={cn(
         compact ? "w-[130px] h-8 text-xs" : "w-[180px] h-8 text-xs",
         "flex items-center gap-2",
-        "border-border/50",
-        "bg-background/50",
-        "hover:bg-accent/50",
-        "transition-colors",
+        "border-border/60",
+        "bg-background/95",
+        "hover:bg-background hover:border-border",
+        "shadow-sm",
+        "transition-all",
         (loading || isChanging) && "opacity-60"
       )}>
         {loading || isChanging ? (

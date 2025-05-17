@@ -67,7 +67,7 @@ export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: Profil
       className={cn(
         iconOnly && "h-8 w-8",
         !iconOnly && "h-8",
-        "border-border/50 bg-background/50 hover:bg-accent/50 transition-all",
+        "border-border/60 bg-background/95 hover:bg-background hover:border-border shadow-sm transition-all",
         saveSuccess && !iconOnly && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100",
         saveSuccess && iconOnly && "text-green-600 border-green-300 bg-green-50 hover:bg-green-100"
       )}
