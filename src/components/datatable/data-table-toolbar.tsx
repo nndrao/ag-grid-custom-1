@@ -1,5 +1,4 @@
 import React from 'react';
-import { ThemeToggle } from './theme/theme-toggle';
 import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
 import { ProfileSelector } from './profile/ProfileSelector';
 import { ProfileSaveButton } from './profile/ProfileSaveButton';
@@ -62,7 +61,7 @@ export function DataTableToolbar<TData>({
   }
 
   return (
-    <div className={`flex items-center gap-3 p-4 ${className}`}>
+    <div className={`flex items-center gap-3 p-4 border rounded-lg ${className}`}>
       {/* Profile Management */}
       <div className="flex items-center gap-2">
         {renderProfileManagement()}
@@ -84,7 +83,6 @@ export function DataTableToolbar<TData>({
             gridApi={gridApi} 
             settingsController={settingsController} 
           />
-          <ThemeToggle />
         </div>
       )}
     </div>

@@ -31,7 +31,7 @@ export function ProfileSelector({
         onValueChange={onSelectProfile}
       >
         <SelectTrigger className={cn(
-          compact ? "w-[130px] h-8 text-xs" : "w-[180px]",
+          compact ? "w-[130px] h-8 text-xs" : "w-[180px] h-8 text-xs",
           "flex gap-1"
         )}>
           {compact && <User className="h-3.5 w-3.5 opacity-70" />}
