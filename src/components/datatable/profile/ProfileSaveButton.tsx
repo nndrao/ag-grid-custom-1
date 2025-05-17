@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProfileSaveButtonProps {
   onSave: () => Promise<void>;
@@ -18,15 +19,40 @@ interface ProfileSaveButtonProps {
 export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: ProfileSaveButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { toast } = useToast();
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       setSaveSuccess(false);
+      
+      // Show loading toast
+      toast({
+        title: "Saving profile...",
+        description: "Please wait while we save your settings",
+        duration: 2000,
+      });
+      
       await onSave();
+      
       setSaveSuccess(true);
+      
+      // Show success toast
+      toast({
+        title: "Profile saved successfully",
+        description: "Your grid settings have been saved",
+        duration: 3000,
+      });
+      
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (error) {
+      // Show error toast
+      toast({
+        title: "Failed to save profile",
+        description: "There was an error saving your settings. Please try again.",
+        variant: "destructive",
+        duration: 4000,
+      });
     } finally {
       setIsSaving(false);
     }
