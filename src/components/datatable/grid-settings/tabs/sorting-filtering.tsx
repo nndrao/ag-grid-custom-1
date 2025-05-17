@@ -195,16 +195,8 @@ export function SortingFiltering({ settings, onChange }: SortingFilteringProps) 
             </p>
           </div>
           
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox 
-              id="cacheQuickFilter" 
-              checked={!!localSettings.cacheQuickFilter}
-              onCheckedChange={(checked) => handleCheckboxChange('cacheQuickFilter', !!checked)} 
-            />
-            <Label htmlFor="cacheQuickFilter" className="font-normal">
-              Cache quick filter results for better performance
-            </Label>
-          </div>
+          {/* cacheQuickFilter removed in v33+ - quick filter caching is handled automatically */}
+          {/* The cacheQuickFilter property is no longer needed in AG Grid v33+ */}
           
           <div className="flex items-center space-x-2">
             <Checkbox 

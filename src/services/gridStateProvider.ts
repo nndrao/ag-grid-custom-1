@@ -321,9 +321,8 @@ export class GridStateProvider {
         const gridOptions: any = {};
         const optionsToCapture = [
           'animateRows',
-          'enableRangeSelection',
+          'cellSelection',
           'rowSelection',
-          'suppressRowClickSelection',
           'groupSelectsChildren',
           'suppressMovableColumns'
         ];

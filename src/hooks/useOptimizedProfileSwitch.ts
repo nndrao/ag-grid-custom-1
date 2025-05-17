@@ -94,7 +94,7 @@ export function useOptimizedProfileSwitch(
           
           profileData = {
             gridOptions: profile.settings?.custom?.gridOptions || {},
-            gridState: profile.settings?.custom?.gridState || {},
+            gridState: profile.settings?.custom?.gridState || null,
             timestamp: Date.now()
           };
           
@@ -215,15 +215,73 @@ function prepareSettingsBatch(gridOptions: any, transforms: any): any {
 async function applyGridStateOptimized(gridApi: GridApi, gridState: any): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
-      // Apply state in batches
+      // Validate gridState exists
+      if (!gridState || typeof gridState !== 'object') {
+        console.warn('Invalid or undefined gridState provided');
+        resolve();
+        return;
+      }
+
+      // Apply state in batches with proper validation using the correct property names
       const stateBatches = [
-        () => gridApi.applyColumnState?.(gridState.columns),
-        () => gridApi.setFilterModel?.(gridState.filters),
-        () => gridApi.setSortModel?.(gridState.sort),
         () => {
-          if (gridState.scroll) {
-            gridApi.ensureIndexVisible?.(gridState.scroll.rowIndex);
-            gridApi.ensureColumnVisible?.(gridState.scroll.columnId);
+          // Apply column state (includes visibility, width, sort, etc.)
+          if (gridState.columnState && Array.isArray(gridState.columnState)) {
+            gridApi.applyColumnState?.({
+              state: gridState.columnState,
+              applyOrder: true
+            });
+          }
+        },
+        () => {
+          // Apply filter state
+          if (gridState.filterState && typeof gridState.filterState === 'object') {
+            gridApi.setFilterModel?.(gridState.filterState);
+          }
+        },
+        () => {
+          // Apply sort state (part of columnState, so we might not need this separately)
+          if (gridState.sortState && Array.isArray(gridState.sortState)) {
+            // Sort is typically included in columnState
+          }
+        },
+        () => {
+          // Apply vertical and horizontal scroll positions
+          if (gridState.verticalScrollState && typeof gridState.verticalScrollState === 'object') {
+            const scrollTop = gridState.verticalScrollState.scrollTop;
+            if (typeof scrollTop === 'number') {
+              setTimeout(() => {
+                // Delay scroll to ensure grid is ready
+                const gridBodyViewport = gridApi.getGridBodyViewport?.();
+                if (gridBodyViewport) {
+                  gridBodyViewport.scrollTop = scrollTop;
+                }
+              }, 100);
+            }
+          }
+          
+          if (gridState.horizontalScrollState && typeof gridState.horizontalScrollState === 'object') {
+            const scrollLeft = gridState.horizontalScrollState.scrollLeft;
+            if (typeof scrollLeft === 'number') {
+              setTimeout(() => {
+                // Delay scroll to ensure grid is ready
+                const gridBodyViewport = gridApi.getGridBodyViewport?.();
+                if (gridBodyViewport) {
+                  gridBodyViewport.scrollLeft = scrollLeft;
+                }
+              }, 100);
+            }
+          }
+        },
+        () => {
+          // Apply pagination state
+          if (gridState.paginationState && typeof gridState.paginationState === 'object') {
+            if (gridState.paginationState.pageSize && gridApi.paginationSetPageSize) {
+              gridApi.paginationSetPageSize(gridState.paginationState.pageSize);
+            }
+            if (typeof gridState.paginationState.currentPage === 'number' && gridApi.paginationGoToPage) {
+              gridApi.paginationGoToPage(gridState.paginationState.currentPage);
+            }
           }
         }
       ];

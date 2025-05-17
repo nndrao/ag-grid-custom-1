@@ -124,8 +124,49 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     };
     
     if (customGridOptions.defaultColDef) {
-      const { sortingOrder, ...safeCustomColDef } = customGridOptions.defaultColDef as ColDef;
+      const { sortingOrder, verticalAlign, horizontalAlign, ...safeCustomColDef } = customGridOptions.defaultColDef as ColDef & { verticalAlign?: string; horizontalAlign?: string };
       const result: ColDef = { ...baseDefaults, ...safeCustomColDef };
+      
+      // Reconstruct cellStyle if alignment properties exist
+      if (verticalAlign || horizontalAlign) {
+        const existingCellStyle = result.cellStyle;
+        
+        result.cellStyle = (params: any) => {
+          const styleObj: any = { display: 'flex' };
+          
+          // Apply vertical alignment
+          if (verticalAlign === 'top') {
+            styleObj.alignItems = 'flex-start';
+          } else if (verticalAlign === 'middle') {
+            styleObj.alignItems = 'center';
+          } else if (verticalAlign === 'bottom') {
+            styleObj.alignItems = 'flex-end';
+          }
+          
+          // Apply horizontal alignment
+          if (horizontalAlign === 'left') {
+            styleObj.justifyContent = 'flex-start';
+          } else if (horizontalAlign === 'center') {
+            styleObj.justifyContent = 'center';
+          } else if (horizontalAlign === 'right') {
+            styleObj.justifyContent = 'flex-end';
+          } else if (params.colDef.type === 'numericColumn') {
+            styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+          } else {
+            styleObj.justifyContent = 'flex-start'; // Left align text by default
+          }
+          
+          // Merge with existing cellStyle if it exists
+          if (typeof existingCellStyle === 'function') {
+            const existingStyles = existingCellStyle(params);
+            return { ...existingStyles, ...styleObj };
+          } else if (typeof existingCellStyle === 'object') {
+            return { ...existingCellStyle, ...styleObj };
+          }
+          
+          return styleObj;
+        };
+      }
       
       if (customGridOptions.defaultColDef.sortingOrder) {
         result.sortingOrder = customGridOptions.defaultColDef.sortingOrder
@@ -161,7 +202,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   
   // Get dynamic configurations from customGridOptions and fallback to defaults
   const dynamicConfigs = useMemo(() => {
-    // Default configurations
+    // Default configurations for AG Grid v33+
     const defaults = {
       rowSelection: {
         mode: 'multiRow',
@@ -210,7 +251,7 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       dataTypeDefinitions: customGridOptions.dataTypeDefinitions || defaults.dataTypeDefinitions,
       sideBar: customGridOptions.sideBar ?? defaults.sideBar,
       statusBar: customGridOptions.statusBar ?? defaults.statusBar,
-      cellSelection: customGridOptions.cellSelection ?? true
+      cellSelection: customGridOptions.cellSelection ?? false
     };
   }, [customGridOptions]);
 

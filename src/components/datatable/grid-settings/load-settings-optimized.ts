@@ -129,18 +129,11 @@ async function processSelectionSettings(settings: any): Promise<GridSettingsStat
             checkboxes: rowSelection.checkboxes ?? true,
             groupSelects: rowSelection.groupSelects || (settings.groupSelectsChildren ? 'descendants' : 'none')
           } : normalizedRowMode,
-          rowMultiSelectWithClick: typeof rowSelection === 'object' && 'enableSelectionWithoutKeys' in rowSelection ? 
-            !!rowSelection.enableSelectionWithoutKeys : 
-            !!settings.rowMultiSelectWithClick,
-          suppressRowClickSelection: typeof rowSelection === 'object' && 'enableClickSelection' in rowSelection ? 
-            !rowSelection.enableClickSelection : 
-            !!settings.suppressRowClickSelection,
-          suppressCellSelection: typeof cellSelection === 'boolean' ? 
-            !cellSelection : 
-            (typeof cellSelection === 'object' ? false : true),
-          enableRangeSelection: typeof cellSelection === 'boolean' ? 
-            cellSelection : 
-            !!cellSelection,
+          // Remove deprecated properties - they're already converted to the new format above
+          // rowMultiSelectWithClick: ... removed
+          // suppressRowClickSelection: ... removed
+          // suppressCellSelection: ... removed
+          // enableRangeSelection: ... removed
         }
       });
     });
@@ -185,7 +178,7 @@ async function processGroupingSettings(settings: any): Promise<GridSettingsState
         grouping: {
           groupUseEntireRow: settings.groupUseEntireRow,
           groupSelectsChildren: settings.groupSelectsChildren,
-          groupRemoveSingleChildren: settings.groupRemoveSingleChildren,
+          groupHideParentOfSingleChild: settings.groupHideParentOfSingleChild ?? settings.groupRemoveSingleChildren,
           pivotMode: settings.pivotMode,
           pivotPanelShow: settings.pivotPanelShow,
           groupDefaultExpanded: settings.groupDefaultExpanded,
@@ -243,9 +236,7 @@ async function processColumnSettings(settings: any): Promise<GridSettingsState> 
         },
         defaults: {
           defaultColDef: {
-            ...defaultColDef,
-            verticalAlign: defaultColDef?.verticalAlign,
-            horizontalAlign: defaultColDef?.horizontalAlign
+            ...defaultColDef
           }
         },
         sizing: {

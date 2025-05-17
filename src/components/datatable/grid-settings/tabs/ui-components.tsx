@@ -69,7 +69,7 @@ interface UiComponentsProps {
     suppressContextMenu?: boolean;
     suppressMenuHide?: boolean;
     suppressMovableColumns?: boolean;
-    enableRangeSelection?: boolean;
+    cellSelection?: boolean | any; // Replaces enableRangeSelection in v33+
     suppressColumnMoveAnimation?: boolean;
     loading?: boolean; // Replaces suppressLoadingOverlay
     suppressNoRowsOverlay?: boolean;

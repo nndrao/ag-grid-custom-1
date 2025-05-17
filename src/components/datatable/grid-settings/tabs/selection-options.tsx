@@ -6,11 +6,9 @@ import { Separator } from '@/components/ui/separator';
 
 interface SelectionOptionsProps {
   settings: {
-    rowSelection?: any; // Can be string or object in v33+
-    rowMultiSelectWithClick?: boolean;
-    suppressRowClickSelection?: boolean;
-    cellSelection?: any; // Object in v33+
+    rowSelection?: any; // Object format in v33+
     suppressRowDeselection?: boolean;
+    cellSelection?: any; // Object or boolean in v33+
   };
   onChange: (option: string, value: any) => void;
   initialProperties?: string[];
@@ -48,7 +46,7 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
         <RadioGroup
           value={typeof localSettings.rowSelection === 'object' ? 
             localSettings.rowSelection?.mode || 'singleRow' : 
-            localSettings.rowSelection || 'singleRow'}
+            'singleRow'}
           onValueChange={(value) => handleRadioChange('rowSelection', { mode: value })}
           className="flex flex-col space-y-2"
         >
@@ -116,6 +114,23 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
               const rowSelection = typeof localSettings.rowSelection === 'object' ? 
                 {...localSettings.rowSelection} : { mode: 'singleRow' };
               onChange('rowSelection', { ...rowSelection, checkboxes: checked });
+            }} 
+          />
+        </div>
+        
+        <div className="flex items-center justify-between py-1.5">
+          <div>
+            <Label htmlFor="copySelectedRows" className="text-sm font-medium">Copy Selected Rows</Label>
+            <p className="text-[11px] text-muted-foreground">Allow copying selected rows to clipboard</p>
+          </div>
+          <Switch 
+            id="copySelectedRows" 
+            checked={typeof localSettings.rowSelection === 'object' ? 
+              localSettings.rowSelection?.copySelectedRows !== false : true}
+            onCheckedChange={(checked) => {
+              const rowSelection = typeof localSettings.rowSelection === 'object' ? 
+                {...localSettings.rowSelection} : { mode: 'singleRow' };
+              onChange('rowSelection', { ...rowSelection, copySelectedRows: !!checked });
             }} 
           />
         </div>

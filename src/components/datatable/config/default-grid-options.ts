@@ -18,10 +18,17 @@ export const ROW_SELECTION_MODE_MAP = {
 /**
  * Default grid options used when no settings have been persisted.
  * These match the defaults in the Grid Settings dialog.
+ * 
+ * Updated for AG Grid v33+ compatibility:
+ * - Changed rowSelection from string to object format
+ * - Changed enableRangeSelection to cellSelection
+ * - Changed groupHideParentOfSingleChild to groupRemoveSingleChildren
+ * - Removed groupIncludeFooter (not supported)
+ * - Updated loading property (replaces suppressLoadingOverlay)
  */
 export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // Basic grid configuration
-  rowHeight: 30,  // Default row height
+  rowHeight: 60,  // Default row height
   headerHeight: 40,  // Default header height
   rowModelType: 'clientSide',  // Default row model
   
@@ -71,12 +78,12 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // Selection options
   rowSelection: {
     mode: 'multiRow', // AG-Grid v33+ uses multiRow instead of multiple
-    enableSelectionWithoutKeys: false, // Maps to rowMultiSelectWithClick
-    enableClickSelection: true, // Maps to !suppressRowClickSelection
-    copySelectedRows: true, // Maps to !suppressCopyRowsToClipboard
+    enableSelectionWithoutKeys: false, // v33+ property for multi-select without ctrl key
+    enableClickSelection: true, // v33+ property for click selection
+    copySelectedRows: true, // v33+ property for copying selected rows
     checkboxes: false // Disable checkbox column
   },
-  enableRangeSelection: false, // AG-Grid v33+ property for cell selection
+  cellSelection: false, // AG-Grid v33+ uses cellSelection instead of enableRangeSelection
 
   // Sorting & Filtering options
   multiSortKey: 'ctrl',  // Default multi-sort key
@@ -95,7 +102,7 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
   // groupIncludeFooter removed: not supported in AG Grid v33+
   // If needed, use groupRowRendererParams or similar supported options
   groupHideOpenParents: false,  // Default group hide open parents
-  groupHideParentOfSingleChild: false,  // Maps to groupRemoveSingleChildren
+  groupHideParentOfSingleChild: false,  // v33+ property (replaces deprecated groupRemoveSingleChildren)
 
   // Editing options
   editType: 'fullRow',  // Default edit type - AG-Grid v33+ uses fullRow
@@ -144,14 +151,16 @@ export const DEFAULT_GRID_OPTIONS: GridOptions = {
  */
 export const INITIAL_PROPERTIES = [
   'rowModelType',
-  'cacheQuickFilter',
   'paginationPageSizeSelector',
   'pivotPanelShow',
   'undoRedoCellEditing',
   'undoRedoCellEditingLimit',
+  'valueCache',
   'suppressAutoSize',
-  'valueCache'
-  // Note: suppressLoadingOverlay removed from this list to allow runtime updates
+  'suppressColumnVirtualisation',
+  'suppressRowVirtualisation'
+  // Note: suppressLoadingOverlay and cacheQuickFilter removed from this list as they're deprecated in v33+
+  // In v33+, more properties are initial-only including suppressAutoSize
 ];
 
 /**

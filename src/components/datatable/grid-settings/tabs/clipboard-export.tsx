@@ -63,16 +63,8 @@ export function ClipboardExport({ settings, onChange }: ClipboardExportProps) {
             </p>
           </div>
           
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox 
-              id="suppressCopyRowsToClipboard" 
-              checked={!!localSettings.suppressCopyRowsToClipboard}
-              onCheckedChange={(checked) => handleCheckboxChange('suppressCopyRowsToClipboard', !!checked)} 
-            />
-            <Label htmlFor="suppressCopyRowsToClipboard" className="font-normal">
-              Prevent rows being copied to clipboard
-            </Label>
-          </div>
+          {/* Note: suppressCopyRowsToClipboard is deprecated in v32.2+ 
+              Use rowSelection.copySelectedRows instead */}
           
           <div className="flex items-center space-x-2">
             <Checkbox 
