@@ -36,6 +36,9 @@ export function DataTableToolbar<TData>({
           activeProfile={profileManager.activeProfile} 
           onSelectProfile={profileManager.selectProfile}
           loading={profileManager.loading}
+          gridApi={gridApi}
+          profileManager={profileManager}
+          settingsController={settingsController}
         />
         <ProfileSaveButton 
           onSave={profileManager.saveCurrentProfile}

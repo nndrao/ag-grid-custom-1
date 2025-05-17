@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -12,6 +12,7 @@ import { Profile } from "@/types/profile.types";
 import { cn } from "@/lib/utils";
 import { User, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useInstantProfileSwitch } from "@/hooks/useOptimizedProfileSwitch";
 
 interface ProfileSelectorProps {
   profiles: Profile[];
@@ -19,6 +20,9 @@ interface ProfileSelectorProps {
   onSelectProfile: (profileId: string) => void;
   loading?: boolean;
   compact?: boolean;
+  gridApi?: any;
+  profileManager?: any;
+  settingsController?: any;
 }
 
 export function ProfileSelector({ 
@@ -26,31 +30,68 @@ export function ProfileSelector({
   activeProfile, 
   onSelectProfile,
   loading = false,
-  compact = false
+  compact = false,
+  gridApi,
+  profileManager,
+  settingsController
 }: ProfileSelectorProps) {
   const { toast } = useToast();
   const [isChanging, setIsChanging] = useState(false);
   
-  const handleProfileChange = async (profileId: string) => {
+  // Use optimized profile switching if dependencies are available
+  const { instantSwitch, preloadProfile } = useInstantProfileSwitch(
+    gridApi,
+    profileManager,
+    settingsController
+  );
+  
+  // Preload profiles on mount for instant switching
+  useEffect(() => {
+    // Ensure profileManager has the right interface (array of profiles)
+    if (profileManager && profiles && profiles.length > 0) {
+      // Only preload if we have the optimized interface available
+      if (preloadProfile) {
+        // Preload all profiles in the background
+        profiles.forEach((profile, index) => {
+          setTimeout(() => preloadProfile(profile.id), index * 100);
+        });
+      }
+    }
+  }, [profiles, profileManager, preloadProfile]);
+  
+  const handleProfileChange = useCallback(async (profileId: string) => {
     setIsChanging(true);
     
     const selectedProfile = profiles.find(p => p.id === profileId);
     const profileName = selectedProfile?.name || 'profile';
     
-    toast({
-      title: "Loading profile...",
-      description: `Switching to ${profileName}`,
-      duration: 2000,
-    });
-    
     try {
-      await onSelectProfile(profileId);
-      
-      toast({
-        title: "Profile loaded",
-        description: `Successfully switched to ${profileName}`,
-        duration: 3000,
-      });
+      if (gridApi && profileManager && settingsController) {
+        // Use optimized switching
+        const result = await instantSwitch(profileId);
+        
+        if (result.success) {
+          // Call the original callback for any additional logic
+          await onSelectProfile(profileId);
+        } else {
+          throw new Error('Profile switch failed');
+        }
+      } else {
+        // Fallback to standard switching
+        toast({
+          title: "Loading profile...",
+          description: `Switching to ${profileName}`,
+          duration: 2000,
+        });
+        
+        await onSelectProfile(profileId);
+        
+        toast({
+          title: "Profile loaded",
+          description: `Successfully switched to ${profileName}`,
+          duration: 3000,
+        });
+      }
     } catch (error) {
       toast({
         title: "Failed to load profile",
@@ -61,7 +102,7 @@ export function ProfileSelector({
     } finally {
       setIsChanging(false);
     }
-  };
+  }, [gridApi, profileManager, settingsController, instantSwitch, onSelectProfile, profiles, toast]);
   
   return (
     <Select 
