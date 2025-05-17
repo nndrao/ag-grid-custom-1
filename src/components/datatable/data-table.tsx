@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { 
   ModuleRegistry, 
   GridApi, 
@@ -18,11 +18,7 @@ import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
-import cloneDeep from 'lodash/cloneDeep';
-import { mergeWith } from 'lodash';
 import { GoogleFontsLoader } from '@/components/GoogleFontsLoader';
-
-// Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
 import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -38,93 +34,98 @@ interface DataTableProps {
   dataRow: Record<string, unknown>[];
 }
 
+// Helper function to shallow merge grid options
+function mergeGridOptions(base: any, custom: any): any {
+  if (!custom) return base;
+  
+  // Create a shallow copy instead of deep clone
+  const merged = { ...base };
+  
+  // Shallow merge custom options
+  Object.keys(custom).forEach(key => {
+    if (custom[key] !== undefined) {
+      // For arrays, replace entirely (don't merge)
+      if (Array.isArray(custom[key])) {
+        merged[key] = custom[key];
+      } else if (typeof custom[key] === 'object' && custom[key] !== null && !Array.isArray(custom[key])) {
+        // For objects, shallow merge
+        merged[key] = { ...base[key], ...custom[key] };
+      } else {
+        // For primitives and functions, replace
+        merged[key] = custom[key];
+      }
+    }
+  });
+  
+  return merged;
+}
+
+// Memoized toolbar to prevent unnecessary re-renders
+const MemoizedToolbar = memo(DataTableToolbar);
+
 export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   const gridRef = useRef<AgGridReact>(null);
   const gridApiRef = useRef<GridApi | null>(null);
   const [gridReady, setGridReady] = useState(false);
   
-  // Initialize services for profile management
-  const gridStateProvider = useRef(new GridStateProvider());
-  const settingsControllerRef = useRef<SettingsController | null>(null);
-  // Track the previous profile ID to detect profile changes
+  // Initialize services using refs to prevent re-creation
+  const gridStateProviderRef = useRef<GridStateProvider>();
+  const settingsControllerRef = useRef<SettingsController>();
+  
+  // Initialize services once
+  useMemo(() => {
+    if (!gridStateProviderRef.current) {
+      gridStateProviderRef.current = new GridStateProvider();
+    }
+    if (!settingsControllerRef.current) {
+      settingsControllerRef.current = new SettingsController(gridStateProviderRef.current);
+    }
+  }, []);
+  
+  // Track profile changes
   const previousProfileIdRef = useRef<string | null>(null);
   const isInitialProfileAppliedRef = useRef(false);
 
-  // Initialize settings controller once
-  useEffect(() => {
-    if (!settingsControllerRef.current) {
-      settingsControllerRef.current = new SettingsController(gridStateProvider.current);
-    }
-  }, []);
-
-  // Initialize profile manager - always call the hook, never conditionally
+  // Initialize profile manager
   const profileManager = useProfileManager2(settingsControllerRef.current);
 
-  // Use our modular hooks with settings controller
+  // Use hooks
   const { theme } = useAgGridTheme(settingsControllerRef.current);
   
   // Use keyboard navigation hook
   useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   
-  // Use type assertion to bypass type checking for profileManager
+  // Type assertion for profile manager
   const safeProfileManager = profileManager as unknown as ProfileManager;
   
   // Hook for profile synchronization
   useAgGridProfileSync(gridReady, safeProfileManager, settingsControllerRef.current);
   
-  // Always call the hook once, unconditionally
+  // Get default column definitions
   const {
     defaultColDef: hookDefaultColDef,
     autoGroupColumnDef: hookAutoGroupColumnDef,
     getContextMenuItems
   } = useDefaultColumnDefs();
 
-
-  // Use profile's gridOptions if available, otherwise fallback to DEFAULT_GRID_OPTIONS
-  // Memoize to prevent unnecessary cloning on every render
+  // Memoize grid options to prevent deep cloning on every render
   const customGridOptions = useMemo(() => {
-    const baseOptions = cloneDeep(DEFAULT_GRID_OPTIONS);
-    
-    if (profileManager?.activeProfile?.settings?.custom?.gridOptions) {
-      // Custom merge function to handle special cases like functions
-      return mergeWith(
-        baseOptions, 
-        profileManager.activeProfile.settings.custom.gridOptions,
-        (objValue, srcValue) => {
-          // Don't merge arrays, replace them
-          if (Array.isArray(objValue)) {
-            return srcValue;
-          }
-          // Return undefined to use default lodash merging
-          return undefined;
-        }
-      );
-    }
-    
-    return baseOptions;
+    const profileOptions = profileManager?.activeProfile?.settings?.custom?.gridOptions;
+    return mergeGridOptions(DEFAULT_GRID_OPTIONS, profileOptions);
   }, [profileManager?.activeProfile?.settings?.custom?.gridOptions]);
 
-  // Create type-safe defaultColDef that properly handles sortingOrder
+  // Create type-safe defaultColDef
   const processedDefaultColDef: ColDef = useMemo(() => {
-    // Start with base defaults from our hook
     const baseDefaults: ColDef = { 
       ...hookDefaultColDef,
-      // Ensure sortingOrder is properly typed
       sortingOrder: ['asc', 'desc', null] as SortDirection[] 
     };
     
-    // If we have custom options, merge them safely
     if (customGridOptions.defaultColDef) {
-      // Create a safe copy without the potentially problematic sortingOrder
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { sortingOrder, ...safeCustomColDef } = customGridOptions.defaultColDef as ColDef;
-      
-      // Merge the safe properties
       const result: ColDef = { ...baseDefaults, ...safeCustomColDef };
       
-      // Explicitly handle sortingOrder with proper typing
       if (customGridOptions.defaultColDef.sortingOrder) {
-        // Safely convert to AG Grid's expected type
         result.sortingOrder = customGridOptions.defaultColDef.sortingOrder
           .map(item => {
             if (item === null) return null;
@@ -144,69 +145,68 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     customGridOptions.autoGroupColumnDef ?? hookAutoGroupColumnDef
   , [customGridOptions.autoGroupColumnDef, hookAutoGroupColumnDef]);
 
-  // Memoize important values to prevent re-renders
+  // Memoize toolbar props to prevent re-renders
   const memoizedToolbarProps = useMemo(() => ({
+    table: null,
     profileManager,
     settingsController: settingsControllerRef.current,
-    gridApi: gridApiRef.current
-  }), [
-    profileManager, 
-    // Use refs directly without .current to avoid unnecessary re-renders
-    // The toolbar component will access the current values when needed
-  ]);
+    gridApi: gridApiRef.current,
+    className: "mb-2.5"
+  }), [profileManager]);
 
-  // Memoize columnDefs to prevent unnecessary rerenders
+  // Memoize columnDefs
   const memoizedColumnDefs = useMemo(() => columnDefs, [columnDefs]);
   
-  // Memoize static configuration objects to prevent re-renders
-  const rowSelection = useMemo(() => ({
-    mode: 'multiRow',
-    enableClickSelection: true,
-    enableSelectionWithoutKeys: true
-  }), []);
-  
-  const dataTypeDefinitions = useMemo(() => ({
-    string: {
-      baseDataType: 'text',
-      extendsDataType: 'text',
+  // Memoize static configurations
+  const staticConfigs = useMemo(() => ({
+    rowSelection: {
+      mode: 'multiRow',
+      enableClickSelection: true,
+      enableSelectionWithoutKeys: true
+    },
+    dataTypeDefinitions: {
+      string: {
+        baseDataType: 'text',
+        extendsDataType: 'text',
+      }
+    },
+    sideBar: {
+      toolPanels: [
+        {
+          id: 'columns',
+          labelDefault: 'Columns',
+          labelKey: 'columns',
+          iconKey: 'columns',
+          toolPanel: 'agColumnsToolPanel',
+        },
+        {
+          id: 'filters',
+          labelDefault: 'Filters',
+          labelKey: 'filters',
+          iconKey: 'filter',
+          toolPanel: 'agFiltersToolPanel',
+        },
+      ],
+    },
+    statusBar: {
+      statusPanels: [
+        { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+        { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+        { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
+        { statusPanel: 'agAggregationComponent', align: 'right' },
+        { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
+      ],
     }
-  }), []);
-  
-  const sideBar = useMemo(() => ({
-    toolPanels: [
-      {
-        id: 'columns',
-        labelDefault: 'Columns',
-        labelKey: 'columns',
-        iconKey: 'columns',
-        toolPanel: 'agColumnsToolPanel',
-      },
-      {
-        id: 'filters',
-        labelDefault: 'Filters',
-        labelKey: 'filters',
-        iconKey: 'filter',
-        toolPanel: 'agFiltersToolPanel',
-      },
-    ],
-  }), []);
-  
-  const statusBar = useMemo(() => ({
-    statusPanels: [
-      { statusPanel: 'agTotalRowCountComponent', align: 'left' },
-      { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
-      { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
-      { statusPanel: 'agAggregationComponent', align: 'right' },
-      { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
-    ],
   }), []);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
     gridApiRef.current = params.api;
-    gridStateProvider.current.setGridApi(params.api);
     
-    // Ensure settings controller has the grid API
+    if (gridStateProviderRef.current) {
+      gridStateProviderRef.current.setGridApi(params.api);
+    }
+    
     if (settingsControllerRef.current) {
       settingsControllerRef.current.setGridApi(params.api);
     }
@@ -214,62 +214,44 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     setGridReady(true);
     
     // Apply active profile settings if available
-    if (profileManager?.activeProfile && settingsControllerRef.current) {
-      // Only apply profile settings if this is the first time
-      if (!isInitialProfileAppliedRef.current) {
-        isInitialProfileAppliedRef.current = true;
-        
-        // Record the profile ID for future change detection
-        previousProfileIdRef.current = profileManager.activeProfile.id;
-        
-        // Apply settings on initial load with delay to ensure grid is fully ready
-        setTimeout(() => {
-          if (settingsControllerRef.current && profileManager.activeProfile) {
-            settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+    if (profileManager?.activeProfile && settingsControllerRef.current && !isInitialProfileAppliedRef.current) {
+      isInitialProfileAppliedRef.current = true;
+      previousProfileIdRef.current = profileManager.activeProfile.id;
+      
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
+        if (settingsControllerRef.current && profileManager.activeProfile) {
+          settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+          
+          if (processedDefaultColDef && params.api) {
+            params.api.setGridOption('defaultColDef', processedDefaultColDef);
             
-            // Apply grid options after settings are applied
-            if (processedDefaultColDef) {
-              params.api.setGridOption('defaultColDef', processedDefaultColDef);
-              
-              // Force a refresh after all settings
-              setTimeout(() => {
-                params.api.refreshCells({ force: true });
-              }, 200);
-            }
+            // Use requestAnimationFrame for final refresh
+            requestAnimationFrame(() => {
+              params.api.refreshCells({ force: true });
+            });
           }
-        }, 300); // Increase delay to ensure grid is fully ready
-      }
+        }
+      });
     }
   }, [profileManager, processedDefaultColDef]);
   
-  // Track profile changes only - ProfileManager handles applying settings
+  // Track profile changes
   useEffect(() => {
-    // Skip if no grid is ready or no profile manager or no active profile
-    if (!gridReady || !profileManager?.activeProfile) {
-      return;
-    }
+    if (!gridReady || !profileManager?.activeProfile) return;
     
-    // Get current profile ID
     const currentProfileId = profileManager.activeProfile.id;
     
-    // Check if profile ID has changed AND it's not the initial application
     if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
-      
-      // Update reference only - ProfileManager handles applying settings
       previousProfileIdRef.current = currentProfileId;
     }
   }, [gridReady, profileManager?.activeProfile?.id]);
 
   return (
     <div className="h-full w-full flex flex-col box-border overflow-hidden">
-      {/* Load Google Fonts */}
       <GoogleFontsLoader />
       
-      <DataTableToolbar 
-        table={null} 
-        {...memoizedToolbarProps}
-        className="mb-2.5"
-      />
+      <MemoizedToolbar {...memoizedToolbarProps} />
 
       <div className="flex-1 overflow-hidden">
         <AgGridReact
@@ -282,11 +264,11 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           groupDisplayType="singleColumn"
           groupDefaultExpanded={-1}
           cellSelection={true}
-          rowSelection={rowSelection}
+          rowSelection={staticConfigs.rowSelection}
           loading={false}
-          dataTypeDefinitions={dataTypeDefinitions}
-          sideBar={sideBar}
-          statusBar={statusBar}
+          dataTypeDefinitions={staticConfigs.dataTypeDefinitions}
+          sideBar={staticConfigs.sideBar}
+          statusBar={staticConfigs.statusBar}
           getContextMenuItems={getContextMenuItems}
           onGridReady={onGridReady}
           theme={theme}
@@ -294,4 +276,4 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
       </div>
     </div>
   );
-} 
+}

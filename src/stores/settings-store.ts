@@ -1,8 +1,10 @@
 import { GridSettings, ProfileSettings, ToolbarSettings } from '@/types/profile.types';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, DEFAULT_SPACING } from '@/services/settings-controller';
-import { deepClone } from '@/utils/deepClone';
+import { shallowClone } from '@/utils/deepClone';
+import { shallowEqual, compareGridOptions } from '@/utils/comparison';
 import { GridOptions } from 'ag-grid-community';
+import { SingletonRegistry } from '@/lib/singleton-registry';
 
 // Define settings categories interfaces
 export interface ColumnSettings {
@@ -32,8 +34,6 @@ export interface GroupSettings {
 export type SettingsCategory = 'column' | 'filter' | 'toolbar' | 'theme' | 'export' | 'sort' | 'group' | 'gridOptions';
 
 export class SettingsStore {
-  private static instance: SettingsStore;
-  
   // Main settings categories
   private currentSettings: {
     column: ColumnSettings;
@@ -48,9 +48,11 @@ export class SettingsStore {
   };
   
   private listeners: Map<SettingsCategory, Array<(settings: any) => void>> = new Map();
+  private lastUpdateTime: Map<SettingsCategory, number> = new Map();
+  private updateThrottle = 50; // milliseconds
   
-  // Private constructor for singleton pattern
-  private constructor() {
+  // Private constructor
+  constructor() {
     // Initialize with default settings
     this.currentSettings = {
       column: {},
@@ -64,36 +66,71 @@ export class SettingsStore {
       export: {},
       sort: {},
       group: {},
-      gridOptions: deepClone(DEFAULT_GRID_OPTIONS),
+      gridOptions: shallowClone(DEFAULT_GRID_OPTIONS) as Partial<GridOptions>,
       grid: {}
     };
   }
   
-  // Singleton pattern
-  public static getInstance(): SettingsStore {
-    if (!SettingsStore.instance) {
-      SettingsStore.instance = new SettingsStore();
-    }
-    return SettingsStore.instance;
+  // Use singleton registry for better lifecycle management
+  public static getInstance(options?: { reset?: boolean }): SettingsStore {
+    return SingletonRegistry.getInstance(
+      'SettingsStore',
+      () => new SettingsStore(),
+      options
+    );
+  }
+  
+  // Clear singleton instance (useful for testing)
+  public static clearInstance(): void {
+    SingletonRegistry.clearInstance('SettingsStore');
   }
   
   // Update settings for a specific category
   public updateSettings(category: SettingsCategory | 'gridOptions', settings: any): void {
-    // Check if the settings have actually changed
+    // Throttle updates
+    const now = Date.now();
+    const lastUpdate = this.lastUpdateTime.get(category as SettingsCategory) || 0;
+    
+    if (now - lastUpdate < this.updateThrottle) {
+      // Queue the update
+      setTimeout(() => this.updateSettings(category, settings), this.updateThrottle);
+      return;
+    }
+    
+    // Check if the settings have actually changed using optimized comparison
     const currentSettings = this.currentSettings[category as keyof typeof this.currentSettings];
-    const hasChanged = Object.keys(settings).some(key => {
-      return JSON.stringify(settings[key]) !== JSON.stringify(currentSettings[key]);
-    });
+    
+    let hasChanged = false;
+    
+    // Use appropriate comparison based on category
+    if (category === 'gridOptions') {
+      // For grid options, check each key individually
+      for (const key in settings) {
+        if (!compareGridOptions(settings[key], currentSettings[key])) {
+          hasChanged = true;
+          break;
+        }
+      }
+    } else {
+      // For other settings, use shallow comparison
+      hasChanged = Object.keys(settings).some(key => {
+        return settings[key] !== currentSettings[key];
+      });
+    }
     
     if (!hasChanged) {
       // No changes, don't update or notify
       return;
     }
     
+    // Apply updates
     this.currentSettings[category as keyof typeof this.currentSettings] = {
       ...currentSettings,
       ...settings
     };
+    
+    // Update throttle timestamp
+    this.lastUpdateTime.set(category as SettingsCategory, now);
     
     // Notify listeners for this category
     this.notifyListeners(category, this.currentSettings[category as keyof typeof this.currentSettings]);
@@ -101,6 +138,11 @@ export class SettingsStore {
 
   // Update all toolbar settings at once (replaces entire toolbar section)
   public updateAllToolbarSettings(settings: ToolbarSettings): void {
+    // Check if settings actually changed
+    if (shallowEqual(this.currentSettings.toolbar, settings)) {
+      return;
+    }
+    
     this.currentSettings.toolbar = settings;
     this.notifyListeners('toolbar', this.currentSettings.toolbar);
   }
@@ -153,7 +195,7 @@ export class SettingsStore {
       export: {},
       sort: {},
       group: {},
-      gridOptions: deepClone(DEFAULT_GRID_OPTIONS),
+      gridOptions: shallowClone(DEFAULT_GRID_OPTIONS) as Partial<GridOptions>,
       grid: {}
     };
     
@@ -165,7 +207,7 @@ export class SettingsStore {
   
   // Apply settings from a profile
   public applyProfileSettings(settings: ProfileSettings): void {
-    if (settings.toolbar) {
+    if (settings.toolbar && !shallowEqual(this.currentSettings.toolbar, settings.toolbar)) {
       this.updateSettings('toolbar', settings.toolbar);
     }
     
@@ -178,9 +220,13 @@ export class SettingsStore {
       const currentGridOptions = this.currentSettings.gridOptions;
       const newGridOptions = settings.custom.gridOptions;
       
-      const hasGridOptionsChanged = Object.keys(newGridOptions).some(key => {
-        return JSON.stringify(newGridOptions[key]) !== JSON.stringify(currentGridOptions[key]);
-      });
+      let hasGridOptionsChanged = false;
+      for (const key in newGridOptions) {
+        if (!compareGridOptions(newGridOptions[key], currentGridOptions[key])) {
+          hasGridOptionsChanged = true;
+          break;
+        }
+      }
       
       if (hasGridOptionsChanged) {
         this.currentSettings.gridOptions = { ...settings.custom.gridOptions };
@@ -195,9 +241,17 @@ export class SettingsStore {
     const categoryListeners = this.listeners.get(category as SettingsCategory) || [];
     categoryListeners.forEach(listener => {
       try {
-        listener(settings);
+        // Use setTimeout to prevent blocking
+        setTimeout(() => listener(settings), 0);
       } catch (error) {
+        console.error('Error in settings listener:', error);
       }
     });
   }
-} 
+  
+  // Clean up method for proper lifecycle management
+  public dispose(): void {
+    this.listeners.clear();
+    this.lastUpdateTime.clear();
+  }
+}

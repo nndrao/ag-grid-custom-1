@@ -1,18 +1,24 @@
 import { Profile } from '@/types/profile.types';
+import { SingletonRegistry } from '@/lib/singleton-registry';
 
 const PROFILE_STORAGE_KEY = 'ag-grid-profiles';
 const ACTIVE_PROFILE_KEY = 'ag-grid-active-profile';
 
 export class ProfileStore {
-  private static instance: ProfileStore;
 
   private constructor() {}
 
-  static getInstance(): ProfileStore {
-    if (!ProfileStore.instance) {
-      ProfileStore.instance = new ProfileStore();
-    }
-    return ProfileStore.instance;
+  static getInstance(options?: { reset?: boolean }): ProfileStore {
+    return SingletonRegistry.getInstance(
+      'ProfileStore',
+      () => new ProfileStore(),
+      options
+    );
+  }
+  
+  // Clear singleton instance (useful for testing)
+  static clearInstance(): void {
+    SingletonRegistry.clearInstance('ProfileStore');
   }
 
   async getAllProfiles(): Promise<Profile[]> {

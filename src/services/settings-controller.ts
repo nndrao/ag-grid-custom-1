@@ -18,6 +18,8 @@ export class SettingsController {
   private settingsStore: SettingsStore;
   private isApplyingSettings = false;
   private pendingSettingsOperation: number | null = null;
+  private updateDebounceTimer: number | null = null;
+  private readonly DEBOUNCE_DELAY = 100; // milliseconds
 
   constructor(gridStateProvider: GridStateProvider) {
     this.gridStateProvider = gridStateProvider;
@@ -40,54 +42,72 @@ export class SettingsController {
   }
 
   /**
-   * Update toolbar settings in the settings store
+   * Update toolbar settings in the settings store with debouncing
    */
   public updateToolbarSettings(settings: any): void {
-    this.settingsStore.updateSettings('toolbar', settings);
+    this.debouncedUpdate(() => {
+      this.settingsStore.updateSettings('toolbar', settings);
+    });
   }
 
   /**
-   * Update grid options in the settings store
+   * Update grid options in the settings store with debouncing
    */
   public updateGridOptions(options: any): void {
-    
-    // Ensure defaultColDef alignment properties are preserved
-    if (options.defaultColDef) {
-      const colDef = options.defaultColDef;
-      
-      // Preserve alignment properties for storage
-      if (colDef.cellStyle && typeof colDef.cellStyle === 'function') {
-        // Extract alignment from the cellStyle function test result
-        const testResult = colDef.cellStyle({ colDef: { type: undefined } });
+    this.debouncedUpdate(() => {
+      // Ensure defaultColDef alignment properties are preserved
+      if (options.defaultColDef) {
+        const colDef = options.defaultColDef;
         
-        // Store alignment metadata alongside the defaultColDef
-        if (testResult && testResult.alignItems) {
-          colDef.verticalAlign = testResult.alignItems === 'flex-start' ? 'top' :
-                               testResult.alignItems === 'center' ? 'middle' :
-                               testResult.alignItems === 'flex-end' ? 'bottom' : undefined;
-        }
-        if (testResult && testResult.justifyContent) {
-          colDef.horizontalAlign = testResult.justifyContent === 'flex-start' ? 'left' :
-                                 testResult.justifyContent === 'center' ? 'center' :
-                                 testResult.justifyContent === 'flex-end' ? 'right' : undefined;
+        // Preserve alignment properties for storage
+        if (colDef.cellStyle && typeof colDef.cellStyle === 'function') {
+          // Extract alignment from the cellStyle function test result
+          const testResult = colDef.cellStyle({ colDef: { type: undefined } });
+          
+          // Store alignment metadata alongside the defaultColDef
+          if (testResult && testResult.alignItems) {
+            colDef.verticalAlign = testResult.alignItems === 'flex-start' ? 'top' :
+                                 testResult.alignItems === 'center' ? 'middle' :
+                                 testResult.alignItems === 'flex-end' ? 'bottom' : undefined;
+          }
+          if (testResult && testResult.justifyContent) {
+            colDef.horizontalAlign = testResult.justifyContent === 'flex-start' ? 'left' :
+                                   testResult.justifyContent === 'center' ? 'center' :
+                                   testResult.justifyContent === 'flex-end' ? 'right' : undefined;
+          }
         }
       }
+      
+      // Update the store with new options (this merges with existing options)
+      this.settingsStore.updateSettings('gridOptions', options);
+      
+      // Apply grid options to the grid if API is available
+      if (this.gridApi) {
+        this.applyGridOptions(this.gridApi, options);
+      }
+    });
+  }
+
+  /**
+   * Debounced update to prevent rapid successive calls
+   */
+  private debouncedUpdate(callback: () => void): void {
+    // Clear existing timer
+    if (this.updateDebounceTimer !== null) {
+      clearTimeout(this.updateDebounceTimer);
     }
     
-    // Update the store with new options (this merges with existing options)
-    this.settingsStore.updateSettings('gridOptions', options);
-    
-    // Apply grid options to the grid if API is available
-    if (this.gridApi) {
-      this.applyGridOptions(this.gridApi, options);
-    }
+    // Set new timer
+    this.updateDebounceTimer = window.setTimeout(() => {
+      callback();
+      this.updateDebounceTimer = null;
+    }, this.DEBOUNCE_DELAY);
   }
 
   /**
    * Apply grid options to the grid in an idempotent manner
    */
   private applyGridOptions(gridApi: GridApi, options: any): void {
-    
     // Define all runtime-changeable options
     const runtimeGridOptions = [
       'headerHeight', 'rowHeight', 'defaultColDef', 'autoGroupColumnDef',
@@ -140,7 +160,6 @@ export class SettingsController {
           
           // Reconstruct cellStyle if alignment properties exist
           if (processedColDef.verticalAlign || processedColDef.horizontalAlign) {
-            
             processedColDef.cellStyle = (params: any) => {
               const styleObj: any = { display: 'flex' };
               
@@ -177,15 +196,20 @@ export class SettingsController {
           if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
             gridApi.setGridOption(optionKey, newValue);
             appliedOptions.add(optionKey);
-          } else {
           }
         }
       } catch (error) {
       }
     });
 
-    // Don't refresh here - we'll do it once at the end of applyProfileSettings
+    // Use requestAnimationFrame for refresh to prevent jank
     if (appliedOptions.size > 0) {
+      requestAnimationFrame(() => {
+        if (this.gridApi) {
+          this.gridApi.refreshHeader();
+          this.gridApi.refreshCells({ force: true });
+        }
+      });
     }
   }
 
@@ -264,7 +288,6 @@ export class SettingsController {
     this.isApplyingSettings = true;
     
     try {
-      
       // Step 1: Apply toolbar settings first (includes themes, fonts, etc.)
       if (settings.toolbar) {
         this.settingsStore.updateAllToolbarSettings(settings.toolbar);
@@ -276,7 +299,6 @@ export class SettingsController {
         
         // Reconstruct cellStyle function from stored alignment metadata
         if (defaultColDef.verticalAlign || defaultColDef.horizontalAlign) {
-          
           defaultColDef.cellStyle = (params: any) => {
             const styleObj: any = { display: 'flex' };
             
@@ -311,7 +333,6 @@ export class SettingsController {
       
       // Step 3: Apply custom grid options (includes advanced configuration)
       if (this.gridApi && settings.custom?.gridOptions) {
-        
         // Update settings store first
         this.settingsStore.updateSettings('gridOptions', settings.custom.gridOptions);
         
@@ -329,9 +350,8 @@ export class SettingsController {
         this.gridApi.setGridOption('columnDefs', settings.custom.columnDefs);
       }
       
-      // Single grid refresh after all settings are applied
+      // Single grid refresh after all settings are applied using requestAnimationFrame
       if (this.gridApi) {
-        // Use requestAnimationFrame for better performance
         requestAnimationFrame(() => {
           if (this.gridApi) {
             this.gridApi.refreshHeader();
@@ -351,4 +371,4 @@ export class SettingsController {
       }
     }
   }
-} 
+}

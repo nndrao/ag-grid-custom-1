@@ -8,7 +8,7 @@ import { GridApi } from 'ag-grid-community';
 import { SettingsController } from '@/services/settings-controller';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProfileManager } from '@/hooks/useProfileManager';
+import { useProfileManager2 } from '@/hooks/useProfileManager2';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import { deepClone } from '@/utils/deepClone';
 
@@ -23,7 +23,7 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
   const { toast } = useToast();
   
   // We'll use the profile manager to save settings directly
-  const profileManager = useProfileManager(settingsController);
+  const profileManager = useProfileManager2(settingsController);
 
   // Save current grid settings to the active profile
   const saveToProfile = async () => {
