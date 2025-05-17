@@ -6,9 +6,10 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DEFAULT_FONT_SIZE, MIN_FONT_SIZE, SettingsController } from '@/services/settings-controller';
-import { CircleHelp } from 'lucide-react';
+import { TextCursorInput } from 'lucide-react';
 
 interface FontSizeSelectorProps {
   settingsController: SettingsController | null;
@@ -97,32 +98,38 @@ export function FontSizeSelector({ settingsController }: FontSizeSelectorProps) 
   }, [settingsController]);
   
   return (
-    <div className="flex items-center gap-2">
-      <Select value={fontSize} onValueChange={handleFontSizeChange}>
-        <SelectTrigger className="h-8 w-[80px] text-xs">
-          <SelectValue placeholder="Size" />
-        </SelectTrigger>
-        <SelectContent>
-          {fontSizeOptions.map((option) => (
-            <SelectItem 
-              key={option.value} 
-              value={option.value}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <CircleHelp className="h-4 w-4 text-muted-foreground cursor-pointer" />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Change font size</p>
-          <p className="text-xs text-muted-foreground">Header text will be 2px larger</p>
-        </TooltipContent>
-      </Tooltip>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="inline-block">
+          <Select value={fontSize} onValueChange={handleFontSizeChange}>
+            <SelectTrigger className="h-8 w-[90px] text-xs border-border/60 bg-background/95 hover:bg-background hover:border-border shadow-sm transition-all">
+              <TextCursorInput className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Size" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontSizeOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                >
+                  <span className="flex items-center justify-between w-full">
+                    <span>{option.label}</span>
+                    {option.value === 'default' && (
+                      <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 font-normal">
+                        14px
+                      </Badge>
+                    )}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Font Size</p>
+        <p className="text-xs text-muted-foreground">Headers +2px larger</p>
+      </TooltipContent>
+    </Tooltip>
   );
 } 

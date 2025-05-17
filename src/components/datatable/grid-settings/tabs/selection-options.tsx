@@ -105,6 +105,23 @@ export function SelectionOptions({ settings, onChange }: SelectionOptionsProps) 
         
         <div className="flex items-center justify-between py-1.5">
           <div>
+            <Label htmlFor="showCheckboxes" className="text-sm font-medium">Show Checkboxes</Label>
+            <p className="text-[11px] text-muted-foreground">Display checkbox column for row selection</p>
+          </div>
+          <Switch 
+            id="showCheckboxes" 
+            checked={typeof localSettings.rowSelection === 'object' ? 
+              localSettings.rowSelection?.checkboxes !== false : true}
+            onCheckedChange={(checked) => {
+              const rowSelection = typeof localSettings.rowSelection === 'object' ? 
+                {...localSettings.rowSelection} : { mode: 'singleRow' };
+              onChange('rowSelection', { ...rowSelection, checkboxes: checked });
+            }} 
+          />
+        </div>
+        
+        <div className="flex items-center justify-between py-1.5">
+          <div>
             <Label htmlFor="suppressRowDeselection" className="text-sm font-medium">Prevent Deselection</Label>
             <p className="text-[11px] text-muted-foreground">Prevent rows from being deselected</p>
           </div>

@@ -6,10 +6,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DEFAULT_FONT_FAMILY, SettingsController } from '@/services/settings-controller';
 import { GridStateProvider } from '@/services/gridStateProvider';
-import { CircleHelp } from 'lucide-react';
+import { Type } from 'lucide-react';
 
 interface FontFamilySelectorProps {
   settingsController: SettingsController | null;
@@ -81,33 +82,38 @@ export function FontFamilySelector({ settingsController }: FontFamilySelectorPro
   }, [settingsController]);
   
   return (
-    <div className="flex items-center gap-2">
-      <Select value={fontFamily} onValueChange={handleFontChange}>
-        <SelectTrigger className="h-8 w-[160px] text-xs">
-          <SelectValue placeholder="Font Family" />
-        </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
-          {fontOptions.map((option) => (
-            <SelectItem 
-              key={option.value} 
-              value={option.value}
-              style={{ fontFamily: option.value }}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <CircleHelp className="h-4 w-4 text-muted-foreground cursor-pointer" />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Change grid font family</p>
-          <p className="text-xs text-muted-foreground">Includes Google Monospace fonts</p>
-        </TooltipContent>
-      </Tooltip>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="inline-block">
+          <Select value={fontFamily} onValueChange={handleFontChange}>
+            <SelectTrigger className="h-8 w-[140px] text-xs border-border/60 bg-background/95 hover:bg-background hover:border-border shadow-sm transition-all">
+              <Type className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Font Family" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              {fontOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                  style={{ fontFamily: option.value }}
+                  className="flex items-center justify-between"
+                >
+                  <span>{option.label}</span>
+                  {option.label.includes('Mono') && (
+                    <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 font-normal">
+                      mono
+                    </Badge>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Font Family</p>
+        <p className="text-xs text-muted-foreground">Change grid typography</p>
+      </TooltipContent>
+    </Tooltip>
   );
 } 
