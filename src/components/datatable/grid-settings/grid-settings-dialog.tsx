@@ -26,6 +26,9 @@ import {
 } from './tabs/index';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { applySettingsOptimized } from './apply-settings-optimized';
+import { loadSettingsOptimized, getCachedSettings, preloadSettings } from './load-settings-optimized';
+import { toast } from '@/components/ui/use-toast';
 
 export interface GridSettingsState {
   [category: string]: {
@@ -70,324 +73,48 @@ export function GridSettingsDialog({
     };
   }, []);
 
-  // Load current grid settings when dialog opens
-  // Only rehydrate gridSettings when dialog is first opened
+  // Load current grid settings when dialog opens - optimized version
   useEffect(() => {
     if (open && gridApi) {
-      // Start with default grid options
-      const defaultOptions = DEFAULT_GRID_OPTIONS;
+      // Check if we have cached settings first
+      const profileId = profileManager?.activeProfile?.id;
+      const cachedSettings = profileId ? getCachedSettings(profileId) : null;
       
-      // Get current grid settings from the API
-      const currentGridSettings = extractCurrentGridSettings(gridApi);
+      if (cachedSettings) {
+        // Use cached settings for instant load
+        setGridSettings(cachedSettings);
+        setHasChanges(false);
+        return;
+      }
       
-      // Get stored options from profile if available
-      // First try to get from active profile, then fall back to settings controller
-      const profileSettings = profileManager?.activeProfile?.settings;
-      const storedOptions = profileSettings?.custom?.gridOptions || 
-                            settingsController?.getCurrentGridOptions() || {};
-      
-      
-      // Merge in the following order: defaults -> current -> stored
-      // This ensures that stored options (from profile) take precedence
-      let mergedSettings = { ...defaultOptions, ...currentGridSettings, ...storedOptions };
-
-      // Utility to convert and strip deprecated/invalid AG Grid properties
-      const stripInvalidGridProps = (settings: any) => {
-        // Extract deprecated properties
-        const {
-          verticalAlign,
-          horizontalAlign,
-          immutableData,
-          suppressCellSelection,
-          groupIncludeFooter,
-          suppressPropertyNamesCheck,
-          suppressBrowserResizeObserver,
-          debug,
-          stopEditingWhenCellsLoseFocus,
-          groupUseEntireRow,  // Deprecated in v33+
-          enterMovesDown,     // Deprecated in v33+
-          enterMovesDownAfterEdit, // Deprecated in v33+
-          enableCellChangeFlash, // Deprecated in v33+
-          exporterCsvFilename,  // Deprecated in v33+
-          exporterExcelFilename, // Deprecated in v33+
-          getRowNodeId,        // Deprecated in v33+
-          enableRangeHandle,   // Deprecated in v33+
-          ...rest
-        } = settings;
+      // Load settings using optimized function
+      loadSettingsOptimized(gridApi, profileManager, settingsController).then(result => {
+        setGridSettings(result.settings);
+        setHasChanges(false);
         
-        // Convert rowSelection string to object format for v33+
-        if (rest.rowSelection && typeof rest.rowSelection === 'string') {
-          // Map 'single' to 'singleRow' and 'multiple' to 'multiRow'
-          const mode = rest.rowSelection === 'single' ? 'singleRow' : 
-                      rest.rowSelection === 'multiple' ? 'multiRow' : rest.rowSelection;
-          
-          rest.rowSelection = { mode };
-        }
+        // Set initial values for comparison on save
+        const flattenedInitialValues: GridOptionsMap = {};
+        Object.entries(result.settings).forEach(([category, categorySettings]) => {
+          Object.entries(categorySettings).forEach(([option, value]) => {
+            flattenedInitialValues[option] = value;
+          });
+        });
+        setInitialValues(flattenedInitialValues);
         
-        // Convert enableRangeSelection to cellSelection object
-        if (rest.enableRangeSelection !== undefined) {
-          if (rest.enableRangeSelection) {
-            rest.cellSelection = rest.cellSelection || {};
-          } else {
-            rest.cellSelection = false;
-          }
-          delete rest.enableRangeSelection;
+        // Show load time in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Settings loaded in ${result.loadTime.toFixed(2)}ms (${result.settingsCount} settings)`);
         }
-        
-        // Handle enableRangeHandle -> cellSelection.handle
-        if (enableRangeHandle !== undefined) {
-          if (typeof rest.cellSelection !== 'boolean') {
-            rest.cellSelection = rest.cellSelection || {};
-            rest.cellSelection.handle = !!enableRangeHandle;
-          }
-        }
-        
-        // Handle suppressCellSelection -> cellSelection = false
-        if (suppressCellSelection) {
-          rest.cellSelection = false;
-        }
-        
-        // Also recursively update defaultColDef if present
-        if (rest.defaultColDef) {
-          const {
-            verticalAlign,
-            horizontalAlign,
-            ...colDefRest
-          } = rest.defaultColDef;
-          
-          // Convert alignment properties to cellStyle if needed
-          if (verticalAlign || horizontalAlign) {
-            const cellStyleFn = (params: any) => {
-              const style: Record<string, string> = { display: 'flex' };
-              
-              if (verticalAlign) {
-                style.alignItems = verticalAlign === 'middle' ? 'center' : verticalAlign;
-              }
-              
-              if (horizontalAlign) {
-                switch (horizontalAlign) {
-                  case 'left':
-                    style.justifyContent = 'flex-start';
-                    break;
-                  case 'center':
-                    style.justifyContent = 'center';
-                    break;
-                  case 'right':
-                    style.justifyContent = 'flex-end';
-                    break;
-                }
-              }
-              
-              return style;
-            };
-            
-            colDefRest.cellStyle = cellStyleFn;
-          }
-          
-          rest.defaultColDef = colDefRest;
-        }
-        
-        return rest;
-      };
-      mergedSettings = stripInvalidGridProps(mergedSettings);
-      
-      // Save initial values for comparison later
-      setInitialValues(mergedSettings);
-      
-      // Structure for the dialog UI
-      const currentSettings: GridSettingsState = {};
-      
-      // Basic grid configuration
-      currentSettings.basic = {
-        rowHeight: mergedSettings.rowHeight,
-        headerHeight: mergedSettings.headerHeight,
-        rowModelType: mergedSettings.rowModelType,
-      };
-      
-      // Column defaults - ensure this is properly hydrated with alignment values
-      
-      // Extract alignment values from the defaultColDef if they exist
-      const defaultColDef = mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef;
-      
-      // If defaultColDef has verticalAlign or horizontalAlign, preserve them
-      currentSettings.defaults = {
-        defaultColDef: {
-          ...defaultColDef,
-          // Ensure alignment values are preserved from stored settings
-          verticalAlign: defaultColDef?.verticalAlign,
-          horizontalAlign: defaultColDef?.horizontalAlign
-        }
-      };
-      
-      
-      // Selection options - handling both modern AG-Grid v33+ API and backward compatibility
-      const rowSelection = mergedSettings.rowSelection as any;
-      const cellSelection = mergedSettings.cellSelection as any;
-      
-      // Convert AG-Grid v33+ selection modes to dialog format
-      const normalizedRowMode = typeof rowSelection === 'object' && rowSelection?.mode ? 
-        (rowSelection.mode === 'multiRow' ? 'multiple' : 
-         rowSelection.mode === 'singleRow' ? 'single' : 
-         rowSelection.mode) : 
-        (typeof rowSelection === 'string' ? rowSelection : 'multiple');
-      
-      
-      currentSettings.selection = {
-        rowSelection: typeof rowSelection === 'object' ? {
-          mode: normalizedRowMode,
-          enableSelectionWithoutKeys: rowSelection.enableSelectionWithoutKeys !== undefined ? 
-            rowSelection.enableSelectionWithoutKeys : !!mergedSettings.rowMultiSelectWithClick,
-          enableClickSelection: rowSelection.enableClickSelection !== undefined ?
-            rowSelection.enableClickSelection : !mergedSettings.suppressRowClickSelection,
-          checkboxes: rowSelection.checkboxes !== undefined ?
-            rowSelection.checkboxes : true,
-          groupSelects: rowSelection.groupSelects || (mergedSettings.groupSelectsChildren ? 'descendants' : 'none')
-        } : normalizedRowMode,
-        rowMultiSelectWithClick: typeof rowSelection === 'object' && 'enableSelectionWithoutKeys' in rowSelection ? 
-          !!rowSelection.enableSelectionWithoutKeys : 
-          !!mergedSettings.rowMultiSelectWithClick,
-        suppressRowClickSelection: typeof rowSelection === 'object' && 'enableClickSelection' in rowSelection ? 
-          !rowSelection.enableClickSelection : 
-          !!mergedSettings.suppressRowClickSelection,
-        suppressCellSelection: typeof cellSelection === 'boolean' ? 
-          !cellSelection : 
-          (typeof cellSelection === 'object' ? false : true),
-        enableRangeSelection: typeof cellSelection === 'boolean' ? 
-          cellSelection : 
-          !!cellSelection,
-        enableRangeHandle: mergedSettings.enableRangeHandle || false,
-        suppressRowDeselection: mergedSettings.suppressRowDeselection,
-        groupSelectsChildren: typeof rowSelection === 'object' && 'groupSelects' in rowSelection ? 
-          (rowSelection.groupSelects === 'descendants') : 
-          !!mergedSettings.groupSelectsChildren,
-      };
-      
-      // Sorting & Filtering options
-      currentSettings.sorting = {
-        sortingOrder: mergedSettings.sortingOrder,
-        multiSortKey: mergedSettings.multiSortKey,
-        accentedSort: mergedSettings.accentedSort,
-        enableAdvancedFilter: mergedSettings.enableAdvancedFilter,
-        quickFilterText: mergedSettings.quickFilterText,
-        cacheQuickFilter: storedOptions.cacheQuickFilter ?? gridApi.getGridOption('cacheQuickFilter'),
-        excludeChildrenWhenTreeDataFiltering: storedOptions.excludeChildrenWhenTreeDataFiltering ?? gridApi.getGridOption('excludeChildrenWhenTreeDataFiltering'),
-      };
-      
-      // Pagination options
-      currentSettings.pagination = {
-        pagination: storedOptions.pagination ?? gridApi.getGridOption('pagination'),
-        paginationPageSize: storedOptions.paginationPageSize || gridApi.getGridOption('paginationPageSize'),
-        paginationAutoPageSize: storedOptions.paginationAutoPageSize ?? gridApi.getGridOption('paginationAutoPageSize'),
-        suppressPaginationPanel: storedOptions.suppressPaginationPanel ?? gridApi.getGridOption('suppressPaginationPanel'),
-        paginationPageSizeSelector: storedOptions.paginationPageSizeSelector ?? gridApi.getGridOption('paginationPageSizeSelector'),
-      };
-      
-      // Styling & Appearance
-      currentSettings.appearance = {
-        theme: storedOptions.theme || gridApi.getGridOption('theme'),
-        animateRows: storedOptions.animateRows ?? gridApi.getGridOption('animateRows'),
-        alwaysShowVerticalScroll: storedOptions.alwaysShowVerticalScroll ?? gridApi.getGridOption('alwaysShowVerticalScroll'),
-        domLayout: storedOptions.domLayout || gridApi.getGridOption('domLayout'),
-      };
-      
-      // Row Grouping & Pivoting
-      currentSettings.grouping = {
-        groupUseEntireRow: storedOptions.groupUseEntireRow ?? gridApi.getGridOption('groupUseEntireRow'),
-        groupSelectsChildren: storedOptions.groupSelectsChildren ?? gridApi.getGridOption('groupSelectsChildren'),
-        groupRemoveSingleChildren: storedOptions.groupRemoveSingleChildren ?? gridApi.getGridOption('groupRemoveSingleChildren'),
-        pivotMode: storedOptions.pivotMode ?? gridApi.getGridOption('pivotMode'),
-        pivotPanelShow: storedOptions.pivotPanelShow ?? gridApi.getGridOption('pivotPanelShow'),
-        groupDefaultExpanded: storedOptions.groupDefaultExpanded ?? gridApi.getGridOption('groupDefaultExpanded'),
-        rowGroupPanelShow: storedOptions.rowGroupPanelShow ?? gridApi.getGridOption('rowGroupPanelShow'),
-        // Fix groupDisplayType to ensure it loads from stored options
-        groupDisplayType: storedOptions.groupDisplayType ?? gridApi.getGridOption('groupDisplayType') ?? 'singleColumn',
-      };
-      
-      // Editing options
-      currentSettings.editing = {
-        editType: storedOptions.editType ?? gridApi.getGridOption('editType') ?? 'none',
-        singleClickEdit: storedOptions.singleClickEdit ?? gridApi.getGridOption('singleClickEdit'),
-        suppressClickEdit: storedOptions.suppressClickEdit ?? gridApi.getGridOption('suppressClickEdit'),
-        enterMovesDown: storedOptions.enterMovesDown ?? gridApi.getGridOption('enterMovesDown'),
-        enterMovesDownAfterEdit: storedOptions.enterMovesDownAfterEdit ?? gridApi.getGridOption('enterMovesDownAfterEdit'),
-        undoRedoCellEditing: storedOptions.undoRedoCellEditing ?? gridApi.getGridOption('undoRedoCellEditing'),
-        undoRedoCellEditingLimit: storedOptions.undoRedoCellEditingLimit ?? gridApi.getGridOption('undoRedoCellEditingLimit'),
-      };
-      
-      currentSettings.columns = {
-        suppressDragLeaveHidesColumns: storedOptions.suppressDragLeaveHidesColumns ?? gridApi.getGridOption('suppressDragLeaveHidesColumns'),
-        suppressMovableColumns: storedOptions.suppressMovableColumns ?? gridApi.getGridOption('suppressMovableColumns'),
-        suppressFieldDotNotation: storedOptions.suppressFieldDotNotation ?? gridApi.getGridOption('suppressFieldDotNotation'),
-        suppressAutoSize: storedOptions.suppressAutoSize ?? gridApi.getGridOption('suppressAutoSize'),
-      };
-      
-      // Data & Rendering
-      currentSettings.data = {
-        // Use AG Grid v33+ properties
-        rowBuffer: storedOptions.rowBuffer || gridApi.getGridOption('rowBuffer'),
-        valueCache: storedOptions.valueCache ?? gridApi.getGridOption('valueCache'),
-        // Convert deprecated properties to v33+ equivalents
-        cellFlashDuration: storedOptions.cellFlashDuration ?? storedOptions.enableCellChangeFlash ?? 
-                          gridApi.getGridOption('cellFlashDuration') ?? gridApi.getGridOption('enableCellChangeFlash'),
-        getRowId: storedOptions.getRowId ?? storedOptions.getRowNodeId ?? 
-                 gridApi.getGridOption('getRowId') ?? gridApi.getGridOption('getRowNodeId'),
-      };
-      
-      // Clipboard & Export
-      currentSettings.clipboard = {
-        // Use AG Grid v33+ properties
-        enableCellTextSelection: storedOptions.enableCellTextSelection ?? gridApi.getGridOption('enableCellTextSelection'),
-        suppressCopyRowsToClipboard: storedOptions.suppressCopyRowsToClipboard ?? gridApi.getGridOption('suppressCopyRowsToClipboard'),
-        suppressCopySingleCellRanges: storedOptions.suppressCopySingleCellRanges ?? gridApi.getGridOption('suppressCopySingleCellRanges'),
-        clipboardDelimiter: storedOptions.clipboardDelimiter || gridApi.getGridOption('clipboardDelimiter'),
-        // Convert deprecated properties to v33+ equivalents
-        csvFilename: storedOptions.csvFilename ?? storedOptions.exporterCsvFilename ?? 
-                    gridApi.getGridOption('csvFilename') ?? gridApi.getGridOption('exporterCsvFilename'),
-        excelFilename: storedOptions.excelFilename ?? storedOptions.exporterExcelFilename ?? 
-                      gridApi.getGridOption('excelFilename') ?? gridApi.getGridOption('exporterExcelFilename'),
-      };
-      
-      // Advanced Features
-      currentSettings.advanced = {
-        // Use AG Grid v33+ properties
-        enableCharts: storedOptions.enableCharts ?? gridApi.getGridOption('enableCharts'),
-        masterDetail: storedOptions.masterDetail ?? gridApi.getGridOption('masterDetail'),
-        suppressAggFuncInHeader: storedOptions.suppressAggFuncInHeader ?? gridApi.getGridOption('suppressAggFuncInHeader'),
-        suppressColumnVirtualisation: storedOptions.suppressColumnVirtualisation ?? gridApi.getGridOption('suppressColumnVirtualisation'),
-        suppressRowVirtualisation: storedOptions.suppressRowVirtualisation ?? gridApi.getGridOption('suppressRowVirtualisation'),
-      };
-      
-      // UI Components
-      currentSettings.ui = {
-        suppressContextMenu: storedOptions.suppressContextMenu ?? gridApi.getGridOption('suppressContextMenu'),
-        suppressMenuHide: storedOptions.suppressMenuHide ?? gridApi.getGridOption('suppressMenuHide'),
-        suppressMovableColumns: storedOptions.suppressMovableColumns ?? gridApi.getGridOption('suppressMovableColumns'),
-        suppressColumnMoveAnimation: storedOptions.suppressColumnMoveAnimation ?? gridApi.getGridOption('suppressColumnMoveAnimation'),
-        loading: storedOptions.loading ?? gridApi.getGridOption('loading'),
-        suppressNoRowsOverlay: storedOptions.suppressNoRowsOverlay ?? gridApi.getGridOption('suppressNoRowsOverlay'),
-        sideBar: storedOptions.sideBar ?? gridApi.getGridOption('sideBar'),
-        statusBar: storedOptions.statusBar ?? gridApi.getGridOption('statusBar')
-      };
-      
-      // Sizing & Dimensions
-      currentSettings.sizing = {
-        headerHeight: storedOptions.headerHeight ?? gridApi.getGridOption('headerHeight'),
-        rowHeight: storedOptions.rowHeight ?? gridApi.getGridOption('rowHeight'),
-        floatingFiltersHeight: storedOptions.floatingFiltersHeight ?? gridApi.getGridOption('floatingFiltersHeight'),
-        pivotHeaderHeight: storedOptions.pivotHeaderHeight ?? gridApi.getGridOption('pivotHeaderHeight'),
-        pivotGroupHeaderHeight: storedOptions.pivotGroupHeaderHeight ?? gridApi.getGridOption('pivotGroupHeaderHeight'),
-        groupHeaderHeight: storedOptions.groupHeaderHeight ?? gridApi.getGridOption('groupHeaderHeight'),
-        suppressAutoSize: storedOptions.suppressAutoSize ?? gridApi.getGridOption('suppressAutoSize'),
-        suppressSizeToFit: storedOptions.suppressSizeToFit ?? gridApi.getGridOption('suppressSizeToFit'),
-        suppressColumnVirtualisation: storedOptions.suppressColumnVirtualisation ?? gridApi.getGridOption('suppressColumnVirtualisation'),
-        suppressRowVirtualisation: storedOptions.suppressRowVirtualisation ?? gridApi.getGridOption('suppressRowVirtualisation'),
-      };
-      
-      // Fetch all settings categories from the grid
-      setGridSettings(currentSettings);
-      setHasChanges(false);
+      });
     }
   }, [open, gridApi, profileManager, settingsController]);
+  
+  // Preload settings when component mounts for faster dialog opening
+  useEffect(() => {
+    if (gridApi && profileManager && settingsController) {
+      preloadSettings(gridApi, profileManager, settingsController);
+    }
+  }, [gridApi, profileManager, settingsController]);
 
   // Handler for changes to grid settings with batching
   const handleSettingChange = useCallback((category: string, option: string, value: any) => {
@@ -441,398 +168,158 @@ export function GridSettingsDialog({
     }, 0); // Use 0ms timeout to defer until after current event loop
   }, []);
 
-  // Apply changes to grid - special handling for function strings and modern AG-Grid API
-  const applyChanges = useCallback(() => {
+  // Apply changes to grid - optimized version
+  const applyChanges = useCallback(async () => {
     if (!gridApi || !hasChanges) return;
     
     // Save current grid state before applying changes
     const currentGridState = settingsController?.gridStateProvider?.extractGridState();
     
-    // Flatten all settings into a single object
+    // Convert gridSettings to flat GridOptionsMap for optimized application
     const flattenedSettings: GridOptionsMap = {};
     
-    // Keep track of which specific options have changed from their initial values
-    const changedOptions = new Set<string>();
-    
-    // Special handling for Column Defaults to make sure alignments are preserved
-    if (gridSettings.defaults?.defaultColDef) {
-      
-      // Important: directly capture alignment values before they get lost
-      const defaultColDef = { ...gridSettings.defaults.defaultColDef };
-      const verticalAlign = defaultColDef.verticalAlign;
-      const horizontalAlign = defaultColDef.horizontalAlign;
-      
-      // Store these values explicitly in the flattened settings
-      flattenedSettings.defaultColDef = defaultColDef;
-      
-      // Create special properties just for our processing 
-      // These will be used later but won't be passed to AG Grid
-      flattenedSettings._preservedVerticalAlign = verticalAlign;
-      flattenedSettings._preservedHorizontalAlign = horizontalAlign;
-      
-      changedOptions.add('defaultColDef');
-      
-    }
-    
+    // Flatten the nested settings structure
     Object.entries(gridSettings).forEach(([category, categorySettings]) => {
-      // Skip defaults since we already processed it
-      if (category === 'defaults') return;
-      
-      Object.entries(categorySettings).forEach(([option, value]) => {
-        if (value !== undefined) {
-          // Explicitly skip processing the 'theme' string option here
-          if (option === 'theme') {
-            return; // Do not add it to flattenedSettings
+      if (category === 'defaults' && categorySettings.defaultColDef) {
+        flattenedSettings.defaultColDef = categorySettings.defaultColDef;
+      } else {
+        Object.entries(categorySettings).forEach(([option, value]) => {
+          if (value !== undefined) {
+            flattenedSettings[option] = value;
           }
-          
-          // Track if this option has changed from initial value
-          const initialValue = initialValues[option as keyof GridOptions];
-          if (JSON.stringify(initialValue) !== JSON.stringify(value)) {
-            changedOptions.add(option);
-          }
-
-          // Special handling for function strings
-          if (typeof value === 'string' && (option === 'getDataPath' || option === 'getRowId') && value.trim()) {
-            // Function string parsing is disabled due to TypeScript errors
-            // and security concerns with eval
-            flattenedSettings[option] = value; // Keep as string
-          } else {
-            // Handle deprecated properties
-            switch (option) {
-              // Replace deprecated properties with their modern equivalents
-              case 'rowMultiSelectWithClick':
-                // Handle modern AG-Grid v33+ API
-                if (typeof flattenedSettings.rowSelection === 'string' || !flattenedSettings.rowSelection) {
-                  // Convert legacy 'multiple'/'single' to AG-Grid v33+ 'multiRow'/'singleRow'
-                  const mode = flattenedSettings.rowSelection === 'multiple' ? 'multiRow' : 
-                             flattenedSettings.rowSelection === 'single' ? 'singleRow' : 
-                             flattenedSettings.rowSelection || 'multiRow';
-                             
-                  flattenedSettings.rowSelection = { 
-                    mode: mode as any,
-                    enableSelectionWithoutKeys: value as boolean 
-                  };
-                } else {
-                  (flattenedSettings.rowSelection as any).enableSelectionWithoutKeys = value as boolean;
-                }
-                break;
-              case 'suppressRowClickSelection':
-                flattenedSettings['rowSelection'] = flattenedSettings['rowSelection'] || {};
-                flattenedSettings['rowSelection'].enableClickSelection = !value; // Invert the value
-                break;
-              case 'enableRangeSelection':
-                // Handle modern AG-Grid v33+ API for cell selection
-                flattenedSettings.cellSelection = value ? true : false;
-                break;
-              case 'enableRangeHandle':
-                // This is handled separately from cellSelection in AG-Grid v33+
-                flattenedSettings.enableRangeHandle = value as boolean;
-                break;
-              case 'suppressRowDeselection':
-                // Handle modern AG-Grid v33+ API
-                if (typeof flattenedSettings.rowSelection === 'string' || !flattenedSettings.rowSelection) {
-                  // Convert legacy 'multiple'/'single' to AG-Grid v33+ 'multiRow'/'singleRow'
-                  const mode = flattenedSettings.rowSelection === 'multiple' ? 'multiRow' : 
-                             flattenedSettings.rowSelection === 'single' ? 'singleRow' : 
-                             flattenedSettings.rowSelection || 'multiRow';
-                             
-                  flattenedSettings.rowSelection = { 
-                    mode: mode as any,
-                    enableClickSelection: !(value as boolean) 
-                  };
-                } else {
-                  (flattenedSettings.rowSelection as any).enableClickSelection = !(value as boolean);
-                }
-                break;
-              case 'groupSelectsChildren':
-                // Handle modern AG-Grid v33+ API
-                if (typeof flattenedSettings.rowSelection === 'string' || !flattenedSettings.rowSelection) {
-                  // Convert legacy 'multiple'/'single' to AG-Grid v33+ 'multiRow'/'singleRow'
-                  const mode = flattenedSettings.rowSelection === 'multiple' ? 'multiRow' : 
-                             flattenedSettings.rowSelection === 'single' ? 'singleRow' : 
-                             flattenedSettings.rowSelection || 'multiRow';
-                             
-                  flattenedSettings.rowSelection = { 
-                    mode: mode as any,
-                    groupSelects: (value as boolean) ? 'descendants' : 'none'
-                  } as any;
-                } else {
-                  (flattenedSettings.rowSelection as any).groupSelects = (value as boolean) ? 'descendants' : 'none';
-                }
-                break;
-              case 'groupRemoveSingleChildren':
-                flattenedSettings['groupHideParentOfSingleChild'] = value;
-                break;
-              case 'suppressCopyRowsToClipboard':
-                // Handle modern AG-Grid v33+ API
-                if (typeof flattenedSettings.rowSelection === 'string' || !flattenedSettings.rowSelection) {
-                  flattenedSettings.rowSelection = { 
-                    mode: flattenedSettings.rowSelection || 'multiple',
-                    copySelectedRows: !(value as boolean) 
-                  };
-                } else {
-                  (flattenedSettings.rowSelection as any).copySelectedRows = !(value as boolean);
-                }
-                break;
-              case 'suppressCopySingleCellRanges':
-                // Handle modern AG-Grid v33+ API
-                if (typeof flattenedSettings.rowSelection === 'string' || !flattenedSettings.rowSelection) {
-                  flattenedSettings.rowSelection = { 
-                    mode: flattenedSettings.rowSelection || 'multiple',
-                    copySelectedRows: !(value as boolean) 
-                  };
-                } else {
-                  (flattenedSettings.rowSelection as any).copySelectedRows = !(value as boolean);
-                }
-                break;
-              case 'suppressLoadingOverlay':
-                flattenedSettings['loading'] = false;
-                break;
-              default:
-                // Add the option without changes for non-deprecated properties
-                flattenedSettings[option] = value;
-                break;
-            }
-          }
-        }
-      });
+        });
+      }
     });
     
+    // Apply settings using optimized function
+    const result = await applySettingsOptimized(
+      gridApi,
+      flattenedSettings,
+      initialValues,
+      settingsController
+    );
     
-    // Process special cases for AG-Grid v33+ API
-    if (flattenedSettings.rowSelection) {
-      flattenedSettings.rowSelection = normalizeRowSelection(flattenedSettings.rowSelection);
+    // Handle the result
+    if (result.success) {
+      // Restore grid state if available
+      if (currentGridState && settingsController) {
+        settingsController.gridStateProvider?.applyGridState(currentGridState);
+      }
+      
+      // Show success toast
+      toast({
+        title: "Settings Applied",
+        description: `Successfully applied ${result.appliedSettings.length} settings in ${result.performanceMetrics.totalTime.toFixed(2)}ms`,
+        variant: "default"
+      });
+      
+      setHasChanges(false);
+      onOpenChange(false);
+    } else {
+      // Show error toast
+      toast({
+        title: "Error Applying Settings",
+        description: result.errors.join(", "),
+        variant: "destructive"
+      });
+    }
+  }, [gridApi, gridSettings, hasChanges, settingsController, onOpenChange, initialValues]);
+
+  // Helper function to strip invalid grid properties
+  const stripInvalidGridProps = (settings: any) => {
+    const {
+      verticalAlign,
+      horizontalAlign,
+      immutableData,
+      suppressCellSelection,
+      groupIncludeFooter,
+      suppressPropertyNamesCheck,
+      suppressBrowserResizeObserver,
+      debug,
+      stopEditingWhenCellsLoseFocus,
+      groupUseEntireRow,
+      enterMovesDown,
+      enterMovesDownAfterEdit,
+      enableCellChangeFlash,
+      exporterCsvFilename,
+      exporterExcelFilename,
+      getRowNodeId,
+      enableRangeHandle,
+      ...rest
+    } = settings;
+    
+    // Convert rowSelection string to object format for v33+
+    if (rest.rowSelection && typeof rest.rowSelection === 'string') {
+      const mode = rest.rowSelection === 'single' ? 'singleRow' : 
+                  rest.rowSelection === 'multiple' ? 'multiRow' : rest.rowSelection;
+      rest.rowSelection = { mode };
     }
     
-    if (flattenedSettings.cellSelection !== undefined) {
-      flattenedSettings.cellSelection = normalizeCellSelection(flattenedSettings.cellSelection);
+    // Convert enableRangeSelection to cellSelection object
+    if (rest.enableRangeSelection !== undefined) {
+      if (rest.enableRangeSelection) {
+        rest.cellSelection = rest.cellSelection || {};
+      } else {
+        rest.cellSelection = false;
+      }
+      delete rest.enableRangeSelection;
     }
     
-    // Process alignment settings to regenerate cellStyle function for defaultColDef
-    if (flattenedSettings.defaultColDef) {
-      // Important: need to cast to any to access custom UI properties not in AG Grid's types
-      const colDef = flattenedSettings.defaultColDef as any;
+    // Handle enableRangeHandle -> cellSelection.handle
+    if (enableRangeHandle !== undefined) {
+      if (typeof rest.cellSelection !== 'boolean') {
+        rest.cellSelection = rest.cellSelection || {};
+        rest.cellSelection.handle = !!enableRangeHandle;
+      }
+    }
+    
+    // Handle suppressCellSelection -> cellSelection = false
+    if (suppressCellSelection) {
+      rest.cellSelection = false;
+    }
+    
+    // Also recursively update defaultColDef if present
+    if (rest.defaultColDef) {
+      const {
+        verticalAlign,
+        horizontalAlign,
+        ...colDefRest
+      } = rest.defaultColDef;
       
-      // Get alignment from preserved values, not from colDef which may have lost them
-      const verticalAlign = flattenedSettings._preservedVerticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
-      const horizontalAlign = flattenedSettings._preservedHorizontalAlign as 'left' | 'center' | 'right' | undefined;
-      
-      
-      // Only create cellStyle if at least one alignment is specified
+      // Convert alignment properties to cellStyle if needed
       if (verticalAlign || horizontalAlign) {
-        // Create a function that returns the style object
-        colDef.cellStyle = (params: any) => {
-          // Create a style object for flexbox alignment
-          const styleObj: any = { display: 'flex' };
+        const cellStyleFn = (params: any) => {
+          const style: Record<string, string> = { display: 'flex' };
           
-          // Add vertical alignment
           if (verticalAlign) {
-            // Map UI values to flexbox properties
-            if (verticalAlign === 'top' || verticalAlign === 'start') {
-              styleObj.alignItems = 'flex-start';
-            } else if (verticalAlign === 'middle' || verticalAlign === 'center') {
-              styleObj.alignItems = 'center';
-            } else if (verticalAlign === 'bottom' || verticalAlign === 'end') {
-              styleObj.alignItems = 'flex-end';
-            } else {
-              styleObj.alignItems = 'flex-start'; // Default to top alignment
-            }
+            style.alignItems = verticalAlign === 'middle' ? 'center' : verticalAlign;
           }
           
-          // Add horizontal alignment
           if (horizontalAlign) {
             switch (horizontalAlign) {
               case 'left':
-                styleObj.justifyContent = 'flex-start';
+                style.justifyContent = 'flex-start';
                 break;
               case 'center':
-                styleObj.justifyContent = 'center';
+                style.justifyContent = 'center';
                 break;
               case 'right':
-                styleObj.justifyContent = 'flex-end';
+                style.justifyContent = 'flex-end';
                 break;
             }
-          } else if (params.colDef.type === 'numericColumn') {
-            styleObj.justifyContent = 'flex-end'; // Right align numbers by default
-          } else {
-            styleObj.justifyContent = 'flex-start'; // Left align text by default
           }
           
-          return styleObj;
+          return style;
         };
         
-        // Test the cellStyle function to verify it works
-        try {
-          if (typeof colDef.cellStyle === 'function') {
-            const testResult = colDef.cellStyle({ colDef: { type: undefined } });
-          }
-        } catch (e) {
-        }
-        
-        // We DO NOT want to delete these properties yet - we need them for state persistence
-        // They will be converted to cellStyle when needed but should be stored in settings
-      } else {
-        // If both alignments are unset, use default cellStyle from DEFAULT_GRID_OPTIONS
-        colDef.cellStyle = DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle;
+        colDefRest.cellStyle = cellStyleFn;
       }
+      
+      rest.defaultColDef = colDefRest;
     }
     
-    // Apply each setting to the grid
-    Object.entries(flattenedSettings).forEach(([option, value]) => {
-      try {
-        // Skip undefined values and initial properties
-        if (value !== undefined && !INITIAL_PROPERTIES.includes(option) && option !== 'theme') {
-          // Special handling for defaultColDef
-          if (option === 'defaultColDef') {
-            
-            // Add the verticalAlign and horizontalAlign back to the colDef if needed
-            if (flattenedSettings._preservedVerticalAlign) {
-              const preservedVertical = flattenedSettings._preservedVerticalAlign;
-              
-              // Create a copy to avoid directly modifying the object
-              const colDefWithAlignment = { ...value };
-              
-              // Create a cellStyle function if there isn't one already
-              colDefWithAlignment.cellStyle = params => {
-                const style = { display: 'flex' };
-                
-                // Apply vertical alignment
-                if (preservedVertical === 'top') {
-                  style.alignItems = 'flex-start';
-                } else if (preservedVertical === 'middle') {
-                  style.alignItems = 'center';
-                } else if (preservedVertical === 'bottom') {
-                  style.alignItems = 'flex-end';
-                }
-                
-                // Default horizontal alignment based on numeric column
-                if (params.colDef.type === 'numericColumn') {
-                  style.justifyContent = 'flex-end'; // Right align numbers by default
-                } else {
-                  style.justifyContent = 'flex-start'; // Left align text by default
-                }
-                
-                return style;
-              };
-              
-              // Apply the updated colDef to the grid
-              gridApi.setGridOption('defaultColDef', colDefWithAlignment);
-            } else {
-              // No alignment, apply normally
-              gridApi.setGridOption('defaultColDef', value);
-            }
-            
-            // Don't refresh here - we'll do a single refresh at the end
-          }
-          // Special handling for specific options
-          else if (option === 'statusBar') {
-            if (value === false) {
-              // Disable status bar
-              gridApi.setGridOption('statusBar', false);
-            } else if (typeof value === 'object' && value.statusPanels) {
-              // Check if statusPanels is an array and has items
-              if (Array.isArray(value.statusPanels) && value.statusPanels.length > 0) {
-                // Make sure each panel has the required statusPanel property
-                const validPanels = value.statusPanels.filter(
-                  (panel: any) => panel && typeof panel === 'object' && panel.statusPanel
-                );
-                
-                if (validPanels.length > 0) {
-                  // Apply valid panels configuration
-                  gridApi.setGridOption('statusBar', { 
-                    statusPanels: validPanels 
-                  });
-                } else {
-                  // No valid panels, disable status bar
-                  gridApi.setGridOption('statusBar', false);
-                }
-              } else {
-                // Empty array or not an array, disable status bar
-                gridApi.setGridOption('statusBar', false);
-              }
-            } else {
-              // For any other value (like true or invalid object), disable
-              gridApi.setGridOption('statusBar', false);
-            }
-          } else if (option === 'sideBar') {
-            if (value === false || value === '' || value === 'none') {
-              // Disable side bar
-              gridApi.setGridOption('sideBar', false);
-            } else if (value === true || value === 'true') {
-              // Enable default side bar
-              gridApi.setGridOption('sideBar', true);
-            } else if (typeof value === 'string') {
-              // Set to specific tool panel
-              gridApi.setGridOption('sideBar', value);
-            } else if (typeof value === 'object') {
-              // Apply object configuration
-              gridApi.setGridOption('sideBar', value);
-            } else {
-              // Disable for any other invalid value
-              gridApi.setGridOption('sideBar', false);
-            }
-          } else if (option === 'theme' && typeof value === 'string' && value.length > 0) {
-            // Apply theme class correctly
-            //gridApi.setGridOption('theme', value);
-          } else if (option === 'rowSelection' && typeof value === 'object') {
-            // Need special handling for the rowSelection object
-            const currentRowSelection = gridApi.getGridOption('rowSelection') || {};
-            const typedRowSelection = typeof currentRowSelection === 'object' ? 
-              currentRowSelection : { mode: currentRowSelection };
-            gridApi.setGridOption('rowSelection', { ...typedRowSelection, ...value });
-          } else if (option === 'cellSelection' && typeof value === 'object') {
-            // Need special handling for the cellSelection object
-            const currentCellSelection = gridApi.getGridOption('cellSelection');
-            const typedCellSelection = typeof currentCellSelection === 'boolean' ? 
-              { enabled: currentCellSelection } : currentCellSelection || {};
-            gridApi.setGridOption('cellSelection', { ...typedCellSelection, ...value });
-          } else {
-            // Apply all other settings normally
-            gridApi.setGridOption(option, value);
-          }
-        }
-      } catch (error) {
-      }
-    });
-    
-    // If settings controller exists, store grid options in custom settings
-    if (settingsController) {
-      // Filter out initial properties that can't be updated at runtime
-      const filteredSettings = { ...flattenedSettings };
-      INITIAL_PROPERTIES.forEach(prop => delete filteredSettings[prop]);
-      
-      // Also remove our temporary preserved alignment properties
-      delete filteredSettings._preservedVerticalAlign;
-      delete filteredSettings._preservedHorizontalAlign;
-      
-      // Only persist options that have actually changed
-      const changedSettings: GridOptionsMap = {};
-      changedOptions.forEach(option => {
-        if (filteredSettings[option] !== undefined) {
-          changedSettings[option] = filteredSettings[option];
-        }
-      });
-      
-      settingsController.updateGridOptions(changedSettings);
-    }
-    
-    // Restore the grid state after applying settings
-    if (currentGridState && settingsController) {
-      // Apply immediately - the grid state provider won't refresh
-      settingsController.gridStateProvider?.applyGridState(currentGridState);
-      
-      // Single refresh after everything is applied
-      requestAnimationFrame(() => {
-        gridApi.refreshHeader();
-        gridApi.refreshCells({ force: true });
-      });
-    }
-    
-    setHasChanges(false);
-    
-    // Close the dialog after applying changes
-    onOpenChange(false);
-  }, [gridApi, gridSettings, hasChanges, settingsController, onOpenChange, initialValues]);
+    return rest;
+  };
 
   // Custom tabs style for vertical tabs
   return (
