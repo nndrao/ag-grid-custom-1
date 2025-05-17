@@ -4,8 +4,7 @@ import {
   GridApi, 
   GridReadyEvent,
   SortDirection,
-  ColDef,
-  CellFocusedEvent
+  ColDef
 } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
@@ -15,14 +14,12 @@ import { SettingsController } from '@/services/settings-controller';
 import { useProfileManager2 } from '@/hooks/useProfileManager2';
 import { useAgGridTheme } from './hooks/useAgGridTheme';
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
+import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation';
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import cloneDeep from 'lodash/cloneDeep';
 import { mergeWith } from 'lodash';
-import { keyboardThrottleConfig, rapidKeypressConfig } from './config/keyboard-throttle-config';
-import { useKeyboardThrottler } from './hooks/useKeyboardThrottler';
-import { useRapidKeypressNavigator } from './hooks/useRapidKeypressNavigator';
 import { GoogleFontsLoader } from '@/components/GoogleFontsLoader';
 
 // Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
@@ -66,14 +63,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Use our modular hooks with settings controller
   const { theme } = useAgGridTheme(settingsControllerRef.current);
   
-  // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
-  useKeyboardThrottler({
-    ...keyboardThrottleConfig,
-    targetElement: document.body,
-  });
-
-  // Use rapid keypress navigator for enhanced keyboard navigation
-  const { enable: enableRapidKeypress } = useRapidKeypressNavigator(gridApiRef.current, rapidKeypressConfig);
+  // Use keyboard navigation hook
+  useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   
   // Use type assertion to bypass type checking for profileManager
   const safeProfileManager = profileManager as unknown as ProfileManager;
@@ -88,35 +79,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     getContextMenuItems
   } = useDefaultColumnDefs();
 
-  // Handle keyboard navigation separately
-  useEffect(() => {
-    if (!gridReady || !gridApiRef.current) return;
-    
-    // Enable rapid keypresses when grid is ready
-    enableRapidKeypress();
-    
-    // Add a focused cell changed listener for column visibility
-    const onFocusedCellChanged = (params: CellFocusedEvent) => {
-      if (!params.column) return;
-      
-      try {
-        // Ensure the column is visible in the viewport
-        gridApiRef.current?.ensureColumnVisible(params.column);
-      } catch (err: unknown) {
-        console.error('Error handling focused cell change:', err);
-      }
-    };
-    
-    // Register the listener
-    gridApiRef.current.addEventListener('cellFocused', onFocusedCellChanged);
-    
-    // Cleanup
-    return () => {
-      if (gridApiRef.current) {
-        gridApiRef.current.removeEventListener('cellFocused', onFocusedCellChanged);
-      }
-    };
-  }, [gridReady, enableRapidKeypress]);
 
   // Use profile's gridOptions if available, otherwise fallback to DEFAULT_GRID_OPTIONS
   // Memoize to prevent unnecessary cloning on every render
