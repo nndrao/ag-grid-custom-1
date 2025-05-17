@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Settings, Save, RotateCcw } from 'lucide-react';
+import { Settings, Save, RotateCcw, Columns } from 'lucide-react';
 import { GridSettingsDialog } from './grid-settings-dialog';
+import { ColumnSettingsDialog } from './column-settings-dialog';
 import { GridApi } from 'ag-grid-community';
 import { SettingsController } from '@/services/settings-controller';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,6 +19,7 @@ interface GridSettingsMenuProps {
 
 export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMenuProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // We'll use the profile manager to save settings directly
@@ -45,7 +47,6 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         duration: 2000,
       });
     } catch (error) {
-      console.error('Error saving grid settings to profile:', error);
       toast({
         title: "Error Saving Settings",
         description: "Failed to save settings to profile.",
@@ -66,17 +67,12 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
     }
 
     try {
-      console.log("Original DEFAULT_GRID_OPTIONS:", DEFAULT_GRID_OPTIONS);
-      console.log("Original cellStyle type:", typeof DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle);
       
       // Deep clone the default grid options with our improved deepClone function
       const defaults = deepClone(DEFAULT_GRID_OPTIONS);
-      console.log("Cloned defaults with cellStyle:", defaults.defaultColDef?.cellStyle);
-      console.log("Cloned cellStyle type:", typeof defaults.defaultColDef?.cellStyle);
       
       // Directly apply the default column definition with cellStyle function
       if (defaults.defaultColDef) {
-        console.log("Applying defaultColDef directly to grid");
         gridApi.setGridOption('defaultColDef', defaults.defaultColDef);
       }
       
@@ -95,13 +91,10 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
       });
       
       // Force refresh to apply the new styles
-      console.log("Forcing cell refresh");
       gridApi.refreshCells({ force: true });
       
       // Verify the cellStyle function is still present after all operations
       const currentDefaultColDef = gridApi.getGridOption('defaultColDef');
-      console.log("Current grid defaultColDef after reset:", currentDefaultColDef);
-      console.log("Current cellStyle type after reset:", typeof currentDefaultColDef?.cellStyle);
       
       toast({
         title: "Settings Reset",
@@ -110,7 +103,6 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         duration: 2000,
       });
     } catch (error) {
-      console.error('Error resetting grid settings:', error);
       toast({
         title: "Error Resetting Settings",
         description: "Failed to reset settings to profile defaults.",
@@ -143,6 +135,11 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
             Edit Grid Settings
           </DropdownMenuItem>
           
+          <DropdownMenuItem onClick={() => setColumnDialogOpen(true)}>
+            <Columns className="h-4 w-4 mr-2" />
+            Column Settings
+          </DropdownMenuItem>
+          
           <DropdownMenuSeparator />
           
           <DropdownMenuItem onClick={saveToProfile} disabled={!profileManager?.activeProfile}>
@@ -162,6 +159,12 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         onOpenChange={setDialogOpen} 
         gridApi={gridApi}
         settingsController={settingsController}
+      />
+      
+      <ColumnSettingsDialog
+        open={columnDialogOpen}
+        onOpenChange={setColumnDialogOpen}
+        gridApi={gridApi}
       />
     </>
   );

@@ -27,7 +27,6 @@ export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: Profil
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (error) {
-      console.error("Error in save button:", error);
     } finally {
       setIsSaving(false);
     }

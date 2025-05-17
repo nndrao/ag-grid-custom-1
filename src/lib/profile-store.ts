@@ -20,7 +20,6 @@ export class ProfileStore {
       const data = localStorage.getItem(PROFILE_STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error loading profiles:', error);
       return [];
     }
   }
@@ -50,5 +49,22 @@ export class ProfileStore {
 
   async setActiveProfileId(profileId: string): Promise<void> {
     localStorage.setItem(ACTIVE_PROFILE_KEY, profileId);
+  }
+
+  async createProfile(name: string, settings: any): Promise<Profile> {
+    const newProfile: Profile = {
+      id: `profile-${Date.now()}`,
+      name,
+      isActive: false,
+      settings,
+      metadata: {
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastUsed: new Date()
+      }
+    };
+
+    await this.saveProfile(newProfile);
+    return newProfile;
   }
 } 

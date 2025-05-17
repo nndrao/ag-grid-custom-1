@@ -183,12 +183,21 @@ export function GridSettingsDialog({
         rowModelType: mergedSettings.rowModelType,
       };
       
-      // Column defaults - ensure this is properly hydrated
-      // DEBUG: Log mergedSettings.defaultColDef to check for alignment properties
-      console.debug('[GridSettingsDialog] mergedSettings.defaultColDef:', mergedSettings.defaultColDef);
+      // Column defaults - ensure this is properly hydrated with alignment values
+      
+      // Extract alignment values from the defaultColDef if they exist
+      const defaultColDef = mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef;
+      
+      // If defaultColDef has verticalAlign or horizontalAlign, preserve them
       currentSettings.defaults = {
-        defaultColDef: mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef
+        defaultColDef: {
+          ...defaultColDef,
+          // Ensure alignment values are preserved from stored settings
+          verticalAlign: defaultColDef?.verticalAlign,
+          horizontalAlign: defaultColDef?.horizontalAlign
+        }
       };
+      
       
       // Selection options - handling both modern AG-Grid v33+ API and backward compatibility
       const rowSelection = mergedSettings.rowSelection as any;
@@ -361,6 +370,9 @@ export function GridSettingsDialog({
   const applyChanges = useCallback(() => {
     if (!gridApi || !hasChanges) return;
     
+    // Save current grid state before applying changes
+    const currentGridState = settingsController?.gridStateProvider?.extractGridState();
+    
     // Flatten all settings into a single object
     const flattenedSettings: GridOptionsMap = {};
     
@@ -369,7 +381,6 @@ export function GridSettingsDialog({
     
     // Special handling for Column Defaults to make sure alignments are preserved
     if (gridSettings.defaults?.defaultColDef) {
-      console.debug('[GridSettingsDialog] Processing defaults first:', gridSettings.defaults.defaultColDef);
       
       // Important: directly capture alignment values before they get lost
       const defaultColDef = { ...gridSettings.defaults.defaultColDef };
@@ -386,11 +397,6 @@ export function GridSettingsDialog({
       
       changedOptions.add('defaultColDef');
       
-      console.debug('[GridSettingsDialog] Preserved alignment separately:', { 
-        verticalAlign, 
-        horizontalAlign,
-        defaultColDef
-      });
     }
     
     Object.entries(gridSettings).forEach(([category, categorySettings]) => {
@@ -517,7 +523,6 @@ export function GridSettingsDialog({
       });
     });
     
-    console.log('Applying grid settings:', flattenedSettings, 'Changed options:', Array.from(changedOptions));
     
     // Process special cases for AG-Grid v33+ API
     if (flattenedSettings.rowSelection) {
@@ -537,11 +542,6 @@ export function GridSettingsDialog({
       const verticalAlign = flattenedSettings._preservedVerticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
       const horizontalAlign = flattenedSettings._preservedHorizontalAlign as 'left' | 'center' | 'right' | undefined;
       
-      console.debug('[GridSettingsDialog] Using preserved alignment values:', { 
-        verticalAlign, 
-        horizontalAlign,
-        fullColDef: colDef
-      });
       
       // Only create cellStyle if at least one alignment is specified
       if (verticalAlign || horizontalAlign) {
@@ -583,26 +583,16 @@ export function GridSettingsDialog({
             styleObj.justifyContent = 'flex-start'; // Left align text by default
           }
           
-          console.debug(`[GridSettingsDialog] Generated cell style for ${verticalAlign}:`, styleObj);
           return styleObj;
         };
         
-        // Apply the cellStyle function to the grid immediately - using timeout to allow processing to complete
-        setTimeout(() => {
-          try {
-            // Test the cellStyle function to verify it works
-            if (typeof colDef.cellStyle === 'function') {
-              const testResult = colDef.cellStyle({ colDef: { type: undefined } });
-              console.debug('[GridSettingsDialog] Test cellStyle result:', testResult, 'for alignment:', verticalAlign);
-            }
-            
-            // Force refresh the grid to apply the new styles
-            gridApi.refreshCells({ force: true });
-            console.debug('[GridSettingsDialog] Grid cells refreshed to apply alignment:', verticalAlign);
-          } catch (e) {
-            console.error('[GridSettingsDialog] Error applying cellStyle:', e);
+        // Test the cellStyle function to verify it works
+        try {
+          if (typeof colDef.cellStyle === 'function') {
+            const testResult = colDef.cellStyle({ colDef: { type: undefined } });
           }
-        }, 0);
+        } catch (e) {
+        }
         
         // We DO NOT want to delete these properties yet - we need them for state persistence
         // They will be converted to cellStyle when needed but should be stored in settings
@@ -619,12 +609,10 @@ export function GridSettingsDialog({
         if (value !== undefined && !INITIAL_PROPERTIES.includes(option) && option !== 'theme') {
           // Special handling for defaultColDef
           if (option === 'defaultColDef') {
-            console.debug('[GridSettingsDialog] Applying defaultColDef with custom handling:', value);
             
             // Add the verticalAlign and horizontalAlign back to the colDef if needed
             if (flattenedSettings._preservedVerticalAlign) {
               const preservedVertical = flattenedSettings._preservedVerticalAlign;
-              console.debug('[GridSettingsDialog] Reapplying preserved vertical alignment:', preservedVertical);
               
               // Create a copy to avoid directly modifying the object
               const colDefWithAlignment = { ...value };
@@ -659,11 +647,7 @@ export function GridSettingsDialog({
               gridApi.setGridOption('defaultColDef', value);
             }
             
-            // Force grid to refresh cells to show the new styles
-            setTimeout(() => {
-              gridApi.refreshCells({ force: true });
-              console.debug('[GridSettingsDialog] Applied defaultColDef with alignment and refreshed cells');
-            }, 100);
+            // Don't refresh here - we'll do a single refresh at the end
           }
           // Special handling for specific options
           else if (option === 'statusBar') {
@@ -733,7 +717,6 @@ export function GridSettingsDialog({
           }
         }
       } catch (error) {
-        console.error(`Failed to apply setting: ${option}`, error);
       }
     });
     
@@ -742,6 +725,10 @@ export function GridSettingsDialog({
       // Filter out initial properties that can't be updated at runtime
       const filteredSettings = { ...flattenedSettings };
       INITIAL_PROPERTIES.forEach(prop => delete filteredSettings[prop]);
+      
+      // Also remove our temporary preserved alignment properties
+      delete filteredSettings._preservedVerticalAlign;
+      delete filteredSettings._preservedHorizontalAlign;
       
       // Only persist options that have actually changed
       const changedSettings: GridOptionsMap = {};
@@ -752,6 +739,18 @@ export function GridSettingsDialog({
       });
       
       settingsController.updateGridOptions(changedSettings);
+    }
+    
+    // Restore the grid state after applying settings
+    if (currentGridState && settingsController) {
+      // Apply immediately - the grid state provider won't refresh
+      settingsController.gridStateProvider?.applyGridState(currentGridState);
+      
+      // Single refresh after everything is applied
+      requestAnimationFrame(() => {
+        gridApi.refreshHeader();
+        gridApi.refreshCells({ force: true });
+      });
     }
     
     setHasChanges(false);

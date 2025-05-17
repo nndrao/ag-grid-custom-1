@@ -45,8 +45,8 @@ export function useProfileManager2(settingsController: SettingsController | null
     
     await profileManager.saveCurrentProfile();
     
-    // Update state to reflect changes
-    setActiveProfile(profileManager.activeProfile);
+    // Don't update state after saving - this can cause unnecessary re-renders
+    // The profile content has been saved but the reference hasn't changed
   }, [profileManager]);
 
   // Select a profile

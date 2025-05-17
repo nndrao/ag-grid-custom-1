@@ -14,7 +14,7 @@ export const MIN_FONT_SIZE = 6;
  */
 export class SettingsController {
   private gridApi: GridApi | null = null;
-  private gridStateProvider: GridStateProvider;
+  public gridStateProvider: GridStateProvider;
   private settingsStore: SettingsStore;
   private isApplyingSettings = false;
   private pendingSettingsOperation: number | null = null;
@@ -50,6 +50,31 @@ export class SettingsController {
    * Update grid options in the settings store
    */
   public updateGridOptions(options: any): void {
+    
+    // Ensure defaultColDef alignment properties are preserved
+    if (options.defaultColDef) {
+      const colDef = options.defaultColDef;
+      
+      // Preserve alignment properties for storage
+      if (colDef.cellStyle && typeof colDef.cellStyle === 'function') {
+        // Extract alignment from the cellStyle function test result
+        const testResult = colDef.cellStyle({ colDef: { type: undefined } });
+        
+        // Store alignment metadata alongside the defaultColDef
+        if (testResult && testResult.alignItems) {
+          colDef.verticalAlign = testResult.alignItems === 'flex-start' ? 'top' :
+                               testResult.alignItems === 'center' ? 'middle' :
+                               testResult.alignItems === 'flex-end' ? 'bottom' : undefined;
+        }
+        if (testResult && testResult.justifyContent) {
+          colDef.horizontalAlign = testResult.justifyContent === 'flex-start' ? 'left' :
+                                 testResult.justifyContent === 'center' ? 'center' :
+                                 testResult.justifyContent === 'flex-end' ? 'right' : undefined;
+        }
+      }
+    }
+    
+    // Update the store with new options (this merges with existing options)
     this.settingsStore.updateSettings('gridOptions', options);
     
     // Apply grid options to the grid if API is available
@@ -59,30 +84,109 @@ export class SettingsController {
   }
 
   /**
-   * Apply grid options to the grid
+   * Apply grid options to the grid in an idempotent manner
    */
   private applyGridOptions(gridApi: GridApi, options: any): void {
-    // Only apply settings that can be changed at runtime
+    
+    // Define all runtime-changeable options
     const runtimeGridOptions = [
       'headerHeight', 'rowHeight', 'defaultColDef', 'autoGroupColumnDef',
       'rowClass', 'rowStyle', 'getRowClass', 'rowClassRules',
       'rowSelection', 'cellSelection', 'pagination',
-      'paginationPageSize', 'domLayout', 'enableCellTextSelection'
+      'paginationPageSize', 'domLayout', 'enableCellTextSelection',
+      'animateRows', 'suppressRowTransform', 'suppressColumnVirtualisation',
+      'suppressCellFocus', 'suppressMovableColumns', 'suppressFieldDotNotation',
+      'floatingFiltersHeight', 'groupDefaultExpanded', 'groupIncludeFooter',
+      'groupIncludeTotalFooter', 'suppressRowHoverHighlight',
+      'suppressCopyRowsToClipboard', 'copyHeadersToClipboard',
+      'clipboardDelimiter', 'suppressLastEmptyLineOnPaste',
+      'sideBar', 'statusBar', 'enableRangeSelection', 'enableRangeHandle',
+      'suppressMultiRangeSelection', 'rowGroupPanelShow',
+      'pivotPanelShow', 'suppressContextMenu', 'preventDefaultOnContextMenu',
+      'allowContextMenuWithControlKey', 'multiSortKey', 'alwaysShowHorizontalScroll',
+      'alwaysShowVerticalScroll', 'suppressHorizontalScroll',
+      'suppressScrollOnNewData', 'suppressClipboardPaste',
+      'suppressClipboardCut', 'accentedSort', 'unSortIcon', 'suppressMultiSort',
+      'autoSizePadding', 'skipHeaderOnAutoSize',
+      'groupSelectsChildren', 'groupSelectsFiltered',
+      'suppressRowClickSelection', 'suppressRowDeselection',
+      'suppressAggFuncInHeader', 'suppressColumnMoveAnimation',
+      'suppressDragLeaveHidesColumns', 'suppressRowGroupHidesColumns',
+      'suppressMakeColumnVisibleAfterUnGroup'
     ];
 
-    // Apply each valid option
+    // Track applied options to avoid redundant updates
+    const appliedOptions = new Set<string>();
+
+    // Apply each valid option only if it has changed
     Object.keys(options).forEach(optionKey => {
-      if (runtimeGridOptions.includes(optionKey)) {
-        try {
-          gridApi.setGridOption(optionKey, options[optionKey]);
-        } catch (error) {
-          console.error(`Error applying grid option ${optionKey}:`, error);
+      // Skip options that can't be changed at runtime
+      if (!runtimeGridOptions.includes(optionKey)) {
+        return;
+      }
+
+      // Skip if already applied
+      if (appliedOptions.has(optionKey)) {
+        return;
+      }
+
+      try {
+        const currentValue = gridApi.getGridOption(optionKey);
+        const newValue = options[optionKey];
+        
+        // Special handling for defaultColDef to ensure alignment is preserved
+        if (optionKey === 'defaultColDef' && newValue) {
+          const processedColDef = { ...newValue };
+          
+          // Reconstruct cellStyle if alignment properties exist
+          if (processedColDef.verticalAlign || processedColDef.horizontalAlign) {
+            
+            processedColDef.cellStyle = (params: any) => {
+              const styleObj: any = { display: 'flex' };
+              
+              // Apply vertical alignment
+              if (processedColDef.verticalAlign === 'top') {
+                styleObj.alignItems = 'flex-start';
+              } else if (processedColDef.verticalAlign === 'middle') {
+                styleObj.alignItems = 'center';
+              } else if (processedColDef.verticalAlign === 'bottom') {
+                styleObj.alignItems = 'flex-end';
+              }
+              
+              // Apply horizontal alignment
+              if (processedColDef.horizontalAlign === 'left') {
+                styleObj.justifyContent = 'flex-start';
+              } else if (processedColDef.horizontalAlign === 'center') {
+                styleObj.justifyContent = 'center';
+              } else if (processedColDef.horizontalAlign === 'right') {
+                styleObj.justifyContent = 'flex-end';
+              } else if (params.colDef.type === 'numericColumn') {
+                styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+              } else {
+                styleObj.justifyContent = 'flex-start'; // Left align text by default
+              }
+              
+              return styleObj;
+            };
+          }
+          
+          gridApi.setGridOption(optionKey, processedColDef);
+          appliedOptions.add(optionKey);
+        } else {
+          // Only apply if values are different
+          if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
+            gridApi.setGridOption(optionKey, newValue);
+            appliedOptions.add(optionKey);
+          } else {
+          }
         }
+      } catch (error) {
       }
     });
 
-    // Refresh the grid to ensure changes take effect
-    gridApi.refreshCells({ force: true });
+    // Don't refresh here - we'll do it once at the end of applyProfileSettings
+    if (appliedOptions.size > 0) {
+    }
   }
 
   /**
@@ -121,17 +225,24 @@ export class SettingsController {
     const gridState = this.gridStateProvider.extractGridState();
     
     // Get settings from the store
-    return {
+    const settings = {
       toolbar: this.settingsStore.getSettings('toolbar'),
       grid: gridState,
       custom: {
         gridOptions: this.settingsStore.getSettings('gridOptions')
       }
     };
+    
+    return settings;
   }
 
   /**
-   * Apply settings from a profile
+   * Apply settings from a profile following the correct order:
+   * 1. Default Grid Options
+   * 2. Custom Grid Options
+   * 3. All Grid States (column state, sort, filter, etc.)
+   * 4. Toolbar Settings
+   * 5. Column Settings and Styles
    */
   public applyProfileSettings(settings: ProfileSettings): void {
     // Cancel any pending operations
@@ -153,17 +264,80 @@ export class SettingsController {
     this.isApplyingSettings = true;
     
     try {
-      // Apply settings to the store
-      this.settingsStore.applyProfileSettings(settings);
       
-      // Apply grid state if grid API is available
+      // Step 1: Apply toolbar settings first (includes themes, fonts, etc.)
+      if (settings.toolbar) {
+        this.settingsStore.updateAllToolbarSettings(settings.toolbar);
+      }
+      
+      // Step 2: Process and apply default grid options with alignment reconstruction
+      if (this.gridApi && settings.custom?.gridOptions?.defaultColDef) {
+        const defaultColDef = { ...settings.custom.gridOptions.defaultColDef };
+        
+        // Reconstruct cellStyle function from stored alignment metadata
+        if (defaultColDef.verticalAlign || defaultColDef.horizontalAlign) {
+          
+          defaultColDef.cellStyle = (params: any) => {
+            const styleObj: any = { display: 'flex' };
+            
+            // Apply vertical alignment
+            if (defaultColDef.verticalAlign === 'top') {
+              styleObj.alignItems = 'flex-start';
+            } else if (defaultColDef.verticalAlign === 'middle') {
+              styleObj.alignItems = 'center';
+            } else if (defaultColDef.verticalAlign === 'bottom') {
+              styleObj.alignItems = 'flex-end';
+            }
+            
+            // Apply horizontal alignment
+            if (defaultColDef.horizontalAlign === 'left') {
+              styleObj.justifyContent = 'flex-start';
+            } else if (defaultColDef.horizontalAlign === 'center') {
+              styleObj.justifyContent = 'center';
+            } else if (defaultColDef.horizontalAlign === 'right') {
+              styleObj.justifyContent = 'flex-end';
+            } else if (params.colDef.type === 'numericColumn') {
+              styleObj.justifyContent = 'flex-end'; // Right align numbers by default
+            } else {
+              styleObj.justifyContent = 'flex-start'; // Left align text by default
+            }
+            
+            return styleObj;
+          };
+        }
+        
+        this.gridApi.setGridOption('defaultColDef', defaultColDef);
+      }
+      
+      // Step 3: Apply custom grid options (includes advanced configuration)
+      if (this.gridApi && settings.custom?.gridOptions) {
+        
+        // Update settings store first
+        this.settingsStore.updateSettings('gridOptions', settings.custom.gridOptions);
+        
+        // Then apply to grid
+        this.applyGridOptions(this.gridApi, settings.custom.gridOptions);
+      }
+      
+      // Step 4: Apply all grid states (column, sort, filter, etc.)
       if (this.gridApi && settings.grid) {
         this.gridStateProvider.applyGridState(settings.grid);
       }
       
-      // Apply grid options if available
-      if (this.gridApi && settings.custom?.gridOptions) {
-        this.applyGridOptions(this.gridApi, settings.custom.gridOptions);
+      // Step 5: Apply column-specific settings and styles (from Column Settings dialog)
+      if (this.gridApi && settings.custom?.columnDefs) {
+        this.gridApi.setGridOption('columnDefs', settings.custom.columnDefs);
+      }
+      
+      // Single grid refresh after all settings are applied
+      if (this.gridApi) {
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+          if (this.gridApi) {
+            this.gridApi.refreshHeader();
+            this.gridApi.refreshCells({ force: true });
+          }
+        });
       }
     } finally {
       // Reset flag

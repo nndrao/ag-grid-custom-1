@@ -4,8 +4,7 @@ import {
   GridApi, 
   GridReadyEvent,
   SortDirection,
-  ColDef,
-  CellFocusedEvent
+  ColDef
 } from 'ag-grid-community';
 import { AllEnterpriseModule } from 'ag-grid-enterprise';
 import { AgGridReact } from 'ag-grid-react';
@@ -15,15 +14,12 @@ import { SettingsController } from '@/services/settings-controller';
 import { useProfileManager2 } from '@/hooks/useProfileManager2';
 import { useAgGridTheme } from './hooks/useAgGridTheme';
 import { useAgGridProfileSync } from './hooks/useAgGridProfileSync';
+import { useAgGridKeyboardNavigation } from './hooks/useAgGridKeyboardNavigation';
 import { useDefaultColumnDefs } from './config/default-column-defs';
 import { ProfileManager } from '@/types/ProfileManager';
 import { DEFAULT_GRID_OPTIONS } from '@/components/datatable/config/default-grid-options';
 import cloneDeep from 'lodash/cloneDeep';
 import { mergeWith } from 'lodash';
-import { keyboardThrottleConfig, rapidKeypressConfig } from './config/keyboard-throttle-config';
-import { useKeyboardThrottler } from './hooks/useKeyboardThrottler';
-import { useRapidKeypressNavigator } from './hooks/useRapidKeypressNavigator';
-import { debounce } from 'lodash';
 import { GoogleFontsLoader } from '@/components/GoogleFontsLoader';
 
 // Only keep tooltip-fixes.css which is for Radix UI, not AG Grid styling
@@ -67,14 +63,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
   // Use our modular hooks with settings controller
   const { theme } = useAgGridTheme(settingsControllerRef.current);
   
-  // Apply keyboard throttling to prevent overwhelming ag-grid with rapid key presses
-  useKeyboardThrottler({
-    ...keyboardThrottleConfig,
-    targetElement: document.body,
-  });
-
-  // Use rapid keypress navigator for enhanced keyboard navigation
-  const { enable: enableRapidKeypress } = useRapidKeypressNavigator(gridApiRef.current, rapidKeypressConfig);
+  // Use keyboard navigation hook
+  useAgGridKeyboardNavigation(gridApiRef.current, gridReady);
   
   // Use type assertion to bypass type checking for profileManager
   const safeProfileManager = profileManager as unknown as ProfileManager;
@@ -89,35 +79,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     getContextMenuItems
   } = useDefaultColumnDefs();
 
-  // Handle keyboard navigation separately
-  useEffect(() => {
-    if (!gridReady || !gridApiRef.current) return;
-    
-    // Enable rapid keypresses when grid is ready
-    enableRapidKeypress();
-    
-    // Add a focused cell changed listener for column visibility
-    const onFocusedCellChanged = (params: CellFocusedEvent) => {
-      if (!params.column) return;
-      
-      try {
-        // Ensure the column is visible in the viewport
-        gridApiRef.current?.ensureColumnVisible(params.column);
-      } catch (err: unknown) {
-        console.error('Error handling focused cell change:', err);
-      }
-    };
-    
-    // Register the listener
-    gridApiRef.current.addEventListener('cellFocused', onFocusedCellChanged);
-    
-    // Cleanup
-    return () => {
-      if (gridApiRef.current) {
-        gridApiRef.current.removeEventListener('cellFocused', onFocusedCellChanged);
-      }
-    };
-  }, [gridReady, enableRapidKeypress]);
 
   // Use profile's gridOptions if available, otherwise fallback to DEFAULT_GRID_OPTIONS
   // Memoize to prevent unnecessary cloning on every render
@@ -196,74 +157,95 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Memoize columnDefs to prevent unnecessary rerenders
   const memoizedColumnDefs = useMemo(() => columnDefs, [columnDefs]);
+  
+  // Memoize static configuration objects to prevent re-renders
+  const rowSelection = useMemo(() => ({
+    mode: 'multiRow',
+    enableClickSelection: true,
+    enableSelectionWithoutKeys: true
+  }), []);
+  
+  const dataTypeDefinitions = useMemo(() => ({
+    string: {
+      baseDataType: 'text',
+      extendsDataType: 'text',
+    }
+  }), []);
+  
+  const sideBar = useMemo(() => ({
+    toolPanels: [
+      {
+        id: 'columns',
+        labelDefault: 'Columns',
+        labelKey: 'columns',
+        iconKey: 'columns',
+        toolPanel: 'agColumnsToolPanel',
+      },
+      {
+        id: 'filters',
+        labelDefault: 'Filters',
+        labelKey: 'filters',
+        iconKey: 'filter',
+        toolPanel: 'agFiltersToolPanel',
+      },
+    ],
+  }), []);
+  
+  const statusBar = useMemo(() => ({
+    statusPanels: [
+      { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+      { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+      { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
+      { statusPanel: 'agAggregationComponent', align: 'right' },
+      { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
+    ],
+  }), []);
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
     gridApiRef.current = params.api;
     gridStateProvider.current.setGridApi(params.api);
+    
+    // Ensure settings controller has the grid API
+    if (settingsControllerRef.current) {
+      settingsControllerRef.current.setGridApi(params.api);
+    }
+    
     setGridReady(true);
     
     // Apply active profile settings if available
     if (profileManager?.activeProfile && settingsControllerRef.current) {
-      // Only apply profile settings if this is the first time or profile actually changed
+      // Only apply profile settings if this is the first time
       if (!isInitialProfileAppliedRef.current) {
         isInitialProfileAppliedRef.current = true;
         
         // Record the profile ID for future change detection
         previousProfileIdRef.current = profileManager.activeProfile.id;
         
-        // Apply settings on initial load - only once
-        console.log("📊 Initial application of profile settings");
-        settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+        // Apply settings on initial load with delay to ensure grid is fully ready
+        setTimeout(() => {
+          if (settingsControllerRef.current && profileManager.activeProfile) {
+            settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+            
+            // Apply grid options after settings are applied
+            if (processedDefaultColDef) {
+              params.api.setGridOption('defaultColDef', processedDefaultColDef);
+              
+              // Force a refresh after all settings
+              setTimeout(() => {
+                params.api.refreshCells({ force: true });
+              }, 200);
+            }
+          }
+        }, 300); // Increase delay to ensure grid is fully ready
       }
-      
-      // Apply grid options using the proper AG Grid API
-      if (processedDefaultColDef) {
-        // Apply using the appropriate grid API method
-        params.api.setGridOption('defaultColDef', processedDefaultColDef);
-        
-        // Use AG Grid's event system instead of setTimeout
-        params.api.addEventListener('firstDataRendered', () => {
-          params.api.refreshCells({ force: true });
-        });
-      }
-      
-      // Add event listeners to save column state when the user makes changes
-      // to column width, order, visibility, etc.
-      const autoSaveProfileWithDebounce = debounce(() => {
-        console.log("🔄 Auto-saving profile after column changes");
-        if (profileManager.saveCurrentProfile) {
-          profileManager.saveCurrentProfile();
-        }
-      }, 500);
-
-      // Event handlers for column state changes
-      params.api.addEventListener('columnResized', () => {
-        console.log("📏 Column resized - triggering profile save");
-        autoSaveProfileWithDebounce();
-      });
-      
-      params.api.addEventListener('columnMoved', () => {
-        console.log("🔄 Column moved - triggering profile save");
-        autoSaveProfileWithDebounce();
-      });
-      
-      params.api.addEventListener('columnVisible', () => {
-        console.log("👁️ Column visibility changed - triggering profile save");
-        autoSaveProfileWithDebounce();
-      });
-      
-      params.api.addEventListener('columnPinned', () => {
-        console.log("📌 Column pinned - triggering profile save");
-        autoSaveProfileWithDebounce();
-      });
     }
   }, [profileManager, processedDefaultColDef]);
   
-  // Detect profile changes and apply settings - optimized to reduce redundant updates
+  // Track profile changes only - ProfileManager handles applying settings
   useEffect(() => {
     // Skip if no grid is ready or no profile manager or no active profile
-    if (!gridReady || !gridApiRef.current || !profileManager?.activeProfile || !settingsControllerRef.current) {
+    if (!gridReady || !profileManager?.activeProfile) {
       return;
     }
     
@@ -272,15 +254,9 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     
     // Check if profile ID has changed AND it's not the initial application
     if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
-      console.log(`🔄 Profile changed from ${previousProfileIdRef.current} to ${currentProfileId}`);
       
-      // Update reference
+      // Update reference only - ProfileManager handles applying settings
       previousProfileIdRef.current = currentProfileId;
-      
-      // Only apply the new profile settings after a profile change
-      console.log("📊 Applying settings after profile change");
-      // This will efficiently batch updates with our optimized SettingsController
-      settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
     }
   }, [gridReady, profileManager?.activeProfile?.id]);
 
@@ -306,45 +282,11 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
           groupDisplayType="singleColumn"
           groupDefaultExpanded={-1}
           cellSelection={true}
-          rowSelection={{
-            mode: 'multiRow',
-            enableClickSelection: true,
-            enableSelectionWithoutKeys: true
-          }}
+          rowSelection={rowSelection}
           loading={false}
-          dataTypeDefinitions={{
-            string: {
-              baseDataType: 'text',
-              extendsDataType: 'text',
-            },
-          }}
-          sideBar={{
-            toolPanels: [
-              {
-                id: 'columns',
-                labelDefault: 'Columns',
-                labelKey: 'columns',
-                iconKey: 'columns',
-                toolPanel: 'agColumnsToolPanel',
-              },
-              {
-                id: 'filters',
-                labelDefault: 'Filters',
-                labelKey: 'filters',
-                iconKey: 'filter',
-                toolPanel: 'agFiltersToolPanel',
-              },
-            ],
-          }}
-          statusBar={{
-            statusPanels: [
-              { statusPanel: 'agTotalRowCountComponent', align: 'left' },
-              { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
-              { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
-              { statusPanel: 'agAggregationComponent', align: 'right' },
-              { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'right' },
-            ],
-          }}
+          dataTypeDefinitions={dataTypeDefinitions}
+          sideBar={sideBar}
+          statusBar={statusBar}
           getContextMenuItems={getContextMenuItems}
           onGridReady={onGridReady}
           theme={theme}

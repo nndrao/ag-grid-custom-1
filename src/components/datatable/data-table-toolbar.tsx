@@ -53,6 +53,9 @@ export function DataTableToolbar<TData>({
     if (!profileManager || !profileManager.activeProfile) return;
     
     try {
+      // Add a small delay to ensure all grid state is settled
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Save current settings without re-applying them
       await profileManager.saveCurrentProfile();
       
@@ -65,7 +68,6 @@ export function DataTableToolbar<TData>({
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast({
         title: "Error Saving Profile",
         description: "Failed to save profile. Please try again or check console for details.",

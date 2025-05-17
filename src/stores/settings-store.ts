@@ -29,7 +29,7 @@ export interface GroupSettings {
   [key: string]: any;
 }
 
-export type SettingsCategory = 'column' | 'filter' | 'toolbar' | 'theme' | 'export' | 'sort' | 'group';
+export type SettingsCategory = 'column' | 'filter' | 'toolbar' | 'theme' | 'export' | 'sort' | 'group' | 'gridOptions';
 
 export class SettingsStore {
   private static instance: SettingsStore;
@@ -78,14 +78,31 @@ export class SettingsStore {
   }
   
   // Update settings for a specific category
-  public updateSettings(category: SettingsCategory, settings: any): void {
-    this.currentSettings[category] = {
-      ...this.currentSettings[category],
+  public updateSettings(category: SettingsCategory | 'gridOptions', settings: any): void {
+    // Check if the settings have actually changed
+    const currentSettings = this.currentSettings[category as keyof typeof this.currentSettings];
+    const hasChanged = Object.keys(settings).some(key => {
+      return JSON.stringify(settings[key]) !== JSON.stringify(currentSettings[key]);
+    });
+    
+    if (!hasChanged) {
+      // No changes, don't update or notify
+      return;
+    }
+    
+    this.currentSettings[category as keyof typeof this.currentSettings] = {
+      ...currentSettings,
       ...settings
     };
     
     // Notify listeners for this category
-    this.notifyListeners(category, this.currentSettings[category]);
+    this.notifyListeners(category, this.currentSettings[category as keyof typeof this.currentSettings]);
+  }
+
+  // Update all toolbar settings at once (replaces entire toolbar section)
+  public updateAllToolbarSettings(settings: ToolbarSettings): void {
+    this.currentSettings.toolbar = settings;
+    this.notifyListeners('toolbar', this.currentSettings.toolbar);
   }
   
   // Get all settings
@@ -100,8 +117,8 @@ export class SettingsStore {
   }
   
   // Get settings for a specific category
-  public getSettings(category: SettingsCategory): any {
-    return { ...this.currentSettings[category] };
+  public getSettings(category: SettingsCategory | 'gridOptions'): any {
+    return { ...this.currentSettings[category as keyof typeof this.currentSettings] };
   }
   
   // Subscribe to changes for a specific category
@@ -157,9 +174,19 @@ export class SettingsStore {
     }
     
     if (settings.custom?.gridOptions) {
-      this.currentSettings.gridOptions = { ...settings.custom.gridOptions };
-      // Notify listeners about grid options changes
-      this.notifyListeners('gridOptions', this.currentSettings.gridOptions);
+      // Check if gridOptions have actually changed
+      const currentGridOptions = this.currentSettings.gridOptions;
+      const newGridOptions = settings.custom.gridOptions;
+      
+      const hasGridOptionsChanged = Object.keys(newGridOptions).some(key => {
+        return JSON.stringify(newGridOptions[key]) !== JSON.stringify(currentGridOptions[key]);
+      });
+      
+      if (hasGridOptionsChanged) {
+        this.currentSettings.gridOptions = { ...settings.custom.gridOptions };
+        // Notify listeners about grid options changes
+        this.notifyListeners('gridOptions', this.currentSettings.gridOptions);
+      }
     }
   }
   
@@ -170,7 +197,6 @@ export class SettingsStore {
       try {
         listener(settings);
       } catch (error) {
-        console.error(`Error in settings listener for category ${category}:`, error);
       }
     });
   }

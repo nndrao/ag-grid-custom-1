@@ -508,7 +508,6 @@ export const useRapidKeypressNavigator = (
           break;
       }
     } catch (error) {
-      console.error('Error during keyboard navigation:', error);
     }
   }, [gridApi, navigateInDirection, navigateWithTab, navigateToRowEdge, navigateByPage]);
   
