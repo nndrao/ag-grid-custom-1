@@ -47,7 +47,6 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         duration: 2000,
       });
     } catch (error) {
-      console.error('Error saving grid settings to profile:', error);
       toast({
         title: "Error Saving Settings",
         description: "Failed to save settings to profile.",
@@ -68,17 +67,12 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
     }
 
     try {
-      console.log("Original DEFAULT_GRID_OPTIONS:", DEFAULT_GRID_OPTIONS);
-      console.log("Original cellStyle type:", typeof DEFAULT_GRID_OPTIONS.defaultColDef?.cellStyle);
       
       // Deep clone the default grid options with our improved deepClone function
       const defaults = deepClone(DEFAULT_GRID_OPTIONS);
-      console.log("Cloned defaults with cellStyle:", defaults.defaultColDef?.cellStyle);
-      console.log("Cloned cellStyle type:", typeof defaults.defaultColDef?.cellStyle);
       
       // Directly apply the default column definition with cellStyle function
       if (defaults.defaultColDef) {
-        console.log("Applying defaultColDef directly to grid");
         gridApi.setGridOption('defaultColDef', defaults.defaultColDef);
       }
       
@@ -97,13 +91,10 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
       });
       
       // Force refresh to apply the new styles
-      console.log("Forcing cell refresh");
       gridApi.refreshCells({ force: true });
       
       // Verify the cellStyle function is still present after all operations
       const currentDefaultColDef = gridApi.getGridOption('defaultColDef');
-      console.log("Current grid defaultColDef after reset:", currentDefaultColDef);
-      console.log("Current cellStyle type after reset:", typeof currentDefaultColDef?.cellStyle);
       
       toast({
         title: "Settings Reset",
@@ -112,7 +103,6 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
         duration: 2000,
       });
     } catch (error) {
-      console.error('Error resetting grid settings:', error);
       toast({
         title: "Error Resetting Settings",
         description: "Failed to reset settings to profile defaults.",

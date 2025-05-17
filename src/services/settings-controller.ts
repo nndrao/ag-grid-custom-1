@@ -35,7 +35,6 @@ export class SettingsController {
    * Set the GridApi for grid operations
    */
   public setGridApi(api: GridApi): void {
-    console.log("Setting grid API in SettingsController");
     this.gridApi = api;
     this.gridStateProvider.setGridApi(api);
   }
@@ -51,7 +50,6 @@ export class SettingsController {
    * Update grid options in the settings store
    */
   public updateGridOptions(options: any): void {
-    console.log("📝 Updating grid options in settings store:", options);
     
     // Ensure defaultColDef alignment properties are preserved
     if (options.defaultColDef) {
@@ -61,7 +59,6 @@ export class SettingsController {
       if (colDef.cellStyle && typeof colDef.cellStyle === 'function') {
         // Extract alignment from the cellStyle function test result
         const testResult = colDef.cellStyle({ colDef: { type: undefined } });
-        console.log("📐 Extracting alignment from cellStyle:", testResult);
         
         // Store alignment metadata alongside the defaultColDef
         if (testResult && testResult.alignItems) {
@@ -82,7 +79,6 @@ export class SettingsController {
     
     // Apply grid options to the grid if API is available
     if (this.gridApi) {
-      console.log("⚙️ Applying grid options to AG-Grid");
       this.applyGridOptions(this.gridApi, options);
     }
   }
@@ -91,7 +87,6 @@ export class SettingsController {
    * Apply grid options to the grid in an idempotent manner
    */
   private applyGridOptions(gridApi: GridApi, options: any): void {
-    console.log("🔧 ApplyGridOptions called with:", options);
     
     // Define all runtime-changeable options
     const runtimeGridOptions = [
@@ -127,7 +122,6 @@ export class SettingsController {
     Object.keys(options).forEach(optionKey => {
       // Skip options that can't be changed at runtime
       if (!runtimeGridOptions.includes(optionKey)) {
-        console.log(`⚠️ Skipping non-runtime option: ${optionKey}`);
         return;
       }
 
@@ -146,10 +140,6 @@ export class SettingsController {
           
           // Reconstruct cellStyle if alignment properties exist
           if (processedColDef.verticalAlign || processedColDef.horizontalAlign) {
-            console.log("🎨 Processing defaultColDef with alignment:", {
-              vertical: processedColDef.verticalAlign,
-              horizontal: processedColDef.horizontalAlign
-            });
             
             processedColDef.cellStyle = (params: any) => {
               const styleObj: any = { display: 'flex' };
@@ -182,25 +172,20 @@ export class SettingsController {
           
           gridApi.setGridOption(optionKey, processedColDef);
           appliedOptions.add(optionKey);
-          console.log(`✅ Applied grid option: ${optionKey}`, processedColDef);
         } else {
           // Only apply if values are different
           if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
             gridApi.setGridOption(optionKey, newValue);
             appliedOptions.add(optionKey);
-            console.log(`✅ Applied grid option: ${optionKey}`, newValue);
           } else {
-            console.log(`⏭️ Skipping unchanged option: ${optionKey}`);
           }
         }
       } catch (error) {
-        console.error(`Error applying grid option ${optionKey}:`, error);
       }
     });
 
     // Don't refresh here - we'll do it once at the end of applyProfileSettings
     if (appliedOptions.size > 0) {
-      console.log(`✅ Applied ${appliedOptions.size} grid options, refresh pending`);
     }
   }
 
@@ -238,7 +223,6 @@ export class SettingsController {
   public collectCurrentSettings(): ProfileSettings {
     // Get grid state from provider
     const gridState = this.gridStateProvider.extractGridState();
-    console.log("Collected grid state:", gridState);
     
     // Get settings from the store
     const settings = {
@@ -249,7 +233,6 @@ export class SettingsController {
       }
     };
     
-    console.log("Collected all settings:", settings);
     return settings;
   }
 
@@ -281,7 +264,6 @@ export class SettingsController {
     this.isApplyingSettings = true;
     
     try {
-      console.log("📊 Applying profile settings:", settings);
       
       // Step 1: Apply toolbar settings first (includes themes, fonts, etc.)
       if (settings.toolbar) {
@@ -294,10 +276,6 @@ export class SettingsController {
         
         // Reconstruct cellStyle function from stored alignment metadata
         if (defaultColDef.verticalAlign || defaultColDef.horizontalAlign) {
-          console.log("🎨 Reconstructing cellStyle from alignment metadata:", {
-            vertical: defaultColDef.verticalAlign,
-            horizontal: defaultColDef.horizontalAlign
-          });
           
           defaultColDef.cellStyle = (params: any) => {
             const styleObj: any = { display: 'flex' };
@@ -333,7 +311,6 @@ export class SettingsController {
       
       // Step 3: Apply custom grid options (includes advanced configuration)
       if (this.gridApi && settings.custom?.gridOptions) {
-        console.log("⚙️ Applying custom grid options:", settings.custom.gridOptions);
         
         // Update settings store first
         this.settingsStore.updateSettings('gridOptions', settings.custom.gridOptions);
@@ -344,7 +321,6 @@ export class SettingsController {
       
       // Step 4: Apply all grid states (column, sort, filter, etc.)
       if (this.gridApi && settings.grid) {
-        console.log("📋 Applying grid state:", settings.grid);
         this.gridStateProvider.applyGridState(settings.grid);
       }
       
@@ -358,7 +334,6 @@ export class SettingsController {
         // Use requestAnimationFrame for better performance
         requestAnimationFrame(() => {
           if (this.gridApi) {
-            console.log("🔄 Single final grid refresh after all settings applied");
             this.gridApi.refreshHeader();
             this.gridApi.refreshCells({ force: true });
           }

@@ -29,7 +29,6 @@ export function useAgGridKeyboardNavigation(gridApi: GridApi | null, gridReady: 
         // Ensure the column is visible in the viewport
         gridApi.ensureColumnVisible(params.column);
       } catch (err: unknown) {
-        console.error('Error handling focused cell change:', err);
       }
     };
     

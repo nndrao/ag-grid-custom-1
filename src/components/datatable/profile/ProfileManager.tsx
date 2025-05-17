@@ -39,7 +39,6 @@ export function ProfileManager({ onCreate, iconOnly = false }: ProfileManagerPro
       setOpen(false);
       setProfileName("");
     } catch (error) {
-      console.error('Error creating profile:', error);
     } finally {
       setCreating(false);
     }

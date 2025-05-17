@@ -79,7 +79,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
         }
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
     }
   }, [settingsController, store]);
 
@@ -132,7 +131,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
       const profileExists = profiles.some(p => p.id === profileId);
       
       if (!profileExists) {
-        console.error(`Profile with ID ${profileId} not found`);
         return;
       }
       
@@ -142,7 +140,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
       const freshProfile = allProfiles.find(p => p.id === profileId);
       
       if (!freshProfile) {
-        console.error(`Profile with ID ${profileId} not found in localStorage`);
         return;
       }
       
@@ -180,7 +177,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
           freshProfile.settings.custom.gridOptions = deepClone(DEFAULT_GRID_OPTIONS);
         }
         
-        console.log(`Applying latest settings for profile: ${freshProfile.name}`);
         settingsController.applyProfileSettings(freshProfile.settings);
       } else {
         freshProfile.settings = {
@@ -198,18 +194,15 @@ export const useProfileManager = (settingsController: SettingsController | null)
         settingsController.applyProfileSettings(freshProfile.settings);
       }
     } catch (error) {
-      console.error('Error selecting profile:', error);
     }
   }, [profiles, settingsController, store]);
 
   const createProfile = useCallback(async (profileName: string) => {
     if (!settingsController) {
-      console.error('Cannot create profile: settingsController is null');
       return;
     }
     
     try {
-      console.log('Creating profile with default font size:', DEFAULT_FONT_SIZE);
       
       const defaultToolbarSettings = {
         fontFamily: DEFAULT_FONT_FAMILY,
@@ -217,7 +210,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
         spacing: DEFAULT_SPACING
       };
       
-      console.log('Default toolbar settings:', defaultToolbarSettings);
       
       settingsController.resetToDefaults();
       
@@ -233,7 +225,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
         }
       };
       
-      console.log('Created default settings for new profile:', defaultSettings);
       
       const profileId = `profile-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
@@ -260,7 +251,6 @@ export const useProfileManager = (settingsController: SettingsController | null)
       
       return newProfile;
     } catch (error) {
-      console.error('Error creating profile:', error);
       throw error;
     }
   }, [settingsController, store]);

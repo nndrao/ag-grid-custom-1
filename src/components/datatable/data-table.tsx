@@ -203,7 +203,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
 
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
-    console.log("🚀 Grid ready event fired");
     gridApiRef.current = params.api;
     gridStateProvider.current.setGridApi(params.api);
     
@@ -224,7 +223,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
         previousProfileIdRef.current = profileManager.activeProfile.id;
         
         // Apply settings on initial load with delay to ensure grid is fully ready
-        console.log("📊 Initial application of profile settings on grid ready");
         setTimeout(() => {
           if (settingsControllerRef.current && profileManager.activeProfile) {
             settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
@@ -236,7 +234,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
               // Force a refresh after all settings
               setTimeout(() => {
                 params.api.refreshCells({ force: true });
-                console.log("📊 Grid refreshed after initial profile application");
               }, 200);
             }
           }
@@ -257,7 +254,6 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     
     // Check if profile ID has changed AND it's not the initial application
     if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
-      console.log(`🔄 Profile switched from ${previousProfileIdRef.current} to ${currentProfileId}`);
       
       // Update reference only - ProfileManager handles applying settings
       previousProfileIdRef.current = currentProfileId;

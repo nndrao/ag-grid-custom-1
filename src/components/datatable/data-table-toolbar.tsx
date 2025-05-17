@@ -68,7 +68,6 @@ export function DataTableToolbar<TData>({
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast({
         title: "Error Saving Profile",
         description: "Failed to save profile. Please try again or check console for details.",

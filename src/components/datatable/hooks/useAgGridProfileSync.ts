@@ -27,7 +27,6 @@ export function useAgGridProfileSync(
         if (settingsController && profileManager?.activeProfile) {
           // Add safety check for profileSettings itself first
           if (!profileManager.activeProfile.settings) {
-            console.warn("⚠️ Profile has no settings object at all, creating default settings");
             profileManager.activeProfile.settings = {
               toolbar: { fontFamily: 'monospace' },
               grid: {},
@@ -40,11 +39,9 @@ export function useAgGridProfileSync(
           // Add safety check for missing properties
           // If toolbar is missing, create a default one
           if (!profileSettings.toolbar) {
-            console.warn("⚠️ Profile active in sync hook has no toolbar settings");
             profileSettings.toolbar = { fontFamily: 'monospace' };
           }
           if (!profileSettings.grid) {
-            console.warn("⚠️ Profile active in sync hook has no grid settings");
             profileSettings.grid = {};
           }
           if (!profileSettings.custom) {
@@ -52,7 +49,6 @@ export function useAgGridProfileSync(
           }
           
           // Settings are already applied by ProfileManager, just handle fonts
-          console.log("🔄 Profile sync updating fonts only");
           
           // Also directly update the font if it exists in the profile
           if (profileSettings.toolbar?.fontFamily) {

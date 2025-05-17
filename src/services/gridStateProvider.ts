@@ -63,10 +63,8 @@ export class GridStateProvider {
           // No need to log the full column state - it's too verbose
           // Just log the count of columns
           if (enhancedColumnState.length > 0) {
-            console.log(`📋 Saved state for ${enhancedColumnState.length} columns`);
           }
         } catch (err) {
-          console.error("❌ Error enhancing column state:", err);
         }
         
         // Extract sort state separately for easy access
@@ -362,7 +360,6 @@ export class GridStateProvider {
       }
 
     } catch (error) {
-      console.error('Error extracting grid state:', error);
     }
 
     return gridState;
@@ -370,19 +367,9 @@ export class GridStateProvider {
 
   applyGridState(gridState: GridSettings): void {
     if (!this.gridApi || !gridState) {
-      console.log("❌ Cannot apply grid state - no API or state", { hasApi: !!this.gridApi, hasState: !!gridState });
       return;
     }
     
-    console.log("🔄 Starting grid state application with state:", {
-      hasColumnState: !!gridState.columnState,
-      columnCount: gridState.columnState?.length || 0,
-      hasFilterState: !!gridState.filterState,
-      hasSelectionState: !!gridState.selectionState,
-      hasSortState: !!gridState.sortState,
-      hasPaginationState: !!gridState.paginationState,
-      fullState: gridState
-    });
     
     // Create one batched update for column-related state
     const applyGridUpdates = () => {
@@ -392,7 +379,6 @@ export class GridStateProvider {
         
         // Process column state first (order, visibility, sort)
         if (gridState.columnState) {
-          console.log("📋 Applying column state in batch...");
           
           try {
             // First apply the column state without width
@@ -435,11 +421,9 @@ export class GridStateProvider {
             
             // Apply width updates if we have any
             if (widthUpdates.length > 0) {
-              console.log(`📏 Applying column widths to ${widthUpdates.length} columns`);
               this.gridApi.setColumnWidths(widthUpdates);
             }
           } catch (error) {
-            console.error("❌ Error applying column state:", error);
             
             // Fallback: try applying the full state
             try {
@@ -449,7 +433,6 @@ export class GridStateProvider {
                 defaultState: { sort: null }
               });
             } catch (fallbackError) {
-              console.error("❌ Fallback column state application also failed:", fallbackError);
             }
           }
         }
@@ -500,9 +483,7 @@ export class GridStateProvider {
         }
         
         // Don't refresh here - let the caller handle refreshing to avoid multiple refreshes
-        console.log("✅ Completed grid state application (refresh pending)");
       } catch (error) {
-        console.error('Error in batched grid updates:', error);
       }
     };
     
@@ -567,7 +548,6 @@ export class GridStateProvider {
           delete colDef._cellAlignItems;
         }
       } catch (e) {
-        console.error('Error processing defaultColDef alignments:', e);
       }
     }
 
@@ -649,7 +629,6 @@ export class GridStateProvider {
             }
           }
         } catch (error) {
-          console.error('Error restoring UI state:', error);
         }
       }, 200);
       

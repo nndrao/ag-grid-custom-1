@@ -184,7 +184,6 @@ export function GridSettingsDialog({
       };
       
       // Column defaults - ensure this is properly hydrated with alignment values
-      console.debug('[GridSettingsDialog] mergedSettings.defaultColDef:', mergedSettings.defaultColDef);
       
       // Extract alignment values from the defaultColDef if they exist
       const defaultColDef = mergedSettings.defaultColDef || DEFAULT_GRID_OPTIONS.defaultColDef;
@@ -199,7 +198,6 @@ export function GridSettingsDialog({
         }
       };
       
-      console.debug('[GridSettingsDialog] Column defaults with alignment:', currentSettings.defaults);
       
       // Selection options - handling both modern AG-Grid v33+ API and backward compatibility
       const rowSelection = mergedSettings.rowSelection as any;
@@ -374,7 +372,6 @@ export function GridSettingsDialog({
     
     // Save current grid state before applying changes
     const currentGridState = settingsController?.gridStateProvider?.extractGridState();
-    console.log("🔒 Preserving current grid state before applying settings:", currentGridState);
     
     // Flatten all settings into a single object
     const flattenedSettings: GridOptionsMap = {};
@@ -384,7 +381,6 @@ export function GridSettingsDialog({
     
     // Special handling for Column Defaults to make sure alignments are preserved
     if (gridSettings.defaults?.defaultColDef) {
-      console.debug('[GridSettingsDialog] Processing defaults first:', gridSettings.defaults.defaultColDef);
       
       // Important: directly capture alignment values before they get lost
       const defaultColDef = { ...gridSettings.defaults.defaultColDef };
@@ -401,11 +397,6 @@ export function GridSettingsDialog({
       
       changedOptions.add('defaultColDef');
       
-      console.debug('[GridSettingsDialog] Preserved alignment separately:', { 
-        verticalAlign, 
-        horizontalAlign,
-        defaultColDef
-      });
     }
     
     Object.entries(gridSettings).forEach(([category, categorySettings]) => {
@@ -532,7 +523,6 @@ export function GridSettingsDialog({
       });
     });
     
-    console.log('Applying grid settings:', flattenedSettings, 'Changed options:', Array.from(changedOptions));
     
     // Process special cases for AG-Grid v33+ API
     if (flattenedSettings.rowSelection) {
@@ -552,11 +542,6 @@ export function GridSettingsDialog({
       const verticalAlign = flattenedSettings._preservedVerticalAlign as 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom' | undefined;
       const horizontalAlign = flattenedSettings._preservedHorizontalAlign as 'left' | 'center' | 'right' | undefined;
       
-      console.debug('[GridSettingsDialog] Using preserved alignment values:', { 
-        verticalAlign, 
-        horizontalAlign,
-        fullColDef: colDef
-      });
       
       // Only create cellStyle if at least one alignment is specified
       if (verticalAlign || horizontalAlign) {
@@ -598,7 +583,6 @@ export function GridSettingsDialog({
             styleObj.justifyContent = 'flex-start'; // Left align text by default
           }
           
-          console.debug(`[GridSettingsDialog] Generated cell style for ${verticalAlign}:`, styleObj);
           return styleObj;
         };
         
@@ -606,10 +590,8 @@ export function GridSettingsDialog({
         try {
           if (typeof colDef.cellStyle === 'function') {
             const testResult = colDef.cellStyle({ colDef: { type: undefined } });
-            console.debug('[GridSettingsDialog] Test cellStyle result:', testResult, 'for alignment:', verticalAlign);
           }
         } catch (e) {
-          console.error('[GridSettingsDialog] Error testing cellStyle:', e);
         }
         
         // We DO NOT want to delete these properties yet - we need them for state persistence
@@ -627,12 +609,10 @@ export function GridSettingsDialog({
         if (value !== undefined && !INITIAL_PROPERTIES.includes(option) && option !== 'theme') {
           // Special handling for defaultColDef
           if (option === 'defaultColDef') {
-            console.debug('[GridSettingsDialog] Applying defaultColDef with custom handling:', value);
             
             // Add the verticalAlign and horizontalAlign back to the colDef if needed
             if (flattenedSettings._preservedVerticalAlign) {
               const preservedVertical = flattenedSettings._preservedVerticalAlign;
-              console.debug('[GridSettingsDialog] Reapplying preserved vertical alignment:', preservedVertical);
               
               // Create a copy to avoid directly modifying the object
               const colDefWithAlignment = { ...value };
@@ -668,7 +648,6 @@ export function GridSettingsDialog({
             }
             
             // Don't refresh here - we'll do a single refresh at the end
-            console.debug('[GridSettingsDialog] Applied defaultColDef with alignment (refresh pending)');
           }
           // Special handling for specific options
           else if (option === 'statusBar') {
@@ -738,7 +717,6 @@ export function GridSettingsDialog({
           }
         }
       } catch (error) {
-        console.error(`Failed to apply setting: ${option}`, error);
       }
     });
     
@@ -760,13 +738,11 @@ export function GridSettingsDialog({
         }
       });
       
-      console.log('[GridSettingsDialog] Sending changed settings to controller:', changedSettings);
       settingsController.updateGridOptions(changedSettings);
     }
     
     // Restore the grid state after applying settings
     if (currentGridState && settingsController) {
-      console.log("🔓 Restoring grid state after applying settings");
       // Apply immediately - the grid state provider won't refresh
       settingsController.gridStateProvider?.applyGridState(currentGridState);
       
@@ -774,7 +750,6 @@ export function GridSettingsDialog({
       requestAnimationFrame(() => {
         gridApi.refreshHeader();
         gridApi.refreshCells({ force: true });
-        console.log("✅ Grid settings applied and refreshed");
       });
     }
     

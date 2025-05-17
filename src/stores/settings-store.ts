@@ -197,7 +197,6 @@ export class SettingsStore {
       try {
         listener(settings);
       } catch (error) {
-        console.error(`Error in settings listener for category ${category}:`, error);
       }
     });
   }

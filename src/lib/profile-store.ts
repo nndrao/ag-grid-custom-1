@@ -20,7 +20,6 @@ export class ProfileStore {
       const data = localStorage.getItem(PROFILE_STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error loading profiles:', error);
       return [];
     }
   }

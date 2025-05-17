@@ -402,7 +402,6 @@ function createPosition(index: number): FixedIncomePosition {
  * Returns the data as a JavaScript array of objects
  */
 export function generateFixedIncomeData(rowCount: number = 100): FixedIncomePosition[] {
-  console.time('Data Generation');
   
   // Use batch processing for better performance with large datasets
   const batchSize = 10000;
@@ -415,11 +414,9 @@ export function generateFixedIncomeData(rowCount: number = 100): FixedIncomePosi
     
     // Log progress for large datasets
     if (rowCount > 50000 && i % 50000 === 0 && i > 0) {
-      console.log(`Generated ${i} rows (${(i / rowCount * 100).toFixed(2)}% complete)`);
     }
   }
   
-  console.timeEnd('Data Generation');
   return result;
 }
 
@@ -431,7 +428,6 @@ export function generateFixedIncomeData(rowCount: number = 100): FixedIncomePosi
  * @returns JSON string containing the generated data
  */
 export function generateFixedIncomeJSON(rowCount: number, prettyPrint: boolean = false): string {
-  console.time('JSON Generation');
   
   const data = generateFixedIncomeData(rowCount);
   
@@ -440,6 +436,5 @@ export function generateFixedIncomeJSON(rowCount: number, prettyPrint: boolean =
     ? JSON.stringify(data, null, 2)  // Pretty print with 2-space indentation
     : JSON.stringify(data);          // Compact JSON format
   
-  console.timeEnd('JSON Generation');
   return jsonString;
 }

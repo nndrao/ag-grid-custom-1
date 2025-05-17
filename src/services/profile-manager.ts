@@ -69,7 +69,6 @@ export class ProfileManager {
         }
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
     } finally {
       this._loading = false;
     }
@@ -109,7 +108,6 @@ export class ProfileManager {
       const profileExists = this._profiles.some(p => p.id === profileId);
       
       if (!profileExists) {
-        console.error(`Profile with ID ${profileId} not found`);
         return;
       }
       
@@ -119,7 +117,6 @@ export class ProfileManager {
       const freshProfile = allProfiles.find(p => p.id === profileId);
       
       if (!freshProfile) {
-        console.error(`Profile with ID ${profileId} not found in localStorage`);
         return;
       }
       
@@ -140,10 +137,8 @@ export class ProfileManager {
       }
       
       // Apply profile settings
-      console.log(`Applying latest settings for profile: ${freshProfile.name}`);
       this.settingsController.applyProfileSettings(freshProfile.settings);
     } catch (error) {
-      console.error('Error selecting profile:', error);
     }
   }
 
@@ -162,7 +157,6 @@ export class ProfileManager {
       
       return newProfile;
     } catch (error) {
-      console.error('Error creating profile:', error);
       throw error;
     }
   }
@@ -189,7 +183,6 @@ export class ProfileManager {
       // Reload profiles
       await this.loadProfiles(false);
     } catch (error) {
-      console.error('Error deleting profile:', error);
       throw error;
     }
   }
