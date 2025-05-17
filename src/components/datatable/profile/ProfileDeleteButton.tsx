@@ -37,7 +37,11 @@ export function ProfileDeleteButton({ onDelete, disabled, profileName, iconOnly 
               variant="outline" 
               size={iconOnly ? "icon" : "sm"}
               disabled={disabled}
-              className={cn(iconOnly && "h-7 w-7")}
+              className={cn(
+                iconOnly && "h-8 w-8",
+                !iconOnly && "h-8",
+                "border-border/50 bg-background/50 hover:bg-red-50 hover:text-destructive hover:border-red-300 transition-all"
+              )}
             >
               <Trash2 className={cn(iconOnly ? "h-3.5 w-3.5" : "h-4 w-4 mr-2")} />
               {!iconOnly && "Delete"}

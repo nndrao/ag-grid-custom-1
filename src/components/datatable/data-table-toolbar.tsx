@@ -1,4 +1,6 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
 import { ProfileSelector } from './profile/ProfileSelector';
 import { ProfileSaveButton } from './profile/ProfileSaveButton';
@@ -30,7 +32,7 @@ export function DataTableToolbar<TData>({
     if (!profileManager) return null;
     
     return (
-      <>
+      <div className="flex items-center gap-1.5">
         <ProfileSelector 
           profiles={profileManager.profiles} 
           activeProfile={profileManager.activeProfile} 
@@ -41,13 +43,15 @@ export function DataTableToolbar<TData>({
           onSave={profileManager.saveCurrentProfile}
           activeProfile={profileManager.activeProfile}
           loading={profileManager.loading}
+          iconOnly={true}
         />
         <ProfileDeleteButton 
           onDelete={profileManager.deleteProfile} 
           activeProfile={profileManager.activeProfile}
           loading={profileManager.loading}
+          iconOnly={true}
         />
-      </>
+      </div>
     );
   };
 
@@ -61,30 +65,43 @@ export function DataTableToolbar<TData>({
   }
 
   return (
-    <div className={`flex items-center gap-3 p-4 border rounded-lg ${className}`}>
-      {/* Profile Management */}
-      <div className="flex items-center gap-2">
-        {renderProfileManagement()}
+    <div className={cn(
+      "flex items-center justify-between px-6 py-3",
+      "bg-gradient-to-r from-background/95 to-background",
+      "border-b border-border/50",
+      "backdrop-blur-sm",
+      "shadow-sm",
+      "animate-in fade-in slide-in-from-top-1 duration-300",
+      className
+    )}>
+      {/* Left Section - Profile Management */}
+      <div className="flex items-center">
+        {profileManager && renderProfileManagement()}
       </div>
 
-      {/* Toolbar Settings */}
-      {settingsController && (
-        <div className="flex items-center gap-2">
-          <FontFamilySelector settingsController={settingsController} />
-          <FontSizeSelector settingsController={settingsController} />
-          <SpacingSelector settingsController={settingsController} />
-        </div>
-      )}
+      {/* Center Section - Display Settings */}
+      <div className="flex items-center gap-4">
+        {settingsController && (
+          <>
+            {profileManager && <Separator orientation="vertical" className="h-6 mr-2" />}
+            <div className="flex items-center gap-2">
+              <FontFamilySelector settingsController={settingsController} />
+              <FontSizeSelector settingsController={settingsController} />
+              <SpacingSelector settingsController={settingsController} />
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* Grid Settings */}
-      {gridApi && settingsController && (
-        <div className="ml-auto flex items-center gap-2">
+      {/* Right Section - Grid Settings */}
+      <div className="flex items-center gap-2">
+        {gridApi && settingsController && (
           <GridSettingsMenu 
             gridApi={gridApi} 
             settingsController={settingsController} 
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

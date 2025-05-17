@@ -39,8 +39,10 @@ export function ProfileSaveButton({ onSave, disabled, iconOnly = false }: Profil
       onClick={handleSave}
       disabled={disabled || isSaving}
       className={cn(
-        iconOnly && "h-7 w-7",
-        saveSuccess && !iconOnly && "bg-green-100 border-green-300 text-green-800 hover:bg-green-200",
+        iconOnly && "h-8 w-8",
+        !iconOnly && "h-8",
+        "border-border/50 bg-background/50 hover:bg-accent/50 transition-all",
+        saveSuccess && !iconOnly && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100",
         saveSuccess && iconOnly && "text-green-600 border-green-300 bg-green-50 hover:bg-green-100"
       )}
     >

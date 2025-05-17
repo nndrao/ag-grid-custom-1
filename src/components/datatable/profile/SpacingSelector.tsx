@@ -6,9 +6,10 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DEFAULT_SPACING, SettingsController } from '@/services/settings-controller';
-import { CircleHelp } from 'lucide-react';
+import { Rows3 } from 'lucide-react';
 
 interface SpacingSelectorProps {
   settingsController: SettingsController | null;
@@ -76,32 +77,38 @@ export function SpacingSelector({ settingsController }: SpacingSelectorProps) {
   }, [settingsController]);
   
   return (
-    <div className="flex items-center gap-2">
-      <Select value={spacing} onValueChange={handleSpacingChange}>
-        <SelectTrigger className="h-8 w-[80px] text-xs">
-          <SelectValue placeholder="Spacing" />
-        </SelectTrigger>
-        <SelectContent>
-          {spacingOptions.map((option) => (
-            <SelectItem 
-              key={option.value} 
-              value={option.value}
-            >
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <CircleHelp className="h-4 w-4 text-muted-foreground cursor-pointer" />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Change grid spacing</p>
-          <p className="text-xs text-muted-foreground">Adjusts cell padding and grid size</p>
-        </TooltipContent>
-      </Tooltip>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="inline-block">
+          <Select value={spacing} onValueChange={handleSpacingChange}>
+            <SelectTrigger className="h-8 w-[100px] text-xs border-border/50 bg-background/50 hover:bg-accent/50 transition-colors">
+              <Rows3 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Spacing" />
+            </SelectTrigger>
+            <SelectContent>
+              {spacingOptions.map((option) => (
+                <SelectItem 
+                  key={option.value} 
+                  value={option.value}
+                >
+                  <span className="flex items-center justify-between w-full">
+                    <span>{option.label}</span>
+                    {option.value === 'default' && (
+                      <Badge variant="secondary" className="ml-2 text-xs px-1 py-0 font-normal">
+                        ✓
+                      </Badge>
+                    )}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Grid Spacing</p>
+        <p className="text-xs text-muted-foreground">Adjust cell padding</p>
+      </TooltipContent>
+    </Tooltip>
   );
 } 
