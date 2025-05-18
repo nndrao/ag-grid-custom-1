@@ -1,0 +1,515 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Bold, 
+  Italic, 
+  Underline, 
+  Type,
+  Palette,
+  Square,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+
+interface HeaderTabProps {
+  settings: any;
+  onSettingsChange: (updates: Partial<HeaderStyles>) => void;
+  isModified?: boolean;
+  bulkUpdateMode?: boolean;
+}
+
+interface HeaderStyles {
+  headerName: string;
+  headerFontFamily: string;
+  headerFontSize: string;
+  headerFontWeight: string;
+  headerFontStyle: string;
+  headerTextColor: string | null;
+  headerBackgroundColor: string | null;
+  headerTextAlign: string;
+  headerVerticalAlign: string;
+  applyHeaderBorders: boolean;
+  headerBorderStyle: string;
+  headerBorderWidth: string;
+  headerBorderColor: string;
+  headerBorderSides: string;
+}
+
+export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMode }: HeaderTabProps) {
+  // Local state for all header styles
+  const [headerStyles, setHeaderStyles] = useState<HeaderStyles>({
+    headerName: settings.headerName || '',
+    headerFontFamily: settings.headerFontFamily || 'Arial',
+    headerFontSize: settings.headerFontSize || '14px',
+    headerFontWeight: settings.headerFontWeight || 'normal',
+    headerFontStyle: settings.headerFontStyle || '',
+    headerTextColor: settings.headerTextColor || null,
+    headerBackgroundColor: settings.headerBackgroundColor || null,
+    headerTextAlign: settings.headerTextAlign || 'left',
+    headerVerticalAlign: settings.headerVerticalAlign || 'middle',
+    applyHeaderBorders: settings.applyHeaderBorders || false,
+    headerBorderStyle: settings.headerBorderStyle || 'solid',
+    headerBorderWidth: settings.headerBorderWidth || '2px',
+    headerBorderColor: settings.headerBorderColor || '#0000FF',
+    headerBorderSides: settings.headerBorderSides || 'bottom',
+  });
+
+  // Sync with parent settings when they change
+  useEffect(() => {
+    setHeaderStyles({
+      headerName: settings.headerName || '',
+      headerFontFamily: settings.headerFontFamily || 'Arial',
+      headerFontSize: settings.headerFontSize || '14px',
+      headerFontWeight: settings.headerFontWeight || 'normal',
+      headerFontStyle: settings.headerFontStyle || '',
+      headerTextColor: settings.headerTextColor || null,
+      headerBackgroundColor: settings.headerBackgroundColor || null,
+      headerTextAlign: settings.headerTextAlign || 'left',
+      headerVerticalAlign: settings.headerVerticalAlign || 'middle',
+      applyHeaderBorders: settings.applyHeaderBorders || false,
+      headerBorderStyle: settings.headerBorderStyle || 'solid',
+      headerBorderWidth: settings.headerBorderWidth || '2px',
+      headerBorderColor: settings.headerBorderColor || '#0000FF',
+      headerBorderSides: settings.headerBorderSides || 'bottom',
+    });
+  }, [settings]);
+
+  // Update local state and parent
+  const updateHeaderStyle = (key: keyof HeaderStyles, value: any) => {
+    const newStyles = { ...headerStyles, [key]: value };
+    setHeaderStyles(newStyles);
+    onSettingsChange({ [key]: value });
+  };
+
+  // Toggle font styles
+  const toggleFontStyle = (style: string) => {
+    const currentStyles = headerStyles.headerFontStyle.split(' ').filter(s => s);
+    const newStyles = currentStyles.includes(style)
+      ? currentStyles.filter(s => s !== style)
+      : [...currentStyles, style];
+    updateHeaderStyle('headerFontStyle', newStyles.join(' '));
+  };
+
+  // Font families
+  const fontFamilies = [
+    { value: "Inter", label: "Inter" },
+    { value: "Arial", label: "Arial" },
+    { value: "Verdana", label: "Verdana" },
+    { value: "Helvetica", label: "Helvetica" },
+    { value: "Times New Roman", label: "Times New Roman" },
+    { value: "Georgia", label: "Georgia" },
+    { value: "Courier New", label: "Courier New" }
+  ];
+
+  // Calculate preview styles
+  const getPreviewStyles = () => {
+    const styles: any = {
+      fontFamily: headerStyles.headerFontFamily,
+      fontSize: headerStyles.headerFontSize,
+      fontWeight: headerStyles.headerFontWeight,
+      textAlign: headerStyles.headerTextAlign,
+      display: 'flex',
+      alignItems: headerStyles.headerVerticalAlign === 'top' ? 'flex-start' : 
+                   headerStyles.headerVerticalAlign === 'bottom' ? 'flex-end' : 'center',
+      justifyContent: headerStyles.headerTextAlign === 'left' ? 'flex-start' : 
+                      headerStyles.headerTextAlign === 'right' ? 'flex-end' : 'center',
+      height: '36px',
+      padding: '0 12px',
+      backgroundColor: 'transparent',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease'
+    };
+
+    // Apply font styles
+    if (headerStyles.headerFontStyle.includes('bold')) {
+      styles.fontWeight = 'bold';
+    }
+    if (headerStyles.headerFontStyle.includes('italic')) {
+      styles.fontStyle = 'italic';
+    }
+    if (headerStyles.headerFontStyle.includes('underline')) {
+      styles.textDecoration = 'underline';
+    }
+
+    // Apply colors if enabled
+    if (headerStyles.headerTextColor) {
+      styles.color = headerStyles.headerTextColor;
+    }
+    if (headerStyles.headerBackgroundColor) {
+      styles.backgroundColor = headerStyles.headerBackgroundColor;
+    }
+
+    // Apply borders if enabled
+    if (headerStyles.applyHeaderBorders) {
+      const borderStyle = `${headerStyles.headerBorderWidth} ${headerStyles.headerBorderStyle} ${headerStyles.headerBorderColor}`;
+      
+      if (headerStyles.headerBorderSides === 'all') {
+        styles.border = borderStyle;
+      } else if (headerStyles.headerBorderSides === 'horizontal') {
+        styles.borderTop = borderStyle;
+        styles.borderBottom = borderStyle;
+      } else if (headerStyles.headerBorderSides === 'vertical') {
+        styles.borderLeft = borderStyle;
+        styles.borderRight = borderStyle;
+      } else {
+        styles[`border${headerStyles.headerBorderSides.charAt(0).toUpperCase()}${headerStyles.headerBorderSides.slice(1)}`] = borderStyle;
+      }
+    }
+
+    return styles;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header Caption on left and Preview on right */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-sm mb-1.5 block">Header Caption</Label>
+          <Input 
+            value={headerStyles.headerName}
+            onChange={(e) => updateHeaderStyle('headerName', e.target.value)}
+            placeholder="Enter header caption"
+            className="h-9"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm mb-1.5 block">Preview</Label>
+          <div 
+            style={getPreviewStyles()}
+            className="shadow-sm border"
+          >
+            {headerStyles.headerName || 'Column Header'}
+          </div>
+        </div>
+      </div>
+      
+      {/* Typography Section */}
+      <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs mb-1 block">Font Family</Label>
+            <Select 
+              value={headerStyles.headerFontFamily}
+              onValueChange={(value) => updateHeaderStyle('headerFontFamily', value)}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fontFamilies.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Font Size</Label>
+            <Select 
+              value={headerStyles.headerFontSize}
+              onValueChange={(value) => updateHeaderStyle('headerFontSize', value)}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12px">12px</SelectItem>
+                <SelectItem value="14px">14px</SelectItem>
+                <SelectItem value="16px">16px</SelectItem>
+                <SelectItem value="18px">18px</SelectItem>
+                <SelectItem value="20px">20px</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Font Weight</Label>
+            <Select 
+              value={headerStyles.headerFontWeight}
+              onValueChange={(value) => updateHeaderStyle('headerFontWeight', value)}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="500">Medium</SelectItem>
+                <SelectItem value="600">Semi-Bold</SelectItem>
+                <SelectItem value="bold">Bold</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Style</Label>
+            <div className="flex gap-1">
+              <Button 
+                variant={headerStyles.headerFontStyle.includes('bold') ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => toggleFontStyle('bold')}
+                className="font-bold flex-1 h-9"
+              >
+                B
+              </Button>
+              <Button 
+                variant={headerStyles.headerFontStyle.includes('italic') ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => toggleFontStyle('italic')}
+                className="italic flex-1 h-9"
+              >
+                I
+              </Button>
+              <Button 
+                variant={headerStyles.headerFontStyle.includes('underline') ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => toggleFontStyle('underline')}
+                className="underline flex-1 h-9"
+              >
+                U
+              </Button>
+            </div>
+          </div>
+        </div>
+      
+      {/* Colors Section */}
+      <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="flex justify-between mb-1">
+              <Label className="text-xs">Text Color</Label>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Apply</span>
+                <Switch 
+                  checked={!!headerStyles.headerTextColor}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const colorInput = document.getElementById('headerTextColor') as HTMLInputElement;
+                      updateHeaderStyle('headerTextColor', colorInput?.value || '#000000');
+                    } else {
+                      updateHeaderStyle('headerTextColor', null);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input 
+                type="color" 
+                id="headerTextColor"
+                value={headerStyles.headerTextColor || '#000000'}
+                className="h-9 w-14 p-1 border"
+                onChange={(e) => {
+                  if (headerStyles.headerTextColor) {
+                    updateHeaderStyle('headerTextColor', e.target.value);
+                  }
+                }}
+                disabled={!headerStyles.headerTextColor}
+              />
+              <Input
+                value={(headerStyles.headerTextColor || '#000000').toUpperCase()}
+                className="h-9 font-mono text-xs flex-1"
+                disabled
+              />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between mb-1">
+              <Label className="text-xs">Background</Label>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Apply</span>
+                <Switch 
+                  checked={!!headerStyles.headerBackgroundColor}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const colorInput = document.getElementById('headerBgColor') as HTMLInputElement;
+                      updateHeaderStyle('headerBackgroundColor', colorInput?.value || '#FFFFFF');
+                    } else {
+                      updateHeaderStyle('headerBackgroundColor', null);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input 
+                type="color" 
+                id="headerBgColor"
+                value={headerStyles.headerBackgroundColor || '#FFFFFF'}
+                className="h-9 w-14 p-1 border"
+                onChange={(e) => {
+                  if (headerStyles.headerBackgroundColor) {
+                    updateHeaderStyle('headerBackgroundColor', e.target.value);
+                  }
+                }}
+                disabled={!headerStyles.headerBackgroundColor}
+              />
+              <Input
+                value={(headerStyles.headerBackgroundColor || '#FFFFFF').toUpperCase()}
+                className="h-9 font-mono text-xs flex-1"
+                disabled
+              />
+            </div>
+          </div>
+        </div>
+      
+      {/* Alignment Section */}
+      <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs mb-1 block">Horizontal</Label>
+            <div className="grid grid-cols-3 gap-1">
+              <Button 
+                variant={headerStyles.headerTextAlign === 'left' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerTextAlign', 'left')}
+              >
+                <AlignLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={headerStyles.headerTextAlign === 'center' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerTextAlign', 'center')}
+              >
+                <AlignCenter className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={headerStyles.headerTextAlign === 'right' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerTextAlign', 'right')}
+              >
+                <AlignRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Vertical</Label>
+            <div className="grid grid-cols-3 gap-1">
+              <Button 
+                variant={headerStyles.headerVerticalAlign === 'top' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerVerticalAlign', 'top')}
+              >
+                <AlignStartVertical className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={headerStyles.headerVerticalAlign === 'middle' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerVerticalAlign', 'middle')}
+              >
+                <AlignCenterVertical className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={headerStyles.headerVerticalAlign === 'bottom' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-9"
+                onClick={() => updateHeaderStyle('headerVerticalAlign', 'bottom')}
+              >
+                <AlignEndVertical className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      
+      {/* Borders Section */}
+      <div>
+        <div className="flex justify-between mb-1.5">
+          <Label className="text-sm">Borders</Label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Apply Borders</span>
+            <Switch 
+              checked={headerStyles.applyHeaderBorders}
+              onCheckedChange={(checked) => updateHeaderStyle('applyHeaderBorders', checked)}
+            />
+          </div>
+        </div>
+        
+        <div className={`space-y-3 ${!headerStyles.applyHeaderBorders ? 'opacity-50' : ''}`}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">Style</Label>
+              <Select 
+                value={headerStyles.headerBorderStyle}
+                onValueChange={(value) => updateHeaderStyle('headerBorderStyle', value)}
+                disabled={!headerStyles.applyHeaderBorders}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="solid">Solid</SelectItem>
+                  <SelectItem value="dashed">Dashed</SelectItem>
+                  <SelectItem value="dotted">Dotted</SelectItem>
+                  <SelectItem value="double">Double</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-xs mb-1 block">Width: {headerStyles.headerBorderWidth}</Label>
+              <Slider
+                value={[parseInt(headerStyles.headerBorderWidth)]}
+                max={5}
+                step={1}
+                className="py-2"
+                onValueChange={(value) => updateHeaderStyle('headerBorderWidth', `${value[0]}px`)}
+                disabled={!headerStyles.applyHeaderBorders}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">Color</Label>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="color" 
+                  value={headerStyles.headerBorderColor}
+                  className="h-9 w-14 p-1 border"
+                  onChange={(e) => updateHeaderStyle('headerBorderColor', e.target.value)}
+                  disabled={!headerStyles.applyHeaderBorders}
+                />
+                <Input
+                  value={headerStyles.headerBorderColor.toUpperCase()}
+                  className="h-9 font-mono text-xs flex-1"
+                  disabled
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-xs mb-1 block">Sides</Label>
+              <Select 
+                value={headerStyles.headerBorderSides}
+                onValueChange={(value) => updateHeaderStyle('headerBorderSides', value)}
+                disabled={!headerStyles.applyHeaderBorders}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="top">Top</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                  <SelectItem value="bottom">Bottom</SelectItem>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="horizontal">Horizontal</SelectItem>
+                  <SelectItem value="vertical">Vertical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
