@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Search, Info, Circle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Info, Circle, Filter } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { cn } from '@/lib/utils';
 import {
@@ -34,14 +35,39 @@ export function ColumnListPanel({
   onSearchChange
 }: ColumnListPanelProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [dataTypeFilter, setDataTypeFilter] = useState<string>('all');
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Filter columns based on search term
+  // Determine column data type
+  const getColumnDataType = (col: ColDef): string => {
+    if (col.type === 'numericColumn' || 
+        col.filter === 'agNumberColumnFilter' || 
+        col.cellEditor === 'agNumberCellEditor') {
+      return 'number';
+    } else if (col.type === 'dateColumn' || 
+              col.filter === 'agDateColumnFilter' || 
+              col.cellEditor === 'agDateCellEditor') {
+      return 'date';
+    } else if (col.cellEditor === 'agSelectCellEditor') {
+      return 'select';
+    } else if (col.cellRenderer === 'agCheckboxCellRenderer') {
+      return 'boolean';
+    }
+    return 'text';
+  };
+
+  // Filter columns based on search term and data type
   const filteredColumns = columns.filter(col => {
+    // Text search filter
     const fieldMatch = col.field?.toLowerCase().includes(searchTerm.toLowerCase());
     const headerMatch = col.headerName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return fieldMatch || headerMatch;
+    const textMatch = fieldMatch || headerMatch;
+    
+    // Data type filter
+    if (dataTypeFilter === 'all') return textMatch;
+    const colDataType = getColumnDataType(col);
+    return textMatch && colDataType === dataTypeFilter;
   });
 
   // Keyboard navigation
@@ -77,10 +103,10 @@ export function ColumnListPanel({
     }
   }, [focusedIndex]);
 
-  // Reset focus when search changes
+  // Reset focus when search or filter changes
   useEffect(() => {
     setFocusedIndex(0);
-  }, [searchTerm]);
+  }, [searchTerm, dataTypeFilter]);
   
   // Update focused index when selection changes
   useEffect(() => {
@@ -90,39 +116,74 @@ export function ColumnListPanel({
     }
   }, [selectedColumn, filteredColumns]);
 
-  // Determine column data type
-  const getColumnDataType = (col: ColDef): string => {
-    if (col.type === 'numericColumn' || 
-        col.filter === 'agNumberColumnFilter' || 
-        col.cellEditor === 'agNumberCellEditor') {
-      return 'number';
-    } else if (col.type === 'dateColumn' || 
-              col.filter === 'agDateColumnFilter' || 
-              col.cellEditor === 'agDateCellEditor') {
-      return 'date';
-    } else if (col.cellEditor === 'agSelectCellEditor') {
-      return 'select';
-    } else if (col.cellRenderer === 'agCheckboxCellRenderer') {
-      return 'boolean';
-    }
-    return 'text';
-  };
 
   return (
-    <div className="w-1/4 flex flex-col bg-background">
-      {/* Search area */}
-      <div className="p-4 border-b">
+    <div className={cn(
+      "flex flex-col bg-background transition-all duration-200",
+      bulkUpdateMode ? "w-[calc(25%+50px)]" : "w-1/4"
+    )}>
+      {/* Search and filter area */}
+      <div className="p-3 border-b space-y-2">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search columns..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-9"
+            className="pl-8 h-8 text-xs"
           />
         </div>
+        
+        <div className="relative">
+          <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Select value={dataTypeFilter} onValueChange={setDataTypeFilter}>
+            <SelectTrigger className="pl-8 h-8 text-xs">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+              <SelectItem value="boolean">Boolean</SelectItem>
+              <SelectItem value="select">Select</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {bulkUpdateMode && (
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="selectAll"
+              checked={filteredColumns.length > 0 && filteredColumns.every(col => selectedColumns.includes(col.field || ''))}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  // Select all filtered columns
+                  const fieldsToSelect = filteredColumns.map(col => col.field || '').filter(field => field);
+                  fieldsToSelect.forEach(field => {
+                    if (!selectedColumns.includes(field)) {
+                      onColumnSelect(field);
+                    }
+                  });
+                } else {
+                  // Deselect all filtered columns
+                  const fieldsToDeselect = filteredColumns.map(col => col.field || '').filter(field => field);
+                  fieldsToDeselect.forEach(field => {
+                    if (selectedColumns.includes(field)) {
+                      onColumnSelect(field);
+                    }
+                  });
+                }
+              }}
+              className="h-3.5 w-3.5"
+            />
+            <Label htmlFor="selectAll" className="text-xs font-medium cursor-pointer">
+              Select All ({filteredColumns.length})
+            </Label>
+          </div>
+        )}
       </div>
 
       {/* Column list */}
@@ -151,7 +212,7 @@ export function ColumnListPanel({
                 aria-selected={isSelected}
                 tabIndex={isFocused ? 0 : -1}
                 className={cn(
-                  "relative flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors",
+                  "relative flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors",
                   "hover:bg-muted",
                   isSelected ? "bg-muted" : "transparent",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -170,14 +231,14 @@ export function ColumnListPanel({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-mono" title={`Data type: ${dataType}`}>
-                      {dataType === 'number' && '#'}
+                    <span className="text-[10px] text-muted-foreground font-mono w-4 text-center" title={`Data type: ${dataType}`}>
+                      {dataType === 'number' && '123'}
                       {dataType === 'date' && '📅'}
                       {dataType === 'select' && '▼'}
                       {dataType === 'boolean' && '☑'}
                       {dataType === 'text' && 'Aa'}
                     </span>
-                    <span className="text-sm truncate" title={columnName}>
+                    <span className="text-xs truncate" title={columnName}>
                       {columnName}
                     </span>
                   </div>
@@ -188,10 +249,10 @@ export function ColumnListPanel({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <Info className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <div className="text-xs space-y-1">
+                    <div className="text-[10px] space-y-0.5">
                       <p><strong>Field:</strong> {col.field}</p>
                       <p><strong>Type:</strong> {dataType}</p>
                       {col.width && <p><strong>Width:</strong> {col.width}px</p>}

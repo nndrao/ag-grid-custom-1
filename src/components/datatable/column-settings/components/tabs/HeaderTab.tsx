@@ -169,24 +169,24 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header Caption on left and Preview on right */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-sm mb-1.5 block">Header Caption</Label>
+          <Label className="text-xs mb-1 block">Header Caption</Label>
           <Input 
             value={headerStyles.headerName}
             onChange={(e) => updateHeaderStyle('headerName', e.target.value)}
             placeholder="Enter header caption"
-            className="h-9"
+            className="h-8 text-xs"
           />
         </div>
         
         <div>
-          <Label className="text-sm mb-1.5 block">Preview</Label>
+          <Label className="text-xs mb-1 block">Preview</Label>
           <div 
             style={getPreviewStyles()}
-            className="shadow-sm border"
+            className="shadow-sm border text-xs"
           >
             {headerStyles.headerName || 'Column Header'}
           </div>
@@ -201,7 +201,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               value={headerStyles.headerFontFamily}
               onValueChange={(value) => updateHeaderStyle('headerFontFamily', value)}
             >
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -217,7 +217,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               value={headerStyles.headerFontSize}
               onValueChange={(value) => updateHeaderStyle('headerFontSize', value)}
             >
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -235,7 +235,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               value={headerStyles.headerFontWeight}
               onValueChange={(value) => updateHeaderStyle('headerFontWeight', value)}
             >
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +253,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 variant={headerStyles.headerFontStyle.includes('bold') ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => toggleFontStyle('bold')}
-                className="font-bold flex-1 h-9"
+                className="font-bold flex-1 h-7 text-xs"
               >
                 B
               </Button>
@@ -261,7 +261,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 variant={headerStyles.headerFontStyle.includes('italic') ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => toggleFontStyle('italic')}
-                className="italic flex-1 h-9"
+                className="italic flex-1 h-7 text-xs"
               >
                 I
               </Button>
@@ -269,7 +269,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 variant={headerStyles.headerFontStyle.includes('underline') ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => toggleFontStyle('underline')}
-                className="underline flex-1 h-9"
+                className="underline flex-1 h-7 text-xs"
               >
                 U
               </Button>
@@ -281,9 +281,9 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
       <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="flex justify-between mb-1">
-              <Label className="text-xs">Text Color</Label>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Apply</span>
+              <Label className="text-[10px]">Text Color</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Apply</span>
                 <Switch 
                   checked={!!headerStyles.headerTextColor}
                   onCheckedChange={(checked) => {
@@ -294,6 +294,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                       updateHeaderStyle('headerTextColor', null);
                     }
                   }}
+                  className="scale-75"
                 />
               </div>
             </div>
@@ -302,7 +303,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 type="color" 
                 id="headerTextColor"
                 value={headerStyles.headerTextColor || '#000000'}
-                className="h-9 w-14 p-1 border"
+                className="h-7 w-12 p-0.5 border"
                 onChange={(e) => {
                   if (headerStyles.headerTextColor) {
                     updateHeaderStyle('headerTextColor', e.target.value);
@@ -312,16 +313,16 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               />
               <Input
                 value={(headerStyles.headerTextColor || '#000000').toUpperCase()}
-                className="h-9 font-mono text-xs flex-1"
+                className="h-7 font-mono text-[10px] flex-1"
                 disabled
               />
             </div>
           </div>
           <div>
             <div className="flex justify-between mb-1">
-              <Label className="text-xs">Background</Label>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Apply</span>
+              <Label className="text-[10px]">Background</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Apply</span>
                 <Switch 
                   checked={!!headerStyles.headerBackgroundColor}
                   onCheckedChange={(checked) => {
@@ -332,6 +333,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                       updateHeaderStyle('headerBackgroundColor', null);
                     }
                   }}
+                  className="scale-75"
                 />
               </div>
             </div>
@@ -340,7 +342,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 type="color" 
                 id="headerBgColor"
                 value={headerStyles.headerBackgroundColor || '#FFFFFF'}
-                className="h-9 w-14 p-1 border"
+                className="h-7 w-12 p-0.5 border"
                 onChange={(e) => {
                   if (headerStyles.headerBackgroundColor) {
                     updateHeaderStyle('headerBackgroundColor', e.target.value);
@@ -350,7 +352,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               />
               <Input
                 value={(headerStyles.headerBackgroundColor || '#FFFFFF').toUpperCase()}
-                className="h-9 font-mono text-xs flex-1"
+                className="h-7 font-mono text-[10px] flex-1"
                 disabled
               />
             </div>
@@ -365,26 +367,26 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               <Button 
                 variant={headerStyles.headerTextAlign === 'left' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerTextAlign', 'left')}
               >
-                <AlignLeft className="h-4 w-4" />
+                <AlignLeft className="h-3 w-3" />
               </Button>
               <Button 
                 variant={headerStyles.headerTextAlign === 'center' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerTextAlign', 'center')}
               >
-                <AlignCenter className="h-4 w-4" />
+                <AlignCenter className="h-3 w-3" />
               </Button>
               <Button 
                 variant={headerStyles.headerTextAlign === 'right' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerTextAlign', 'right')}
               >
-                <AlignRight className="h-4 w-4" />
+                <AlignRight className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -394,26 +396,26 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               <Button 
                 variant={headerStyles.headerVerticalAlign === 'top' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerVerticalAlign', 'top')}
               >
-                <AlignStartVertical className="h-4 w-4" />
+                <AlignStartVertical className="h-3 w-3" />
               </Button>
               <Button 
                 variant={headerStyles.headerVerticalAlign === 'middle' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerVerticalAlign', 'middle')}
               >
-                <AlignCenterVertical className="h-4 w-4" />
+                <AlignCenterVertical className="h-3 w-3" />
               </Button>
               <Button 
                 variant={headerStyles.headerVerticalAlign === 'bottom' ? 'secondary' : 'outline'}
                 size="sm"
-                className="h-9"
+                className="h-7"
                 onClick={() => updateHeaderStyle('headerVerticalAlign', 'bottom')}
               >
-                <AlignEndVertical className="h-4 w-4" />
+                <AlignEndVertical className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -422,12 +424,13 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
       {/* Borders Section */}
       <div>
         <div className="flex justify-between mb-1.5">
-          <Label className="text-sm">Borders</Label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Apply Borders</span>
+          <Label className="text-xs">Borders</Label>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground">Apply Borders</span>
             <Switch 
               checked={headerStyles.applyHeaderBorders}
               onCheckedChange={(checked) => updateHeaderStyle('applyHeaderBorders', checked)}
+              className="scale-75"
             />
           </div>
         </div>
@@ -441,7 +444,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 onValueChange={(value) => updateHeaderStyle('headerBorderStyle', value)}
                 disabled={!headerStyles.applyHeaderBorders}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -474,13 +477,13 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 <Input 
                   type="color" 
                   value={headerStyles.headerBorderColor}
-                  className="h-9 w-14 p-1 border"
+                  className="h-7 w-12 p-0.5 border"
                   onChange={(e) => updateHeaderStyle('headerBorderColor', e.target.value)}
                   disabled={!headerStyles.applyHeaderBorders}
                 />
                 <Input
                   value={headerStyles.headerBorderColor.toUpperCase()}
-                  className="h-9 font-mono text-xs flex-1"
+                  className="h-7 font-mono text-[10px] flex-1"
                   disabled
                 />
               </div>
@@ -493,7 +496,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 onValueChange={(value) => updateHeaderStyle('headerBorderSides', value)}
                 disabled={!headerStyles.applyHeaderBorders}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

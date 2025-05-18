@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Settings, Save, RotateCcw, Columns } from 'lucide-react';
 import { GridSettingsDialog } from './grid-settings-dialog';
-import { ColumnSettingsDialog } from './column-settings';
+import { ColumnSettingsDialog } from '../column-settings';
 import { GridApi } from 'ag-grid-community';
 import { SettingsController } from '@/services/settings-controller';
 import { useToast } from '@/components/ui/use-toast';

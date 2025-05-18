@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { GridApi, ColDef } from 'ag-grid-community';
@@ -436,23 +436,23 @@ export function ColumnSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
-          <div className="flex items-center justify-between pr-8">
+        <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
+          <div className="flex items-start justify-between pr-8">
             <div>
-              <DialogTitle className="text-lg font-semibold">Column Settings</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground mt-1">
+              <DialogTitle className="text-base font-semibold">Column Settings</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 Configure display and behavior for grid columns
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-3 ml-auto">
-              <Label htmlFor="bulkUpdate" className="text-sm font-normal cursor-pointer">
+            <div className="flex items-center gap-2 ml-auto mt-4">
+              <Label htmlFor="bulkUpdate" className="text-xs font-normal cursor-pointer text-muted-foreground">
                 Bulk Update Mode
               </Label>
-              <Checkbox
+              <Switch
                 id="bulkUpdate"
                 checked={state.bulkUpdateMode}
                 onCheckedChange={toggleBulkMode}
-                className="h-4 w-4"
+                className="scale-75"
               />
             </div>
           </div>
@@ -478,16 +478,16 @@ export function ColumnSettingsDialog({
               onValueChange={(value) => setState(prev => ({ ...prev, activeTab: value as any }))}
               className="flex-1 flex flex-col"
             >
-              <TabsList className="w-full justify-start rounded-none border-b px-4 bg-transparent">
-                <TabsTrigger value="header" className="rounded-none">Header</TabsTrigger>
-                <TabsTrigger value="cell" className="rounded-none">Cell</TabsTrigger>
-                <TabsTrigger value="formatter" className="rounded-none">Formatter</TabsTrigger>
-                <TabsTrigger value="filter" className="rounded-none">Filter</TabsTrigger>
-                <TabsTrigger value="editors" className="rounded-none">Editors</TabsTrigger>
+              <TabsList className="w-full justify-start rounded-none border-b px-3 bg-transparent h-9">
+                <TabsTrigger value="header" className="rounded-none text-xs h-7">Header</TabsTrigger>
+                <TabsTrigger value="cell" className="rounded-none text-xs h-7">Cell</TabsTrigger>
+                <TabsTrigger value="formatter" className="rounded-none text-xs h-7">Formatter</TabsTrigger>
+                <TabsTrigger value="filter" className="rounded-none text-xs h-7">Filter</TabsTrigger>
+                <TabsTrigger value="editors" className="rounded-none text-xs h-7">Editors</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-hidden">
-                <TabsContent value="header" className="h-full m-0 p-6 overflow-y-auto dialog-scrollbar">
+                <TabsContent value="header" className="h-full m-0 p-4 overflow-y-auto dialog-scrollbar">
                   <HeaderTab
                     settings={state.settings.header || {}}
                     onSettingsChange={(updates) => updateSettings('header', updates)}
@@ -496,7 +496,7 @@ export function ColumnSettingsDialog({
                   />
                 </TabsContent>
 
-                <TabsContent value="cell" className="h-full m-0 p-6 overflow-y-auto dialog-scrollbar">
+                <TabsContent value="cell" className="h-full m-0 p-4 overflow-y-auto dialog-scrollbar">
                   <CellTab
                     settings={state.settings.cell || {}}
                     onSettingsChange={(updates) => updateSettings('cell', updates)}
@@ -505,7 +505,7 @@ export function ColumnSettingsDialog({
                   />
                 </TabsContent>
 
-                <TabsContent value="formatter" className="h-full m-0 p-6 overflow-y-auto dialog-scrollbar">
+                <TabsContent value="formatter" className="h-full m-0 p-4 overflow-y-auto dialog-scrollbar">
                   <FormatterTab
                     settings={state.settings.formatter || {}}
                     onSettingsChange={(updates) => updateSettings('formatter', updates)}
@@ -514,7 +514,7 @@ export function ColumnSettingsDialog({
                   />
                 </TabsContent>
 
-                <TabsContent value="filter" className="h-full m-0 p-6 overflow-y-auto dialog-scrollbar">
+                <TabsContent value="filter" className="h-full m-0 p-4 overflow-y-auto dialog-scrollbar">
                   <FilterTab
                     settings={state.settings.filter || {}}
                     onSettingsChange={(updates) => updateSettings('filter', updates)}
@@ -523,7 +523,7 @@ export function ColumnSettingsDialog({
                   />
                 </TabsContent>
 
-                <TabsContent value="editors" className="h-full m-0 p-6 overflow-y-auto dialog-scrollbar">
+                <TabsContent value="editors" className="h-full m-0 p-4 overflow-y-auto dialog-scrollbar">
                   <EditorsTab
                     settings={state.settings.editor || {}}
                     onSettingsChange={(updates) => updateSettings('editor', updates)}
@@ -536,20 +536,20 @@ export function ColumnSettingsDialog({
           </div>
         </div>
 
-        <DialogFooter className="border-t px-6 py-3 flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="border-t px-4 py-2 flex-shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-8 text-xs">
             Cancel
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleReset}>
+          <div className="flex gap-1.5">
+            <Button variant="outline" onClick={handleReset} className="h-8 text-xs">
               {state.bulkUpdateMode ? "Clear Selection" : "Reset"}
             </Button>
             <Button
               onClick={applyChanges}
               disabled={isApplyDisabled}
-              className="gap-2"
+              className="gap-1.5 h-8 text-xs"
             >
-              <Check className="w-4 h-4" />
+              <Check className="w-3 h-3" />
               {state.bulkUpdateMode
                 ? `Apply to ${state.selectedColumns.length} Column${state.selectedColumns.length !== 1 ? 's' : ''}`
                 : "Apply Changes"

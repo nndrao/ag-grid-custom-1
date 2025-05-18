@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useGridSettings, useToolbarSettings, useColumnSettings } from '@/hooks/useGridSettings';
-import { ColumnSettingsDialog } from './grid-settings/column-settings-dialog';
+import { ColumnSettingsDialog } from './column-settings/ColumnSettingsDialog';
 import { SettingsStore } from '@/stores/settings-store';
 
 /**

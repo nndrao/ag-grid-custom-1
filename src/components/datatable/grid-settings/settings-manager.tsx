@@ -11,7 +11,7 @@ import {
 import { Settings2 } from 'lucide-react';
 import { GridApi } from 'ag-grid-community';
 import { SettingsController } from '@/services/settings-controller';
-import { ColumnSettingsDialog } from './column-settings-dialog';
+import { ColumnSettingsDialog } from '../column-settings/ColumnSettingsDialog';
 
 type SettingsDialogType = 
   | 'column'

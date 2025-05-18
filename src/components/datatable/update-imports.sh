@@ -12,7 +12,7 @@ files=(
   "hooks/useAgGridProfileSync.ts"
   "grid-settings/grid-settings-menu.tsx"
   "grid-settings/grid-settings-dialog.tsx"
-  "grid-settings/column-settings-dialog.tsx"
+  "column-settings/ColumnSettingsDialog.tsx"
   "grid-settings/settings-dialog-base.tsx"
   "grid-settings/settings-manager.tsx"
   "profile/FontFamilySelector.tsx"
