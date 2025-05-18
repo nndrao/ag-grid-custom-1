@@ -147,6 +147,15 @@ export class ProfileManager {
    */
   public async createProfile(name: string): Promise<Profile> {
     try {
+      // Check if a profile with this name already exists
+      const existingProfile = this._profiles.find(
+        p => p.name.toLowerCase() === name.toLowerCase()
+      );
+      
+      if (existingProfile) {
+        throw new Error(`A profile named "${name}" already exists`);
+      }
+      
       // Create a new profile using the current settings
       const currentSettings = this.settingsController.collectCurrentSettings();
       

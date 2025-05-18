@@ -26,6 +26,11 @@ interface ColumnListPanelProps {
   onSearchChange: (term: string) => void;
 }
 
+// Extend Checkbox props to include indeterminate
+interface CheckboxWithIndeterminateProps extends React.ComponentPropsWithoutRef<typeof Checkbox> {
+  indeterminate?: boolean;
+}
+
 export function ColumnListPanel({
   columns,
   selectedColumn,
@@ -40,6 +45,7 @@ export function ColumnListPanel({
   const [dataTypeFilter, setDataTypeFilter] = useState<string>('all');
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   // Determine column data type
   const getColumnDataType = (col: ColDef): string => {
@@ -117,6 +123,23 @@ export function ColumnListPanel({
       setFocusedIndex(selectedIndex);
     }
   }, [selectedColumn, filteredColumns]);
+  
+  // Handle indeterminate state for select all checkbox
+  useEffect(() => {
+    if (selectAllRef.current && bulkUpdateMode) {
+      const selectedFilteredCount = filteredColumns.filter(col => 
+        selectedColumns.includes(col.field || '')
+      ).length;
+      
+      const totalFiltered = filteredColumns.length;
+      
+      if (selectedFilteredCount > 0 && selectedFilteredCount < totalFiltered) {
+        selectAllRef.current.indeterminate = true;
+      } else {
+        selectAllRef.current.indeterminate = false;
+      }
+    }
+  }, [filteredColumns, selectedColumns, bulkUpdateMode]);
 
 
   return (
@@ -124,6 +147,16 @@ export function ColumnListPanel({
       "flex flex-col bg-background transition-all duration-200",
       "w-[210px]"
     )}>
+      {/* Header */}
+      <div className="px-3 py-3 border-b">
+        <h3 className="text-xs font-medium flex items-center justify-between">
+          <span>Columns</span>
+          <span className="text-muted-foreground font-normal">
+            {columns.length === 0 ? '0' : `${filteredColumns.length} of ${columns.length}`}
+          </span>
+        </h3>
+      </div>
+
       {/* Search and filter area */}
       <div className="p-3 border-b space-y-2">
         <div className="relative">
@@ -155,24 +188,28 @@ export function ColumnListPanel({
           </Select>
         </div>
         
-        {bulkUpdateMode && (
+        {bulkUpdateMode && filteredColumns.length > 0 && (
           <div className="flex items-center gap-1.5">
             <Checkbox
+              ref={selectAllRef}
               id="selectAll"
-              checked={filteredColumns.length > 0 && filteredColumns.every(col => selectedColumns.includes(col.field || ''))}
+              checked={filteredColumns.every(col => selectedColumns.includes(col.field || ''))}
               onCheckedChange={(checked) => {
+                // Get all valid fields from filtered columns
+                const filteredFields = filteredColumns
+                  .map(col => col.field)
+                  .filter((field): field is string => field !== undefined && field !== '');
+                
                 if (checked) {
-                  // Select all filtered columns
-                  const fieldsToSelect = filteredColumns.map(col => col.field || '').filter(field => field);
-                  fieldsToSelect.forEach(field => {
+                  // Select only visible filtered columns
+                  filteredFields.forEach(field => {
                     if (!selectedColumns.includes(field)) {
                       onColumnSelect(field);
                     }
                   });
                 } else {
-                  // Deselect all filtered columns
-                  const fieldsToDeselect = filteredColumns.map(col => col.field || '').filter(field => field);
-                  fieldsToDeselect.forEach(field => {
+                  // Deselect only visible filtered columns
+                  filteredFields.forEach(field => {
                     if (selectedColumns.includes(field)) {
                       onColumnSelect(field);
                     }
@@ -182,7 +219,10 @@ export function ColumnListPanel({
               className="h-3.5 w-3.5"
             />
             <Label htmlFor="selectAll" className="text-xs font-medium cursor-pointer">
-              Select All ({filteredColumns.length})
+              Select All {filteredColumns.some(col => selectedColumns.includes(col.field || '')) 
+                ? `(${filteredColumns.filter(col => selectedColumns.includes(col.field || '')).length}/${filteredColumns.length})`
+                : `(${filteredColumns.length})`
+              }
             </Label>
           </div>
         )}

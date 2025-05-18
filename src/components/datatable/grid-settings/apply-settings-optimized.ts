@@ -35,7 +35,7 @@ const OPTION_CATEGORIES = {
   COLUMNS: ['suppressMovableColumns', 'suppressColumnMoveAnimation', 'suppressAutoSize', 'suppressFieldDotNotation'],
   
   // Options that affect editing
-  EDITING: ['editType', 'singleClickEdit', 'suppressClickEdit', 'enterMovesDown', 'enterMovesDownAfterEdit']
+  EDITING: ['editType', 'singleClickEdit', 'suppressClickEdit', 'enterNavigatesVertically', 'enterNavigatesVerticallyAfterEdit']
 };
 
 // Value cache for computed properties
@@ -128,7 +128,7 @@ const COLUMN_DEF_PROPERTIES = [
   'sortable', 'resizable', 'filter', 'editable', 'flex', 'minWidth', 'maxWidth',
   'enableValue', 'enableRowGroup', 'enablePivot', 'sortingOrder', 
   'checkboxSelection', 'headerCheckboxSelection', 'cellStyle',
-  'cellEditor', 'cellRenderer'
+  'cellEditor', 'cellRenderer', 'verticalAlign', 'horizontalAlign'
 ];
 
 /**
@@ -137,6 +137,21 @@ const COLUMN_DEF_PROPERTIES = [
 const ROW_SELECTION_PROPERTIES = [
   'mode', 'enableSelectionWithoutKeys', 'enableClickSelection', 'checkboxes',
   'groupSelects', 'copySelectedRows', 'enableDeselection', 'enableMultiSelectWithClick'
+];
+
+/**
+ * Define properties that are not valid grid options
+ */
+const INVALID_GRID_PROPERTIES = [
+  'verticalAlign', 'horizontalAlign', 'statusPanels', 'statusPanel', 'align',
+  'columnDefs', // columnDefs should be applied separately
+  // v33+ deprecated column properties that should not be applied at grid level
+  'suppressCellFlash', 'suppressFilter', 'filterMenuTab', 'suppressFilterButton', 
+  'suppressQuickFilter', 'enterMovesDown', 'enterMovesDownAfterEdit',
+  // v33+ deprecated grid properties
+  'suppressPropertyNamesCheck', 'suppressBrowserResizeObserver', 
+  'cacheQuickFilter', 'groupIncludeFooter', 'suppressLoadingOverlay',
+  'enableRangeSelection', 'rowMultiSelectWithClick', 'rowDeselection'
 ];
 
 /**
@@ -176,6 +191,21 @@ function transformDeprecatedProperties(option: string, value: any): [string, any
       return ['rowSelection', {
         copySelectedRows: !value  // Inverted because it's "suppress"
       }];
+    
+    // v33+ deprecated editing properties
+    case 'enterMovesDown':
+      return ['enterNavigatesVertically', value];
+    
+    case 'enterMovesDownAfterEdit':
+      return ['enterNavigatesVerticallyAfterEdit', value];
+    
+    // v33+ deprecated loading property
+    case 'suppressLoadingOverlay':
+      return ['loading', !value]; // Inverse - suppressLoadingOverlay: true = loading: false
+    
+    // v33+ deprecated grouping property
+    case 'groupHideParentOfSingleChild':
+      return ['groupRemoveSingleChildren', value];
     
     default:
       // Not a deprecated property
@@ -285,6 +315,7 @@ function preprocessSettings(gridSettings: GridOptionsMap, initialValues: GridOpt
             // Skip nested properties that shouldn't be at grid level
             if (COLUMN_DEF_PROPERTIES.includes(option) || 
                 ROW_SELECTION_PROPERTIES.includes(option) ||
+                INVALID_GRID_PROPERTIES.includes(option) ||
                 /^\d+$/.test(option)) { // Skip numeric indices
               return;
             }
@@ -432,6 +463,12 @@ async function applyBatch(
           // Skip initial properties
           if (INITIAL_PROPERTIES.includes(option)) {
             console.warn(`Skipping initial property '${option}' - cannot be updated at runtime`);
+            return;
+          }
+          
+          // Skip invalid grid properties
+          if (INVALID_GRID_PROPERTIES.includes(option)) {
+            console.warn(`Skipping invalid grid property '${option}'`);
             return;
           }
           
@@ -608,10 +645,15 @@ async function applyIndividually(
 ) {
   for (const [option, value] of Object.entries(settings)) {
     try {
-      if (!INITIAL_PROPERTIES.includes(option)) {
-        await applySpecialSetting(gridApi, option, value);
-        result.appliedSettings.push(option);
+      // Skip initial properties and invalid grid properties
+      if (INITIAL_PROPERTIES.includes(option) || INVALID_GRID_PROPERTIES.includes(option)) {
+        if (INVALID_GRID_PROPERTIES.includes(option)) {
+          console.warn(`Skipping invalid grid property '${option}'`);
+        }
+        continue;
       }
+      await applySpecialSetting(gridApi, option, value);
+      result.appliedSettings.push(option);
     } catch (error) {
       result.errors.push(`Failed to apply ${option}: ${error}`);
     }

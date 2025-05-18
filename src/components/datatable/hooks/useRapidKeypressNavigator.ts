@@ -216,15 +216,22 @@ export const useRapidKeypressNavigator = (
     
     // Force a refresh of the cells
     try {
-      // Refresh specific rows
-      const rowsToRefresh = [];
-      const rowNode1 = gridApi.getRowNode(String(focusedCell.rowIndex));
-      const rowNode2 = gridApi.getRowNode(String(endIndex));
-      if (rowNode1) rowsToRefresh.push(rowNode1);
-      if (rowNode2) rowsToRefresh.push(rowNode2);
+      // In v33+, use row indices directly for refresh
+      const refreshParams = {
+        rowNodes: [],
+        force: false,
+        suppressFlash: true
+      };
       
-      if (rowsToRefresh.length > 0) {
-        gridApi.refreshCells({ rowNodes: rowsToRefresh });
+      // Collect nodes to refresh using forEachNode
+      gridApi.forEachNode((node) => {
+        if (node.rowIndex === focusedCell.rowIndex || node.rowIndex === endIndex) {
+          refreshParams.rowNodes.push(node);
+        }
+      });
+      
+      if (refreshParams.rowNodes.length > 0) {
+        gridApi.refreshCells(refreshParams);
       } else {
         gridApi.refreshCells();
       }
@@ -308,10 +315,11 @@ export const useRapidKeypressNavigator = (
       // Refresh specific rows
       const rowsToRefresh = [];
       if (fromCell.rowIndex !== newRowIndex) {
-        const rowNode1 = gridApi.getRowNode(String(fromCell.rowIndex));
-        const rowNode2 = gridApi.getRowNode(String(newRowIndex));
-        if (rowNode1) rowsToRefresh.push(rowNode1);
-        if (rowNode2) rowsToRefresh.push(rowNode2);
+        gridApi.forEachNode((node) => {
+          if (node.rowIndex === fromCell.rowIndex || node.rowIndex === newRowIndex) {
+            rowsToRefresh.push(node);
+          }
+        });
       }
       
       if (rowsToRefresh.length > 0) {
@@ -426,10 +434,11 @@ export const useRapidKeypressNavigator = (
       // Refresh specific rows
       const rowsToRefresh = [];
       if (fromCell.rowIndex !== newRowIndex) {
-        const rowNode1 = gridApi.getRowNode(String(fromCell.rowIndex));
-        const rowNode2 = gridApi.getRowNode(String(newRowIndex));
-        if (rowNode1) rowsToRefresh.push(rowNode1);
-        if (rowNode2) rowsToRefresh.push(rowNode2);
+        gridApi.forEachNode((node) => {
+          if (node.rowIndex === fromCell.rowIndex || node.rowIndex === newRowIndex) {
+            rowsToRefresh.push(node);
+          }
+        });
       }
       
       if (rowsToRefresh.length > 0) {

@@ -17,8 +17,13 @@ export function generateHeaderClass(settings: HeaderSettings): string {
     classes.push(settings.headerClass);
   }
   
+  // Add alignment classes
+  if (settings.textAlign) {
+    classes.push(`ag-header-cell-text-${settings.textAlign}`);
+  }
+  
   if (settings.verticalAlign) {
-    classes.push(`header-align-${settings.verticalAlign}`);
+    classes.push(`ag-header-cell-align-${settings.verticalAlign}`);
   }
   
   // Add text style classes
@@ -50,46 +55,65 @@ export function generateHeaderStyle(settings: HeaderSettings): any {
     style.fontSize = settings.fontSize;
   }
   
-  if (settings.fontWeight && settings.fontWeight !== 'default') {
+  // Handle font weight - can be from fontWeight or fontStyle
+  if (settings.fontWeight && settings.fontWeight !== 'default' && settings.fontWeight !== 'normal') {
     style.fontWeight = settings.fontWeight;
   }
   
-  // Text styles
-  if (settings.textStyle?.includes('bold')) {
-    style.fontWeight = 'bold';
+  // Font styles (bold, italic, underline can be combined in a single string)
+  if (settings.fontStyle) {
+    // Check if fontStyle contains multiple styles (e.g., "bold italic underline")
+    const styles = settings.fontStyle.split(' ').filter(s => s);
+    
+    styles.forEach(styleValue => {
+      if (styleValue === 'bold') {
+        style.fontWeight = 'bold';
+      } else if (styleValue === 'italic') {
+        style.fontStyle = 'italic';
+      } else if (styleValue === 'underline') {
+        style.textDecoration = 'underline';
+      }
+    });
   }
   
-  if (settings.textStyle?.includes('italic')) {
-    style.fontStyle = 'italic';
-  }
-  
-  if (settings.textStyle?.includes('underline')) {
-    style.textDecoration = 'underline';
+  // Legacy textStyle support (array format)
+  if (Array.isArray(settings.textStyle)) {
+    settings.textStyle.forEach(styleValue => {
+      if (styleValue === 'bold') {
+        style.fontWeight = 'bold';
+      } else if (styleValue === 'italic') {
+        style.fontStyle = 'italic';
+      } else if (styleValue === 'underline') {
+        style.textDecoration = 'underline';
+      }
+    });
   }
   
   // Colors
-  if (settings.textColorEnabled && settings.textColor) {
+  if (settings.textColor) {
     style.color = settings.textColor;
   }
   
-  if (settings.backgroundEnabled && settings.backgroundColor) {
+  if (settings.backgroundColor) {
     style.backgroundColor = settings.backgroundColor;
   }
   
   // Alignment
-  if (settings.verticalAlign) {
-    style.alignItems = settings.verticalAlign === 'top' ? 'flex-start' :
-                      settings.verticalAlign === 'bottom' ? 'flex-end' : 'center';
+  if (settings.horizontalAlign) {
+    style.textAlign = settings.horizontalAlign;
   }
   
   // Borders
-  if (settings.applyBorders) {
-    const borderStyle = `${settings.borderWidth || 1}px ${settings.borderStyle || 'solid'} ${settings.borderColorEnabled ? settings.borderColor : '#ccc'}`;
+  if (settings.applyBorders && settings.borderColor) {
+    const borderWidth = settings.borderWidth || 1;
+    const borderStyle = settings.borderStyle || 'solid';
+    const borderColor = settings.borderColor || '#ccc';
     
     if (settings.borderSides === 'all') {
-      style.border = borderStyle;
-    } else {
-      style[`border${settings.borderSides?.charAt(0).toUpperCase()}${settings.borderSides?.slice(1)}`] = borderStyle;
+      style.border = `${borderWidth}px ${borderStyle} ${borderColor}`;
+    } else if (settings.borderSides) {
+      const side = settings.borderSides.charAt(0).toUpperCase() + settings.borderSides.slice(1);
+      style[`border${side}`] = `${borderWidth}px ${borderStyle} ${borderColor}`;
     }
   }
   
@@ -123,20 +147,66 @@ export function generateCellClass(settings: CellSettings): string {
 export function generateCellStyle(settings: CellSettings): any {
   const style: any = {};
   
+  // Font settings
+  if (settings.fontFamily && settings.fontFamily !== 'default') {
+    style.fontFamily = settings.fontFamily;
+  }
+  
+  if (settings.fontSize && settings.fontSize !== 'default') {
+    style.fontSize = settings.fontSize;
+  }
+  
+  if (settings.fontWeight && settings.fontWeight !== 'default' && settings.fontWeight !== 'normal') {
+    style.fontWeight = settings.fontWeight;
+  }
+  
+  // Font styles (bold, italic, underline can be combined in a single string)
+  if (settings.fontStyle) {
+    const styles = settings.fontStyle.split(' ').filter(s => s);
+    
+    styles.forEach(styleValue => {
+      if (styleValue === 'bold') {
+        style.fontWeight = 'bold';
+      } else if (styleValue === 'italic') {
+        style.fontStyle = 'italic';
+      } else if (styleValue === 'underline') {
+        style.textDecoration = 'underline';
+      }
+    });
+  }
+  
+  // Colors
+  if (settings.textColor) {
+    style.color = settings.textColor;
+  }
+  
+  if (settings.backgroundColor) {
+    style.backgroundColor = settings.backgroundColor;
+  }
+  
+  // Alignment
   if (settings.horizontalAlign) {
     style.textAlign = settings.horizontalAlign;
-    style.justifyContent = settings.horizontalAlign === 'center' ? 'center' : 
-                          settings.horizontalAlign === 'right' ? 'flex-end' : 'flex-start';
   }
   
-  if (settings.verticalAlign) {
-    style.alignItems = settings.verticalAlign === 'top' ? 'flex-start' :
-                      settings.verticalAlign === 'bottom' ? 'flex-end' : 'center';
-  }
-  
+  // Text wrapping
   if (settings.wrapText) {
     style.whiteSpace = 'normal';
     style.wordBreak = 'break-word';
+  }
+  
+  // Borders
+  if (settings.applyBorders && settings.borderColor) {
+    const borderWidth = settings.borderWidth || 1;
+    const borderStyle = settings.borderStyle || 'solid';
+    const borderColor = settings.borderColor || '#ccc';
+    
+    if (settings.borderSides === 'all') {
+      style.border = `${borderWidth}px ${borderStyle} ${borderColor}`;
+    } else if (settings.borderSides) {
+      const side = settings.borderSides.charAt(0).toUpperCase() + settings.borderSides.slice(1);
+      style[`border${side}`] = `${borderWidth}px ${borderStyle} ${borderColor}`;
+    }
   }
   
   return style;

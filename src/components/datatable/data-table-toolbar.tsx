@@ -5,6 +5,7 @@ import { GridSettingsMenu } from './grid-settings/grid-settings-menu';
 import { ProfileSelector } from './profile/ProfileSelector';
 import { ProfileSaveButton } from './profile/ProfileSaveButton';
 import { ProfileDeleteButton } from './profile/ProfileDeleteButton';
+import { ProfileCreateButton } from './profile/ProfileCreateButton';
 import { FontFamilySelector } from './profile/FontFamilySelector';
 import { FontSizeSelector } from './profile/FontSizeSelector';
 import { SpacingSelector } from './profile/SpacingSelector';
@@ -39,6 +40,12 @@ export function DataTableToolbar<TData>({
           gridApi={gridApi}
           profileManager={profileManager}
           settingsController={settingsController}
+        />
+        <ProfileCreateButton
+          onCreate={profileManager.createProfile}
+          onSelectProfile={profileManager.selectProfile}
+          loading={profileManager.loading}
+          iconOnly={true}
         />
         <ProfileSaveButton 
           onSave={profileManager.saveCurrentProfile}

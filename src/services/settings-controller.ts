@@ -247,6 +247,36 @@ export class SettingsController {
   public getCurrentGridOptions(): any {
     return this.settingsStore.getSettings('gridOptions');
   }
+  
+  /**
+   * Get current custom settings from the store
+   */
+  public getCurrentCustomSettings(): any {
+    return this.settingsStore.getSettings('custom' as any);
+  }
+
+  /**
+   * Update custom settings including column definitions
+   */
+  public updateCustomSettings(settings: any): void {
+    this.debouncedUpdate(() => {
+      // Separate column definitions from other settings
+      const { columnDefs, ...otherSettings } = settings;
+      
+      // Get current custom settings
+      const currentCustom = this.settingsStore.getSettings('custom' as any) as any || {};
+      
+      // Merge with new settings
+      const updatedCustom = {
+        ...currentCustom,
+        ...otherSettings,
+        ...(columnDefs && { columnDefs })
+      };
+      
+      // Store the settings in the custom section
+      this.settingsStore.updateSettings('custom' as any, updatedCustom);
+    });
+  }
 
   /**
    * Collect current settings for storing in a profile
@@ -255,12 +285,24 @@ export class SettingsController {
     // Get grid state from provider
     const gridState = this.gridStateProvider.extractGridState();
     
+    // Get custom settings from the store (includes saved columnDefs)
+    const customSettings = this.settingsStore.getSettings('custom' as any) as any || {};
+    
+    // Get current column definitions from the grid if available
+    let currentColumnDefs = null;
+    if (this.gridApi) {
+      currentColumnDefs = this.gridApi.getColumnDefs();
+    }
+    
     // Get settings from the store
     const settings = {
       toolbar: this.settingsStore.getSettings('toolbar'),
       grid: gridState,
       custom: {
-        gridOptions: this.settingsStore.getSettings('gridOptions')
+        gridOptions: this.settingsStore.getSettings('gridOptions'),
+        ...customSettings,
+        // Use current column definitions, falling back to saved ones
+        columnDefs: currentColumnDefs || customSettings.columnDefs
       }
     };
     

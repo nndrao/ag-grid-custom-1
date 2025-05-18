@@ -21,6 +21,9 @@ import { DEFAULT_GRID_OPTIONS } from './config/default-grid-options';
 import { GoogleFontsLoader } from './theme/GoogleFontsLoader';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
+import { ColumnSettingsPersistenceV2 } from './utils/column-settings-persistence-v2';
+import { ProfileCustomSettings } from './column-settings/types';
+import { convertSettingsToColDef } from './column-settings/conversion-utils';
 import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -81,6 +84,8 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
     if (!settingsControllerRef.current) {
       settingsControllerRef.current = new SettingsController(gridStateProviderRef.current);
+      console.log('SettingsController initialized:', settingsControllerRef.current);
+      console.log('SettingsController methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(settingsControllerRef.current)));
     }
   }, []);
   
@@ -195,10 +200,117 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     settingsController: settingsControllerRef.current,
     gridApi: gridApiRef.current,
     className: "mb-2.5"
-  }), [profileManager]);
+  }), [profileManager, gridReady]); // Add gridReady to deps to refresh when grid is ready
 
-  // Memoize columnDefs
-  const memoizedColumnDefs = useMemo(() => columnDefs, [columnDefs]);
+  // Create state for saved column settings
+  const [savedColumnSettings, setSavedColumnSettings] = useState<ProfileCustomSettings | null>(null);
+  const [isProfileChanging, setIsProfileChanging] = useState(false);
+  
+  // Function to create reset column definitions (removes all styling)
+  const createResetColumnDefs = useCallback((baseDefs: ColDef[]) => {
+    return baseDefs.map((col: ColDef) => {
+      // Create a completely new object to avoid references
+      const resetCol: ColDef = {
+        field: col.field,
+        sortable: col.sortable !== undefined ? col.sortable : true,
+        filter: col.filter !== undefined ? col.filter : true,
+        resizable: col.resizable !== undefined ? col.resizable : true,
+        editable: col.editable !== undefined ? col.editable : false,
+        minWidth: col.minWidth || 100,
+        width: col.width,
+        flex: col.flex,
+        // Copy other non-style properties
+        type: col.type,
+        pinned: col.pinned,
+      };
+      
+      // Set default header name
+      if (col.field) {
+        resetCol.headerName = col.field
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase())
+          .trim();
+      }
+      
+      // Explicitly set styles to null to clear any existing styles
+      resetCol.headerStyle = null;
+      resetCol.cellStyle = null;
+      resetCol.headerClass = null;
+      resetCol.cellClass = null;
+      resetCol.headerTooltip = null;
+      resetCol.cellClassRules = null;
+      resetCol.valueFormatter = null;
+      resetCol.cellRenderer = null;
+      
+      return resetCol;
+    });
+  }, []);
+  
+  // Function to load column settings for current profile
+  const loadColumnSettings = useCallback(async () => {
+    try {
+      console.log('Loading column settings for profile:', profileManager?.activeProfile?.id);
+      const settings = await ColumnSettingsPersistenceV2.getColumnSettings();
+      setSavedColumnSettings(settings);
+    } catch (error) {
+      console.error('Error loading column settings:', error);
+      setSavedColumnSettings(null);
+    }
+  }, [profileManager?.activeProfile?.id]);
+  
+  // Apply column settings when they are loaded
+  useEffect(() => {
+    if (!isProfileChanging && savedColumnSettings && gridApiRef.current && gridReady) {
+      console.log('Applying column settings for profile:', profileManager?.activeProfile?.id);
+      
+      // Get current column definitions
+      const currentDefs = gridApiRef.current.getColumnDefs();
+      
+      if (currentDefs && savedColumnSettings.columnSettings) {
+        // Apply saved settings to current definitions
+        const updatedDefs = currentDefs.map((col: ColDef) => {
+          if (!col.field) return col;
+          
+          const savedSettings = savedColumnSettings.columnSettings[col.field];
+          if (savedSettings) {
+            const convertedSettings = convertSettingsToColDef(savedSettings);
+            return {
+              ...col,
+              ...convertedSettings
+            };
+          }
+          return col;
+        });
+        
+        // Update grid with new definitions
+        gridApiRef.current.setGridOption('columnDefs', updatedDefs);
+        
+        // Refresh to apply changes
+        requestAnimationFrame(() => {
+          gridApiRef.current.refreshCells({ force: true });
+          gridApiRef.current.refreshHeader();
+        });
+      }
+    }
+  }, [savedColumnSettings, gridReady, profileManager?.activeProfile?.id, isProfileChanging]);
+  
+  // Load saved column settings when component mounts or profile changes
+  useEffect(() => {
+    if (profileManager?.activeProfile?.id && !isProfileChanging) {
+      // Add a small delay to ensure the grid has properly reset
+      const timer = setTimeout(() => {
+        loadColumnSettings();
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [profileManager?.activeProfile?.id, loadColumnSettings, isProfileChanging]);
+
+  // Use base column definitions directly since we apply settings in useEffect
+  const memoizedColumnDefs = useMemo(() => {
+    console.log('DataTable: Using base column definitions');
+    return columnDefs;
+  }, [columnDefs]);
   
   // Get dynamic configurations from customGridOptions and fallback to defaults
   const dynamicConfigs = useMemo(() => {
@@ -292,16 +404,45 @@ export function DataTable({ columnDefs, dataRow }: DataTableProps) {
     }
   }, [profileManager, processedDefaultColDef]);
   
-  // Track profile changes
+  // Track profile changes and reset column definitions
   useEffect(() => {
-    if (!gridReady || !profileManager?.activeProfile) return;
+    if (!gridReady || !profileManager?.activeProfile || !gridApiRef.current) return;
     
     const currentProfileId = profileManager.activeProfile.id;
     
     if (currentProfileId !== previousProfileIdRef.current && isInitialProfileAppliedRef.current) {
+      console.log('Profile changed from', previousProfileIdRef.current, 'to', currentProfileId);
       previousProfileIdRef.current = currentProfileId;
+      
+      // Set flag to prevent applying settings while changing profiles
+      setIsProfileChanging(true);
+      
+      // Clear saved settings immediately
+      setSavedColumnSettings(null);
+      
+      // Create reset column definitions
+      const resetColumnDefs = createResetColumnDefs(columnDefs);
+      
+      // Apply reset definitions directly
+      gridApiRef.current.setGridOption('columnDefs', resetColumnDefs);
+      
+      // Force refresh
+      gridApiRef.current.refreshCells({ force: true });
+      gridApiRef.current.refreshHeader();
+      
+      // Apply profile settings after a delay
+      setTimeout(() => {
+        if (settingsControllerRef.current && profileManager.activeProfile) {
+          // Apply profile settings
+          settingsControllerRef.current.applyProfileSettings(profileManager.activeProfile.settings);
+          
+          // Clear flag and load new settings
+          setIsProfileChanging(false);
+          loadColumnSettings();
+        }
+      }, 100);
     }
-  }, [gridReady, profileManager?.activeProfile?.id]);
+  }, [gridReady, profileManager?.activeProfile?.id, columnDefs, createResetColumnDefs, loadColumnSettings]);
 
   return (
     <TooltipProvider>

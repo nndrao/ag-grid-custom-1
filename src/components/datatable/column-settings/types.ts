@@ -134,13 +134,31 @@ export interface EditorSettings {
 
 // Combined column settings
 export interface ColumnSettings {
+  columnId: string;              // Column field identifier
   header?: HeaderSettings;
   cell?: CellSettings;
   formatter?: FormatterSettings;
   filter?: FilterSettings;
   editor?: EditorSettings;
+  lastModified?: number;         // Timestamp for tracking changes
+  isDirty?: boolean;            // Track unsaved changes
   // AG-Grid specific properties
   colDef?: Partial<ColDef>;
+}
+
+// Map structure for efficient lookup
+export interface ColumnSettingsMap {
+  [columnId: string]: ColumnSettings;
+}
+
+// Profile custom settings structure
+export interface ProfileCustomSettings {
+  columnSettings: ColumnSettingsMap;
+  columnOrder?: string[];        // Track column order
+  hiddenColumns?: string[];      // Track hidden columns
+  columnState?: any[];          // AG-Grid column state
+  sortModel?: any[];            // Sort state
+  filterModel?: any;            // Filter state
 }
 
 // Component props
@@ -149,6 +167,8 @@ export interface ColumnSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   gridApi: any | null;
   column?: ColDef;
+  settingsController?: any;
+  profileManager?: any;
 }
 
 // State interfaces
@@ -156,12 +176,15 @@ export interface ColumnSettingsState {
   selectedColumn: string;
   selectedColumns: string[];
   bulkUpdateMode: boolean;
-  settings: ColumnSettings;
+  columnSettingsMap: ColumnSettingsMap;  // Changed from single settings to map
   modifiedColumns: Set<string>;
   hasChanges: boolean;
   activeTab: 'header' | 'cell' | 'formatter' | 'filter' | 'editors';
   searchTerm: string;
   columns: ColDef[];
+  baseColumnDefs: ColDef[];              // Original column definitions
+  isLoading: boolean;                    // Track loading state
+  error: string | null;                  // Track error state
 }
 
 export interface FormatterExample {

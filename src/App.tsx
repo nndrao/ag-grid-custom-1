@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { ThemeProvider } from "@/components/theme-provider";
 import { MigrationTestPage } from './components/datatable/migration-test-page';
 import { Button } from '@/components/ui/button';
+import TestColumnStyles from './test-column-styles';
 
 function inferColumnDefinitions(data: FixedIncomePosition[]): ColumnDef[] {
   if (data.length === 0) return [];
@@ -50,9 +51,11 @@ function App() {
   
   // State to track if we're showing the test page
   const [showTestPage, setShowTestPage] = useState(false);
+  const [showStyleTest, setShowStyleTest] = useState(false);
   
   // Toggle between main app and test page
   const toggleTestPage = () => setShowTestPage(prev => !prev);
+  const toggleStyleTest = () => setShowStyleTest(prev => !prev);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -65,6 +68,9 @@ function App() {
               <h1 className="text-lg font-semibold">Fixed Income Portfolio</h1>
             </div>
             <div className="flex items-center gap-4">
+              <Button onClick={toggleStyleTest} variant="outline" size="sm">
+                {showStyleTest ? 'Show Main' : 'Test Styles'}
+              </Button>
               <ThemeToggle />
             </div>
           </header>
@@ -74,7 +80,11 @@ function App() {
         <main className="flex-1 mt-16 mb-16">
           <div className="p-6">
             <div className="h-[calc(100vh-8rem-3rem)]">
-              <DataTable columnDefs={columns} dataRow={data} />
+              {showStyleTest ? (
+                <TestColumnStyles />
+              ) : (
+                <DataTable columnDefs={columns} dataRow={data} />
+              )}
             </div>
           </div>
         </main>

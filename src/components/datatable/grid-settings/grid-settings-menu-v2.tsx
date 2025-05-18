@@ -17,7 +17,7 @@ interface GridSettingsMenuProps {
   settingsController: SettingsController | null;
 }
 
-export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMenuProps) {
+export function GridSettingsMenuV2({ gridApi, settingsController }: GridSettingsMenuProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -48,69 +48,57 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
       });
     } catch (error) {
       toast({
-        title: "Error Saving Settings",
-        description: "Failed to save settings to profile.",
+        title: "Save Failed",
+        description: "Failed to save grid settings. Please try again.",
         variant: "destructive",
       });
     }
   };
-  
-  // Reset grid settings to profile defaults
-  const resetToProfileDefaults = async () => {
-    if (!settingsController || !gridApi || !profileManager?.activeProfile) {
+
+  // Reset grid settings to defaults
+  const resetGridSettings = () => {
+    if (!gridApi || !settingsController) {
       toast({
-        title: "No Active Profile",
-        description: "Please select or create a profile first.",
+        title: "Reset Failed",
+        description: "Grid is not ready. Please try again.",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      // Reset grid options to defaults
+      const defaultOptions = deepClone(DEFAULT_GRID_OPTIONS);
       
-      // Deep clone the default grid options with our improved deepClone function
-      const defaults = deepClone(DEFAULT_GRID_OPTIONS);
-      
-      // Directly apply the default column definition with cellStyle function
-      if (defaults.defaultColDef) {
-        gridApi.setGridOption('defaultColDef', defaults.defaultColDef);
-      }
-      
-      // Update the active profile's settings (custom.gridOptions)
-      if (profileManager.activeProfile.settings?.custom) {
-        profileManager.activeProfile.settings.custom.gridOptions = defaults;
-      }
-      
-      // Apply the defaults to the grid through settings controller
-      settingsController.applyProfileSettings({
-        ...profileManager.activeProfile.settings,
-        custom: {
-          ...profileManager.activeProfile.settings.custom,
-          gridOptions: defaults
+      // Apply default options
+      Object.keys(defaultOptions).forEach(key => {
+        if (key !== 'columnDefs') {
+          gridApi.setGridOption(key as any, defaultOptions[key]);
         }
       });
       
-      // Force refresh to apply the new styles
-      gridApi.refreshCells({ force: true });
+      // Reset toolbar settings
+      settingsController.resetToDefaults();
       
-      // Verify the cellStyle function is still present after all operations
-      const currentDefaultColDef = gridApi.getGridOption('defaultColDef');
+      // Refresh the grid
+      gridApi.refreshCells({ force: true });
+      gridApi.refreshHeader();
       
       toast({
         title: "Settings Reset",
-        description: `Grid settings reset to profile defaults.`,
+        description: "Grid settings have been reset to defaults.",
         variant: "default",
+        className: "bg-blue-50 border-blue-200",
         duration: 2000,
       });
     } catch (error) {
       toast({
-        title: "Error Resetting Settings",
-        description: "Failed to reset settings to profile defaults.",
+        title: "Reset Failed",
+        description: "Failed to reset grid settings. Please try again.",
         variant: "destructive",
       });
     }
   };
-
 
   return (
     <>
@@ -147,16 +135,16 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
             Save Settings to Profile
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={resetToProfileDefaults} disabled={!profileManager?.activeProfile}>
+          <DropdownMenuItem onClick={resetGridSettings}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Reset to Profile Defaults
+            Reset to Defaults
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <GridSettingsDialog 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+      
+      <GridSettingsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         gridApi={gridApi}
         settingsController={settingsController}
         profileManager={profileManager}
@@ -171,4 +159,4 @@ export function GridSettingsMenu({ gridApi, settingsController }: GridSettingsMe
       />
     </>
   );
-} 
+}

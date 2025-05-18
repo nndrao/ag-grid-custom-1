@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
-import { GridApi, ColDef } from 'ag-grid-community';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ColDef } from 'ag-grid-community';
 import { BUTTON_CLASSES, FORM_CONTROL_HEIGHTS } from './style-utils';
+import { ColumnSettingsPersistence } from '@/components/datatable/utils/column-settings-persistence';
 
 // Import custom styles for scrollbar
 import './column-settings.css';
@@ -21,24 +20,16 @@ import { HeaderTab, CellTab, FormatterTab, FilterTab, EditorsTab } from './compo
 import {
   generateHeaderClass,
   generateHeaderStyle,
-  generateCellClass,
-  generateCellStyle,
-  createValueFormatter,
-  formatDate,
-  filterColumns
+  createValueFormatter
 } from './utils';
 
 // Import types
 import type {
   ColumnSettingsDialogProps,
   ColumnSettingsState,
-  ColumnSettings,
-  HeaderSettings,
-  CellSettings,
-  FormatterSettings,
-  FilterSettings,
-  EditorSettings
+  ColumnSettings
 } from './types';
+
 
 /**
  * Column Settings Dialog - Main component
@@ -48,7 +39,9 @@ export function ColumnSettingsDialog({
   open,
   onOpenChange,
   gridApi,
-  column
+  column,
+  settingsController,
+  profileManager
 }: ColumnSettingsDialogProps) {
   // State management
   const [state, setState] = useState<ColumnSettingsState>({
@@ -62,50 +55,76 @@ export function ColumnSettingsDialog({
     searchTerm: '',
     columns: []
   });
+  
+  // Loading state for apply process
+  const [isApplying, setIsApplying] = useState(false);
 
   // Store settings for each column to persist changes when switching between columns
   const [columnSettingsMap, setColumnSettingsMap] = useState<Record<string, ColumnSettings>>({});
+  
+  // Cache for generated styles to avoid recomputation
+  const styleCache = useRef(new Map<string, any>());
+  const headerStyleCache = useRef(new Map<string, any>());
 
   // Extract settings from column definition
   const extractSettingsFromColumn = useCallback((col: ColDef): ColumnSettings => {
-    const cellStyle = typeof col.cellStyle === 'function' ? {} : col.cellStyle;
-    const headerStyle = typeof col.headerStyle === 'function' ? {} : col.headerStyle || {};
+    if (!col) {
+      return {} as ColumnSettings;
+    }
+    
+    const cellStyle = typeof col.cellStyle === 'function' ? {} : (col.cellStyle || {});
+    const headerStyle = typeof col.headerStyle === 'function' ? {} : (col.headerStyle || {});
+    
+    // Handle deprecated properties - extract from v33 properties or deprecated ones
+    const cellFlashEnabled = 'enableCellChangeFlash' in col 
+      ? col.enableCellChangeFlash !== false 
+      : true;
     
     return {
       header: {
         headerName: col.headerName,
-        headerClass: col.headerClass,
-        headerGroup: col.headerGroup,
-        // Extract font settings from headerStyle if present
-        fontFamily: headerStyle.fontFamily || 'default',
-        fontSize: headerStyle.fontSize || 'default',
-        fontWeight: headerStyle.fontWeight || 'default',
-        textStyle: [],
-        // Extract color settings
-        textColor: headerStyle.color || '#000000',
-        textColorEnabled: !!headerStyle.color,
-        backgroundColor: headerStyle.backgroundColor || '#ffffff',
-        backgroundEnabled: !!headerStyle.backgroundColor,
-        // Extract border settings
-        borderStyle: 'solid',
-        borderSides: 'all',
-        borderWidth: 1,
-        borderColor: '#cccccc',
-        applyBorders: !!headerStyle.border,
-        borderColorEnabled: false,
-        // Alignment
-        verticalAlign: 'middle'
+        headerClass: Array.isArray(col.headerClass) ? col.headerClass.join(' ') : col.headerClass as string | undefined,
+        headerGroup: (col as any).headerGroup,
+        // Map to HeaderTab property names
+        headerFontFamily: headerStyle.fontFamily || 'Arial',
+        headerFontSize: headerStyle.fontSize || '14px',
+        headerFontWeight: headerStyle.fontWeight || 'normal',
+        headerFontStyle: '',
+        headerTextColor: headerStyle.color || null,
+        headerBackgroundColor: headerStyle.backgroundColor || null,
+        headerTextAlign: headerStyle.textAlign || 'left',
+        headerVerticalAlign: headerStyle.alignItems === 'flex-start' ? 'top' :
+                            headerStyle.alignItems === 'flex-end' ? 'bottom' : 'middle',
+        // Border settings
+        applyHeaderBorders: !!headerStyle.border,
+        headerBorderStyle: 'solid',
+        headerBorderWidth: '1px',
+        headerBorderColor: headerStyle.borderColor || null,
+        headerBorderSides: 'all'
       },
       cell: {
-        horizontalAlign: cellStyle?.textAlign || cellStyle?.justifyContent || 'left',
-        verticalAlign: cellStyle?.alignSelf || cellStyle?.alignItems || 'middle',
+        // Map to CellTab property names
+        cellFontFamily: cellStyle?.fontFamily || 'Arial',
+        cellFontSize: cellStyle?.fontSize || '12px', 
+        cellFontWeight: cellStyle?.fontWeight || 'normal',
+        cellFontStyle: '',
+        cellTextColor: cellStyle?.color || null,
+        cellBackgroundColor: cellStyle?.backgroundColor || null,
+        cellTextAlign: cellStyle?.textAlign || 'left',
+        cellVerticalAlign: cellStyle?.alignItems === 'flex-start' ? 'top' :
+                          cellStyle?.alignItems === 'flex-end' ? 'bottom' : 'middle',
+        // Border settings
+        applyCellBorders: !!cellStyle?.border,
+        cellBorderStyle: 'solid',
+        cellBorderWidth: '1px',
+        cellBorderColor: cellStyle?.borderColor || null,
+        cellBorderSides: 'all',
+        // Other settings
         wrapText: col.wrapText || false,
         autoHeight: col.autoHeight || false,
-        cellClass: col.cellClass,
+        cellClass: Array.isArray(col.cellClass) ? col.cellClass.join(' ') : col.cellClass as string | undefined,
         cellRenderer: col.cellRenderer,
-        useFullWidthRow: false,
-        suppressCellFlash: col.suppressCellFlash || false,
-        includeButtonsInRowDrag: false
+        suppressCellFlash: !cellFlashEnabled // Internal setting remains as suppressCellFlash for UI
       },
       formatter: {
         type: 'text',
@@ -119,10 +138,13 @@ export function ColumnSettingsDialog({
       filter: {
         filter: col.filter || 'agTextColumnFilter',
         floatingFilter: col.floatingFilter || false,
-        filterable: col.filterable !== false,
-        filterMenuTab: col.filterMenuTab || 'filtersTab',
-        suppressFilterButton: col.suppressFilterButton || false,
-        includeInQuickFilter: col.includeInQuickFilter !== false,
+        // Handle deprecated suppressFilter - check for v33 property first
+        filterable: col.filter !== false && !(col as any).suppressFilter,
+        filterMenuTab: 'filtersTab', // Default to filtersTab since filterMenuTab is deprecated
+        // Handle deprecated suppressFilterButton -> suppressFloatingFilterButton
+        suppressFilterButton: col.suppressHeaderFilterButton || (col as any).suppressFilterButton || false,
+        // Handle deprecated includeInQuickFilter - opposite of suppressQuickFilter
+        includeInQuickFilter: !(col as any).suppressQuickFilter,
         quickFilterText: col.quickFilterText || '',
         defaultFilterOption: 'contains',
         caseSensitive: false,
@@ -132,39 +154,130 @@ export function ColumnSettingsDialog({
         editable: col.editable !== false,
         cellEditor: col.cellEditor || 'agTextCellEditor',
         singleClickEdit: col.singleClickEdit || false,
-        enterMovesDown: col.enterMovesDown !== false,
-        enterMovesDownAfterEdit: col.enterMovesDownAfterEdit !== false,
-        stopEditingWhenCellsLoseFocus: col.stopEditingWhenCellsLoseFocus !== false,
-        suppressPaste: col.suppressPaste || false,
+        // Note: enterNavigatesVertically, enterNavigatesVerticallyAfterEdit, and stopEditingWhenCellsLoseFocus
+        // are grid-level options in AG Grid v33+, not column-level.
+        // We store them in the editor settings for UI purposes, but they won't be applied to columns
+        enterMovesDown: true, // Default to true for UI
+        enterMovesDownAfterEdit: true, // Default to true for UI
+        stopEditingWhenCellsLoseFocus: true, // Default to true for UI
+        suppressPaste: false,
         navigateToNextCell: false,
-        cellDataType: col.cellDataType
+        cellDataType: col.cellDataType as string || ''
       }
     };
   }, []);
 
   // Load columns when dialog opens
   useEffect(() => {
+    console.log('Dialog open:', open, 'Grid API exists:', !!gridApi);
     if (open && gridApi) {
-      const columnDefs = gridApi.getColumnDefs() as ColDef[];
-      if (columnDefs) {
-        // If column is provided, use it. Otherwise only select first if no selection exists
-        const shouldSelectColumn = column?.field || (!state.selectedColumn ? columnDefs[0]?.field : state.selectedColumn) || '';
+      try {
+        // Get column definitions from the current grid
+        console.log('Getting column definitions from grid...');
+        let columnDefs = gridApi.getColumnDefs() as ColDef[];
         
-        setState(prev => {
-          // Check if we have saved settings for this column
-          const savedSettings = columnSettingsMap[shouldSelectColumn];
-          const columnDef = columnDefs.find(c => c.field === shouldSelectColumn);
+        console.log('Initial column definitions:', columnDefs);
+        console.log('Number of columns:', columnDefs ? columnDefs.length : 'undefined');
+        
+        // Filter out any invalid columns without fields
+        columnDefs = columnDefs?.filter(col => col.field) || [];
+        
+        console.log('Filtered column definitions:', columnDefs);
+        
+        // Try to get saved column definitions using persistence utility
+        try {
+          const savedColumnDefs = ColumnSettingsPersistence.getColumnSettings();
+          if (savedColumnDefs && Array.isArray(savedColumnDefs) && savedColumnDefs.length > 0) {
+            console.log('Loaded saved column definitions:', savedColumnDefs.length);
+            
+            // Filter out any invalid saved columns without field
+            const validSavedColumns = savedColumnDefs.filter((col: ColDef) => col.field);
+            
+            // Create a map of saved column definitions by field
+            const fieldMap = new Map(validSavedColumns.map((col: ColDef) => [col.field, col]));
+            
+            // Merge saved column definitions with the current ones
+            columnDefs = columnDefs.map((col: ColDef) => {
+              const saved = fieldMap.get(col.field!);
+              return saved ? { ...col, ...saved } : col;
+            });
+            
+            console.log('Merged saved column definitions');
+          }
+        } catch (loadError) {
+          console.error('Error loading saved column definitions:', loadError);
+        }
+        
+        // Fallback to settings controller if available
+        if (settingsController && columnDefs.length === 0) {
+          try {
+            if (typeof settingsController.getCurrentCustomSettings === 'function') {
+              const customSettings = settingsController.getCurrentCustomSettings();
+              if (customSettings?.columnDefs && Array.isArray(customSettings.columnDefs)) {
+                columnDefs = customSettings.columnDefs.filter((col: ColDef) => col.field);
+              }
+            }
+          } catch (methodError) {
+            console.error('Fallback: Error accessing settings controller:', methodError);
+          }
+        }
+        
+        // Ensure we have valid columns
+        columnDefs = columnDefs || [];
+        console.log('Final columnDefs:', columnDefs);
+        
+        if (columnDefs && columnDefs.length > 0) {
+          // Find the column to select
+          const availableFields = columnDefs.map(c => c.field).filter(Boolean);
+          const shouldSelectColumn = column?.field || 
+                                     (!state.selectedColumn ? availableFields[0] : state.selectedColumn) || 
+                                     availableFields[0] || 
+                                     '';
           
-          return {
+          console.log('Final columnDefs length:', columnDefs.length);
+          console.log('Available fields:', availableFields);
+          console.log('Should select column:', shouldSelectColumn);
+          
+          setState(prev => {
+            // Check if we have saved settings for this column
+            const savedSettings = columnSettingsMap[shouldSelectColumn];
+            const columnDef = columnDefs.find(c => c.field === shouldSelectColumn);
+            
+            console.log('Setting state with columns:', columnDefs);
+            console.log('Selected column:', shouldSelectColumn);
+            
+            return {
+              ...prev,
+              columns: columnDefs,
+              selectedColumn: shouldSelectColumn,
+              settings: savedSettings || (columnDef ? extractSettingsFromColumn(columnDef) : prev.settings)
+            };
+          });
+        } else {
+          console.warn('No valid column definitions found');
+          setState(prev => ({
             ...prev,
-            columns: columnDefs,
-            selectedColumn: shouldSelectColumn,
-            settings: savedSettings || (columnDef ? extractSettingsFromColumn(columnDef) : prev.settings)
-          };
-        });
+            columns: [],
+            selectedColumn: '',
+            settings: {}
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading column settings:', error);
+        // Log the error details
+        if (error instanceof TypeError) {
+          console.error('TypeError details:', error.message, error.stack);
+        }
+        // Reset to safe defaults on error
+        setState(prev => ({
+          ...prev,
+          columns: [],
+          selectedColumn: '',
+          settings: {}
+        }));
       }
     }
-  }, [open, gridApi, column, extractSettingsFromColumn, state.selectedColumn, columnSettingsMap]);
+  }, [open, gridApi, column, extractSettingsFromColumn, state.selectedColumn, columnSettingsMap, settingsController]);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -181,6 +294,10 @@ export function ColumnSettingsDialog({
         columns: []
       });
       setColumnSettingsMap({});
+      
+      // Clear caches when dialog closes
+      styleCache.current.clear();
+      headerStyleCache.current.clear();
     }
   }, [open]);
 
@@ -243,46 +360,265 @@ export function ColumnSettingsDialog({
     });
   }, []);
 
-  // Apply changes to grid
-  const applyChanges = useCallback(() => {
+  // Apply changes to grid - optimized version
+  const applyChanges = useCallback(async () => {
     if (!gridApi) return;
 
-    const columnDefs = gridApi.getColumnDefs() as ColDef[];
-    if (!columnDefs) return;
-
-    const updatedColumnDefs = columnDefs.map(col => {
-      const shouldUpdate = state.bulkUpdateMode
-        ? state.selectedColumns.includes(col.field || '')
-        : col.field === state.selectedColumn;
-
-      if (shouldUpdate) {
-        return applySettingsToColumn(col, state.settings);
+    setIsApplying(true);
+    console.log('Apply changes called. Settings controller:', settingsController);
+    console.log('Settings controller type:', settingsController?.constructor?.name);
+    
+    try {
+      const startTime = performance.now();
+      let columnDefs = gridApi.getColumnDefs() as ColDef[];
+      
+      if (!columnDefs || columnDefs.length === 0) {
+        console.error('No column definitions found');
+        setIsApplying(false);
+        return;
       }
-      return col;
+      
+      // Filter out any invalid columns
+      columnDefs = columnDefs.filter(col => col.field);
+
+      // Batch process column updates
+      const updatePromise = new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          try {
+            // Process column updates in a single pass
+            const finalColumnDefs = columnDefs.map(col => {
+              const field = col.field || '';
+            
+            // Check if this column should be updated
+            const shouldUpdate = state.bulkUpdateMode
+              ? state.selectedColumns.includes(field)
+              : field === state.selectedColumn;
+            
+            // Check for pending settings in the map
+            const hasPendingSettings = columnSettingsMap[field] && field !== state.selectedColumn;
+            
+            if (shouldUpdate || hasPendingSettings) {
+              const settingsToApply = hasPendingSettings
+                ? columnSettingsMap[field]
+                : (columnSettingsMap[field] || state.settings);
+              
+              return applySettingsToColumn(
+                col,
+                settingsToApply,
+                shouldUpdate ? state.bulkUpdateMode : false
+              );
+            }
+            
+            return col;
+          });
+
+          // Clean up any deprecated properties that might exist in the column definitions
+          const cleanedColumnDefs = finalColumnDefs.map(col => {
+            const cleanCol = { ...col };
+            
+            // Remove all deprecated properties to prevent warnings
+            delete (cleanCol as any).suppressCellFlash;
+            delete (cleanCol as any).suppressFilter;
+            delete (cleanCol as any).filterMenuTab;
+            delete (cleanCol as any).suppressFilterButton;
+            delete (cleanCol as any).suppressQuickFilter;
+            
+            // Remove grid-level properties that were incorrectly applied to columns
+            delete (cleanCol as any).enterMovesDown;
+            delete (cleanCol as any).enterMovesDownAfterEdit;
+            delete (cleanCol as any).enterNavigatesVertically;
+            delete (cleanCol as any).enterNavigatesVerticallyAfterEdit;
+            delete (cleanCol as any).stopEditingWhenCellsLoseFocus;
+            
+            return cleanCol;
+          });
+
+          // Use updateColumnDefs for better performance
+          gridApi.updateGridOptions({
+            columnDefs: cleanedColumnDefs,
+            suppressColumnMoveAnimation: true,
+            maintainColumnOrder: true
+          });
+          
+          resolve();
+        } catch (error) {
+          console.error('Error applying column settings:', error);
+          resolve();
+        }
+      });
     });
 
-    gridApi.setGridOption('columnDefs', updatedColumnDefs);
-    gridApi.refreshCells({ force: true });
+    // Apply updates and handle UI state asynchronously
+    await updatePromise;
     
+    // Defer the expensive operations
+    setTimeout(() => {
+      // Refresh only if necessary
+      if (state.hasChanges) {
+        gridApi.refreshCells({
+          force: false,
+          suppressFlash: true
+        });
+      }
+      
+      // Update profile settings asynchronously
+      if (settingsController) {
+        console.log('Settings controller available:', !!settingsController);
+        console.log('Settings controller methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(settingsController)));
+        console.log('updateCustomSettings method exists?', typeof settingsController.updateCustomSettings === 'function');
+        
+        // Polyfill for requestIdleCallback
+        const idleCallback = window.requestIdleCallback || ((cb: any) => setTimeout(cb, 1));
+        
+        idleCallback(() => {
+          try {
+            const columnDefs = gridApi.getColumnDefs();
+            
+            // Use the persistence utility to save column settings
+            const saved = ColumnSettingsPersistence.saveColumnSettings(columnDefs);
+            
+            if (saved) {
+              console.log('Column settings saved successfully using ColumnSettingsPersistence');
+            } else {
+              console.warn('Failed to save column settings using ColumnSettingsPersistence');
+              
+              // Fallback to settingsController if available
+              if (settingsController) {
+                try {
+                  const updateMethod = settingsController.updateCustomSettings;
+                  if (typeof updateMethod === 'function') {
+                    updateMethod.call(settingsController, {
+                      columnDefs: columnDefs
+                    });
+                    console.log('Column settings saved via settingsController fallback');
+                  }
+                } catch (error) {
+                  console.error('Fallback save via settingsController failed:', error);
+                }
+              }
+              
+              // Final fallback to profileManager
+              if (!saved && profileManager && profileManager.activeProfile) {
+                try {
+                  const currentProfile = profileManager.activeProfile;
+                  const updatedSettings = {
+                    ...currentProfile.settings,
+                    custom: {
+                      ...currentProfile.settings.custom,
+                      columnDefs: columnDefs
+                    }
+                  };
+                  
+                  profileManager.updateProfile(currentProfile.id, {
+                    ...currentProfile,
+                    settings: updatedSettings
+                  });
+                  
+                  if (typeof profileManager.saveCurrentProfile === 'function') {
+                    profileManager.saveCurrentProfile();
+                  }
+                  
+                  console.log('Column settings saved via profileManager fallback');
+                } catch (error) {
+                  console.error('Fallback save via profileManager failed:', error);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error saving column settings:', error);
+            console.error('Error stack:', error.stack);
+          }
+        });
+      } else {
+        console.warn('No settings controller available');
+      }
+      
+      // Log performance metrics in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Column settings applied in ${performance.now() - startTime}ms`);
+      }
+    }, 0);
+    
+    // Update state immediately for better UX
     setState(prev => ({
       ...prev,
       hasChanges: false,
       modifiedColumns: new Set()
     }));
-  }, [gridApi, state]);
+    
+    setColumnSettingsMap({});
+    
+    // Clear style caches when closing
+    styleCache.current.clear();
+    headerStyleCache.current.clear();
+    
+    onOpenChange(false);
+  } catch (error) {
+    console.error('Error applying column settings:', error);
+    setIsApplying(false);
+  } finally {
+    setIsApplying(false);
+    }
+  }, [gridApi, state, columnSettingsMap, settingsController, onOpenChange]);
 
-  // Apply settings to column definition
-  const applySettingsToColumn = useCallback((col: ColDef, settings: ColumnSettings): ColDef => {
-    const newCol = { ...col };
+  // Apply settings to column definition - optimized with memoization
+  const applySettingsToColumn = useCallback((col: ColDef, settings: ColumnSettings, skipHeaderCaption = false): ColDef => {
+    // Quick return if no settings to apply
+    if (!settings || Object.keys(settings).length === 0) {
+      return col;
+    }
+    
+    // Use shallow clone for better performance
+    const newCol: ColDef = Object.assign({}, col);
 
     // Apply header settings
     if (settings.header) {
-      if (settings.header.headerName !== undefined) {
+      // Only apply headerName if not in bulk mode or explicitly allowed
+      if (settings.header.headerName !== undefined && !skipHeaderCaption) {
         newCol.headerName = settings.header.headerName;
       }
-      // Apply header styles using utilities
-      newCol.headerClass = generateHeaderClass(settings.header);
-      newCol.headerStyle = generateHeaderStyle(settings.header);
+      
+      // Only generate header styles if there are header settings
+      const hasHeaderStyles = settings.header.headerFontFamily || 
+                             settings.header.headerFontSize ||
+                             settings.header.headerFontWeight ||
+                             settings.header.headerTextColor !== null ||
+                             settings.header.headerBackgroundColor !== null ||
+                             settings.header.applyHeaderBorders ||
+                             settings.header.headerTextAlign ||
+                             settings.header.headerVerticalAlign;
+      
+      if (hasHeaderStyles) {
+        // Map HeaderTab properties to utility format
+        const headerStyleSettings = {
+          fontFamily: settings.header.fontFamily,
+          fontSize: settings.header.fontSize,
+          fontWeight: settings.header.fontWeight,
+          textStyle: settings.header.fontStyle ? settings.header.fontStyle.split(' ') : [],
+          textColor: settings.header.textColor,
+          textColorEnabled: settings.header.textColor !== null && settings.header.textColor !== undefined,
+          backgroundColor: settings.header.backgroundColor,
+          backgroundEnabled: settings.header.backgroundColor !== null && settings.header.backgroundColor !== undefined,
+          textAlign: settings.header.horizontalAlign,
+          verticalAlign: settings.header.verticalAlign,
+          applyBorders: settings.header.applyBorders,
+          borderStyle: settings.header.borderStyle || 'solid',
+          borderWidth: settings.header.borderWidth || 1,
+          borderColor: settings.header.borderColor,
+          borderColorEnabled: settings.header.borderColor !== null && settings.header.borderColor !== undefined,
+          borderSides: settings.header.borderSides || 'all'
+        };
+        
+        const headerClass = generateHeaderClass(headerStyleSettings);
+        const headerStyle = generateHeaderStyle(headerStyleSettings);
+        
+        if (headerClass) newCol.headerClass = headerClass;
+        if (headerStyle && Object.keys(headerStyle).length > 0) {
+          // Use a function to ensure styles are applied with higher precedence
+          newCol.headerStyle = () => headerStyle;
+        }
+      }
+      
       if (settings.header.headerGroup) {
         newCol.headerTooltip = settings.header.headerGroup;
       }
@@ -290,21 +626,103 @@ export function ColumnSettingsDialog({
 
     // Apply cell settings
     if (settings.cell) {
-      // Create cellStyle function based on alignment settings
-      const cellStyle: any = {};
+      // Map CellTab properties to create cellStyle
+      const cellStyle: any = {
+        display: 'flex'
+      };
       
-      if (settings.cell.horizontalAlign) {
-        cellStyle.textAlign = settings.cell.horizontalAlign;
-        cellStyle.justifyContent = settings.cell.horizontalAlign === 'center' ? 'center' : 
-                                  settings.cell.horizontalAlign === 'right' ? 'flex-end' : 'flex-start';
+      // Build cell style object efficiently
+      const hasFont = settings.cell.fontFamily || settings.cell.fontSize || settings.cell.fontWeight || settings.cell.fontStyle;
+      const hasColors = (settings.cell.textColor !== null && settings.cell.textColor !== undefined) ||
+                       (settings.cell.backgroundColor !== null && settings.cell.backgroundColor !== undefined);
+      const hasAlignment = settings.cell.horizontalAlign || settings.cell.verticalAlign;
+      const hasBorders = settings.cell.applyBorders;
+      
+      // Only process what's needed
+      if (hasFont || hasColors || hasAlignment || hasBorders) {
+        // Font settings
+        if (hasFont) {
+          if (settings.cell.fontFamily && settings.cell.fontFamily !== 'default') {
+            cellStyle.fontFamily = settings.cell.fontFamily;
+          }
+          if (settings.cell.fontSize && settings.cell.fontSize !== 'default') {
+            cellStyle.fontSize = settings.cell.fontSize;
+          }
+          if (settings.cell.fontWeight && settings.cell.fontWeight !== 'default') {
+            cellStyle.fontWeight = settings.cell.fontWeight;
+          }
+          
+          // Font styles
+          if (settings.cell.fontStyle) {
+            const styles = settings.cell.fontStyle;
+            if (styles.includes('bold')) cellStyle.fontWeight = 'bold';
+            if (styles.includes('italic')) cellStyle.fontStyle = 'italic';
+            if (styles.includes('underline')) cellStyle.textDecoration = 'underline';
+          }
+        }
+        
+        // Colors
+        if (hasColors) {
+          if (settings.cell.textColor !== null && settings.cell.textColor !== undefined) {
+            cellStyle.color = settings.cell.textColor;
+          }
+          if (settings.cell.backgroundColor !== null && settings.cell.backgroundColor !== undefined) {
+            cellStyle.backgroundColor = settings.cell.backgroundColor;
+          }
+        }
+        
+        // Alignment
+        if (hasAlignment) {
+          if (settings.cell.horizontalAlign) {
+            cellStyle.textAlign = settings.cell.horizontalAlign;
+            cellStyle.justifyContent = settings.cell.cellTextAlign === 'center' ? 'center' : 
+                                      settings.cell.cellTextAlign === 'right' ? 'flex-end' : 'flex-start';
+          }
+          
+          if (settings.cell.cellVerticalAlign) {
+            cellStyle.alignItems = settings.cell.cellVerticalAlign === 'top' ? 'flex-start' :
+                                  settings.cell.cellVerticalAlign === 'bottom' ? 'flex-end' : 'center';
+          }
+        }
+        
+        // Borders
+        if (hasBorders) {
+          const borderStyle = `${settings.cell.cellBorderWidth || '1px'} ${settings.cell.cellBorderStyle || 'solid'} ${settings.cell.cellBorderColor || '#ccc'}`;
+          
+          switch (settings.cell.cellBorderSides) {
+            case 'all':
+              cellStyle.border = borderStyle;
+              break;
+            case 'horizontal':
+              cellStyle.borderTop = cellStyle.borderBottom = borderStyle;
+              break;
+            case 'vertical':
+              cellStyle.borderLeft = cellStyle.borderRight = borderStyle;
+              break;
+            default:
+              if (settings.cell.cellBorderSides) {
+                const side = settings.cell.cellBorderSides;
+                cellStyle[`border${side.charAt(0).toUpperCase()}${side.slice(1)}`] = borderStyle;
+              }
+          }
+        }
       }
       
-      if (settings.cell.verticalAlign) {
-        cellStyle.alignItems = settings.cell.verticalAlign === 'top' ? 'flex-start' :
-                              settings.cell.verticalAlign === 'bottom' ? 'flex-end' : 'center';
+      // Create cellStyle function only if there are styles to apply
+      if (Object.keys(cellStyle).length > 1) { // > 1 because display: 'flex' is always there
+        // Create cache key from style properties
+        const cacheKey = JSON.stringify(cellStyle);
+        
+        // Check cache first
+        let cachedStyle = styleCache.current.get(cacheKey);
+        if (!cachedStyle) {
+          cachedStyle = cellStyle;
+          styleCache.current.set(cacheKey, cachedStyle);
+        }
+        
+        // Use a function to ensure styles are applied with higher precedence
+        newCol.cellStyle = () => cachedStyle;
       }
-      
-      newCol.cellStyle = () => cellStyle;
       
       if (settings.cell.wrapText !== undefined) {
         newCol.wrapText = settings.cell.wrapText;
@@ -318,8 +736,12 @@ export function ColumnSettingsDialog({
       if (settings.cell.cellRenderer) {
         newCol.cellRenderer = settings.cell.cellRenderer;
       }
+      // Handle suppressCellFlash -> enableCellChangeFlash conversion (opposite values)
       if (settings.cell.suppressCellFlash !== undefined) {
-        newCol.suppressCellFlash = settings.cell.suppressCellFlash;
+        // Remove deprecated property
+        delete newCol.suppressCellFlash;
+        // Apply v33 property with inverted value
+        newCol.enableCellChangeFlash = !settings.cell.suppressCellFlash;
       }
     }
 
@@ -337,16 +759,23 @@ export function ColumnSettingsDialog({
         newCol.floatingFilter = settings.filter.floatingFilter;
       }
       if (settings.filter.filterable !== undefined) {
-        newCol.suppressFilter = !settings.filter.filterable;
+        // Remove deprecated suppressFilter
+        delete newCol.suppressFilter;
+        // Use filter property instead (false to disable filtering)
+        newCol.filter = settings.filter.filterable ? (settings.filter.filter || 'agTextColumnFilter') : false;
       }
-      if (settings.filter.filterMenuTab) {
-        newCol.filterMenuTab = settings.filter.filterMenuTab;
-      }
+      // Remove deprecated filterMenuTab - no longer used in v33
+      delete newCol.filterMenuTab;
+      
       if (settings.filter.suppressFilterButton !== undefined) {
-        newCol.suppressFilterButton = settings.filter.suppressFilterButton;
+        // Remove deprecated suppressFilterButton
+        delete newCol.suppressFilterButton;
+        // Apply v33 property
+        newCol.suppressFloatingFilterButton = settings.filter.suppressFilterButton;
       }
       if (settings.filter.includeInQuickFilter !== undefined) {
-        newCol.suppressQuickFilter = !settings.filter.includeInQuickFilter;
+        // Remove deprecated suppressQuickFilter - no longer used in v33
+        delete newCol.suppressQuickFilter;
       }
       if (settings.filter.quickFilterText) {
         newCol.quickFilterText = settings.filter.quickFilterText;
@@ -367,15 +796,16 @@ export function ColumnSettingsDialog({
       if (settings.editor.singleClickEdit !== undefined) {
         newCol.singleClickEdit = settings.editor.singleClickEdit;
       }
-      if (settings.editor.enterMovesDown !== undefined) {
-        newCol.enterMovesDown = settings.editor.enterMovesDown;
-      }
-      if (settings.editor.enterMovesDownAfterEdit !== undefined) {
-        newCol.enterMovesDownAfterEdit = settings.editor.enterMovesDownAfterEdit;
-      }
-      if (settings.editor.stopEditingWhenCellsLoseFocus !== undefined) {
-        newCol.stopEditingWhenCellsLoseFocus = settings.editor.stopEditingWhenCellsLoseFocus;
-      }
+      // Note: enterNavigatesVertically, enterNavigatesVerticallyAfterEdit, and stopEditingWhenCellsLoseFocus 
+      // are grid-level options, not column-level options in AG Grid v33+
+      // These should be set at the grid options level, not on individual columns
+      
+      // Remove these deprecated properties if they exist
+      delete newCol.enterMovesDown;
+      delete newCol.enterMovesDownAfterEdit;
+      delete newCol.enterNavigatesVertically;
+      delete newCol.enterNavigatesVerticallyAfterEdit;
+      delete newCol.stopEditingWhenCellsLoseFocus;
       if (settings.editor.suppressPaste !== undefined) {
         newCol.suppressPaste = settings.editor.suppressPaste;
       }
@@ -572,15 +1002,28 @@ export function ColumnSettingsDialog({
               {state.bulkUpdateMode ? "Clear Selection" : "Reset"}
             </Button>
             <Button
-              onClick={applyChanges}
-              disabled={isApplyDisabled}
+              onClick={async () => {
+                setIsApplying(true);
+                await applyChanges();
+                setIsApplying(false);
+              }}
+              disabled={isApplyDisabled || isApplying}
               className={`gap-1.5 ${BUTTON_CLASSES}`}
             >
-              <Check className="w-3 h-3" />
-              {state.bulkUpdateMode
-                ? `Apply to ${state.selectedColumns.length} Column${state.selectedColumns.length !== 1 ? 's' : ''}`
-                : "Apply Changes"
-              }
+              {isApplying ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <Check className="w-3 h-3" />
+                  {state.bulkUpdateMode
+                    ? `Apply to ${state.selectedColumns.length} Column${state.selectedColumns.length !== 1 ? 's' : ''}`
+                    : "Apply Changes"
+                  }
+                </>
+              )}
             </Button>
           </div>
         </DialogFooter>

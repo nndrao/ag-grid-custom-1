@@ -117,11 +117,10 @@ export function ProfileSelector({
         "bg-background/95",
         "hover:bg-background hover:border-border",
         "shadow-sm",
-        "transition-all",
-        (loading || isChanging) && "opacity-60"
+        "transition-all"
       )}>
         {loading || isChanging ? (
-          <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+          <Loader2 className="h-4 w-4 text-cyan-400 animate-spin stroke-[4] drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
         ) : (
           <User className="h-3.5 w-3.5 text-muted-foreground" />
         )}

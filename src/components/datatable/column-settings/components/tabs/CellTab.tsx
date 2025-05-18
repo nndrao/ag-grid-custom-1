@@ -76,7 +76,8 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
   const updateCellStyle = (key: keyof CellStyles, value: any) => {
     const newStyles = { ...cellStyles, [key]: value };
     setCellStyles(newStyles);
-    onSettingsChange({ [key]: value });
+    // Send all properties to parent, not just the changed one
+    onSettingsChange(newStyles);
   };
 
   // Toggle font styles

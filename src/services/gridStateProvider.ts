@@ -599,9 +599,9 @@ export class GridStateProvider {
               this.gridApi.setServerSideSelectionState(gridState.selectionState.serverSideSelection);
             } else if (gridState.selectionState.selectedNodes && this.gridApi) {
               // Restore client-side selection
-              gridState.selectionState.selectedNodes.forEach((nodeId: string) => {
-                const node = this.gridApi?.getRowNode(nodeId);
-                if (node) {
+              // In v33+, use forEachNode instead of getRowNode
+              this.gridApi.forEachNode((node) => {
+                if (gridState.selectionState.selectedNodes.includes(node.id || '')) {
                   node.setSelected(true);
                 }
               });

@@ -276,6 +276,8 @@ export class SettingsController {
    * 5. Column Settings and Styles
    */
   public applyProfileSettings(settings: ProfileSettings): void {
+    console.log('SettingsController: applyProfileSettings called', { settings, hasGridApi: !!this.gridApi });
+    
     // Cancel any pending operations
     if (this.pendingSettingsOperation !== null) {
       clearTimeout(this.pendingSettingsOperation);
@@ -284,6 +286,7 @@ export class SettingsController {
     
     // If already applying settings, queue this request
     if (this.isApplyingSettings) {
+      console.log('SettingsController: Already applying settings, queueing request');
       this.pendingSettingsOperation = window.setTimeout(() => {
         this.pendingSettingsOperation = null;
         this.applyProfileSettings(settings);
@@ -297,11 +300,13 @@ export class SettingsController {
     try {
       // Step 1: Apply toolbar settings first (includes themes, fonts, etc.)
       if (settings.toolbar) {
+        console.log('SettingsController: Applying toolbar settings', settings.toolbar);
         this.settingsStore.updateAllToolbarSettings(settings.toolbar);
       }
       
       // Step 2: Process and apply default grid options with alignment reconstruction
       if (this.gridApi && settings.custom?.gridOptions?.defaultColDef) {
+        console.log('SettingsController: Applying defaultColDef', settings.custom.gridOptions.defaultColDef);
         const defaultColDef = { ...settings.custom.gridOptions.defaultColDef };
         
         // Reconstruct cellStyle function from stored alignment metadata
@@ -348,6 +353,7 @@ export class SettingsController {
       
       // Step 3: Apply custom grid options (includes advanced configuration)
       if (this.gridApi && settings.custom?.gridOptions) {
+        console.log('SettingsController: Applying custom grid options', settings.custom.gridOptions);
         // Update settings store first
         this.settingsStore.updateSettings('gridOptions', settings.custom.gridOptions);
         
@@ -357,16 +363,19 @@ export class SettingsController {
       
       // Step 4: Apply all grid states (column, sort, filter, etc.)
       if (this.gridApi && settings.grid) {
+        console.log('SettingsController: Applying grid states', settings.grid);
         this.gridStateProvider.applyGridState(settings.grid);
       }
       
       // Step 5: Apply column-specific settings and styles (from Column Settings dialog)
       if (this.gridApi && settings.custom?.columnDefs) {
+        console.log('SettingsController: Applying column defs', settings.custom.columnDefs);
         this.gridApi.setGridOption('columnDefs', settings.custom.columnDefs);
       }
       
       // Single grid refresh after all settings are applied using requestAnimationFrame
       if (this.gridApi) {
+        console.log('SettingsController: Refreshing grid after applying all settings');
         requestAnimationFrame(() => {
           if (this.gridApi) {
             this.gridApi.refreshHeader();
@@ -374,6 +383,7 @@ export class SettingsController {
           }
         });
       }
+      console.log('SettingsController: Profile settings application completed');
     } finally {
       // Reset flag
       this.isApplyingSettings = false;

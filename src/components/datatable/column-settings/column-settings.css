@@ -46,3 +46,95 @@
 .dialog-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* AG Grid Header Alignment Styles */
+.ag-header-cell.ag-header-cell-text-left .ag-header-cell-label {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.ag-header-cell.ag-header-cell-text-center .ag-header-cell-label {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.ag-header-cell.ag-header-cell-text-right .ag-header-cell-label {
+  text-align: right !important;
+  justify-content: flex-end !important;
+}
+
+.ag-header-cell.ag-header-cell-align-top .ag-header-cell-label {
+  align-items: flex-start !important;
+}
+
+.ag-header-cell.ag-header-cell-align-middle .ag-header-cell-label {
+  align-items: center !important;
+}
+
+.ag-header-cell.ag-header-cell-align-bottom .ag-header-cell-label {
+  align-items: flex-end !important;
+}
+
+/* Apply to inner wrapper as well */
+.ag-header-cell-text-left .ag-header-cell-label,
+.ag-header-cell-text-left .ag-header-cell-text {
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+
+.ag-header-cell-text-center .ag-header-cell-label,
+.ag-header-cell-text-center .ag-header-cell-text {
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.ag-header-cell-text-right .ag-header-cell-label,
+.ag-header-cell-text-right .ag-header-cell-text {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+/* Font style classes for headers */
+.ag-header-cell.header-style-italic .ag-header-cell-label,
+.ag-header-cell.header-style-italic .ag-header-cell-text {
+  font-style: italic !important;
+}
+
+.ag-header-cell.header-style-underline .ag-header-cell-label,
+.ag-header-cell.header-style-underline .ag-header-cell-text {
+  text-decoration: underline !important;
+}
+
+.ag-header-cell.header-style-bold .ag-header-cell-label,
+.ag-header-cell.header-style-bold .ag-header-cell-text {
+  font-weight: bold !important;
+}
+
+/* Ensure styles apply to all header elements */
+.header-style-italic,
+.header-style-italic * {
+  font-style: italic !important;
+}
+
+.header-style-underline,
+.header-style-underline * {
+  text-decoration: underline !important;
+}
+
+.header-style-bold,
+.header-style-bold * {
+  font-weight: bold !important;
+}
+
+/* Font style classes for cells */
+.ag-cell.cell-style-italic {
+  font-style: italic !important;
+}
+
+.ag-cell.cell-style-underline {
+  text-decoration: underline !important;
+}
+
+.ag-cell.cell-style-bold {
+  font-weight: bold !important;
+}

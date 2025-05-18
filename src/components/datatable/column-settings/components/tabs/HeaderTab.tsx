@@ -86,7 +86,8 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
   const updateHeaderStyle = (key: keyof HeaderStyles, value: any) => {
     const newStyles = { ...headerStyles, [key]: value };
     setHeaderStyles(newStyles);
-    onSettingsChange({ [key]: value });
+    // Send all properties to parent, not just the changed one
+    onSettingsChange(newStyles);
   };
 
   // Toggle font styles
