@@ -231,7 +231,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                   >
                     {item.label}
                     {item.label.includes('Mono') && (
-                      <span className="ml-2 text-[10px] text-muted-foreground">mono</span>
+                      <span className="ml-2 text-xs text-muted-foreground">mono</span>
                     )}
                   </SelectItem>
                 ))}
@@ -318,9 +318,9 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
       <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="flex justify-between mb-1">
-              <Label className="text-[10px]">Text Color</Label>
+              <Label className="text-xs">Text Color</Label>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-muted-foreground">Apply</span>
+                <span className="text-xs text-muted-foreground">Apply</span>
                 <Switch 
                   checked={!!headerStyles.headerTextColor}
                   onCheckedChange={(checked) => {
@@ -350,16 +350,16 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               />
               <Input
                 value={(headerStyles.headerTextColor || '#000000').toUpperCase()}
-                className="h-7 font-mono text-[10px] flex-1"
+                className="h-7 font-mono text-xs flex-1"
                 disabled
               />
             </div>
           </div>
           <div>
             <div className="flex justify-between mb-1">
-              <Label className="text-[10px]">Background</Label>
+              <Label className="text-xs">Background</Label>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-muted-foreground">Apply</span>
+                <span className="text-xs text-muted-foreground">Apply</span>
                 <Switch 
                   checked={!!headerStyles.headerBackgroundColor}
                   onCheckedChange={(checked) => {
@@ -389,7 +389,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               />
               <Input
                 value={(headerStyles.headerBackgroundColor || '#FFFFFF').toUpperCase()}
-                className="h-7 font-mono text-[10px] flex-1"
+                className="h-7 font-mono text-xs flex-1"
                 disabled
               />
             </div>
@@ -460,10 +460,10 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
       
       {/* Borders Section */}
       <div>
-        <div className="flex justify-between mb-1.5">
+        <div className="flex justify-between mb-1">
           <Label className="text-xs">Borders</Label>
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-muted-foreground">Apply Borders</span>
+            <span className="text-xs text-muted-foreground">Apply Borders</span>
             <Switch 
               checked={headerStyles.applyHeaderBorders}
               onCheckedChange={(checked) => updateHeaderStyle('applyHeaderBorders', checked)}
@@ -533,7 +533,7 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 />
                 <Input
                   value={headerStyles.headerBorderColor.toUpperCase()}
-                  className="h-7 font-mono text-[10px] flex-1"
+                  className="h-7 font-mono text-xs flex-1"
                   disabled
                 />
               </div>
