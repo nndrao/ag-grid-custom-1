@@ -1,5 +1,5 @@
-/* Import monospace fonts */
-@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Fira+Code:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Ubuntu+Mono:wght@400;700&family=Roboto+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Inconsolata:wght@400;500&family=Anonymous+Pro:wght@400;700&family=Oxygen+Mono&family=PT+Mono&display=swap');
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -19,14 +19,22 @@
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 91.1%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 91.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 242 83% 88%;
+    --accent-foreground: 242 60% 30%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 79.8%;
     --input: 0 0% 79.8%;
     --ring: 0 0% 3.9%;
-    --radius: 0.5rem;
+    --radius: 0.25rem;
+    
+    /* New custom colors for hover states */
+    --hover-accent: 240 5% 84%;
+    --hover-secondary: 240 5% 86%;
+    
+    /* Font variables - Roboto for UI */
+    --font-sans: 'Roboto', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
   }
 
   .dark {
@@ -49,6 +57,11 @@
     --border: 0 0% 29.9%;
     --input: 0 0% 29.9%;
     --ring: 0 0% 83.1%;
+    --radius: 0.25rem;
+    
+    /* New custom colors for hover states in dark mode */
+    --hover-accent: 240 5% 30%;
+    --hover-secondary: 240 5% 32%;
   }
 }
 
@@ -56,17 +69,99 @@
   * {
     @apply border-border;
   }
-  body {
+  
+  /* Set Roboto as the default font for the application except AG Grid */
+  html, body {
+    font-family: 'Roboto', sans-serif;
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  /* Apply font to UI components but NOT to AG Grid components */
+  .column-settings-dialog *:not(.ag-root *, .ag-theme-quartz *),
+  [class*="datatable"]:not(.ag-root, .ag-theme-quartz) *,
+  [class*="data-table"]:not(.ag-root, .ag-theme-quartz) * {
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  /* Apply font to all components by default EXCEPT AG Grid */
+  button:not(.ag-root button, .ag-theme-quartz button),
+  input:not(.ag-root input, .ag-theme-quartz input),
+  select:not(.ag-root select, .ag-theme-quartz select),
+  textarea:not(.ag-root textarea, .ag-theme-quartz textarea),
+  p:not(.ag-root p, .ag-theme-quartz p),
+  span:not(.ag-root span, .ag-theme-quartz span),
+  h1:not(.ag-root h1, .ag-theme-quartz h1),
+  h2:not(.ag-root h2, .ag-theme-quartz h2),
+  h3:not(.ag-root h3, .ag-theme-quartz h3),
+  h4:not(.ag-root h4, .ag-theme-quartz h4),
+  h5:not(.ag-root h5, .ag-theme-quartz h5),
+  h6:not(.ag-root h6, .ag-theme-quartz h6),
+  div:not(.ag-root, .ag-theme-quartz, .ag-root *, .ag-theme-quartz *) {
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  /* Keep monospace font for code */
+  code, pre {
+    font-family: 'Roboto Mono', monospace;
+  }
 }
 
-/* AG Grid font family override for all content */
-.ag-root,
-.ag-root-wrapper,
-.ag-theme-quartz,
-.ag-header,
-.ag-cell {
-  font-family: var(--ag-font-family, 'monospace') !important;
+/* DO NOT add any !important overrides for AG Grid here */
+
+/* Custom hover styles for Shadcn UI components */
+@layer components {
+  /* Button hover states */
+  .btn-outline,
+  .btn-secondary,
+  .btn-ghost {
+    @apply transition-colors duration-200;
+  }
+  
+  /* Override hover styles for the buttons */
+  button[class*="outline"]:hover,
+  .btn-outline:hover {
+    background-color: hsl(var(--hover-accent));
+  }
+  
+  button[class*="secondary"]:hover,
+  .btn-secondary:hover {
+    background-color: hsl(var(--hover-secondary));
+  }
+  
+  /* Select Item hover and selected states */
+  [data-radix-select-item] {
+    transition: background-color 0.2s;
+  }
+  
+  [data-radix-select-item]:hover {
+    background-color: hsl(var(--hover-accent));
+  }
+  
+  [data-radix-select-item][data-highlighted],
+  [data-radix-select-item][data-state="checked"] {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+  
+  /* Make hover distinct from focus/selected for all interactive components */
+  [role="option"]:hover:not([aria-selected="true"]) {
+    background-color: hsl(var(--hover-accent));
+  }
+  
+  [role="option"][aria-selected="true"] {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+  
+  /* Style for the tabs */
+  [role="tab"]:hover:not([data-state="active"]) {
+    background-color: hsl(var(--hover-accent));
+  }
+  
+  [role="tab"][data-state="active"] {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    font-weight: 500;
+  }
 }

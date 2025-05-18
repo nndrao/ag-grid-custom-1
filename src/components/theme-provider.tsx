@@ -30,6 +30,13 @@ export function ThemeProvider({
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
+    
+    // Set font family via CSS variable for UI only
+    root.style.setProperty('--font-sans', '"Roboto", sans-serif');
+    root.style.setProperty('--font-mono', '"Roboto Mono", monospace');
+    
+    // Apply the font globally but not to AG Grid
+    // Don't set document.body.style.fontFamily as it affects everything
   }, [theme]);
 
   const value = {
@@ -41,7 +48,9 @@ export function ThemeProvider({
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
+      <div className="font-sans [&_.ag-root]:font-[inherit] [&_.ag-theme-quartz]:font-[inherit]">
+        {children}
+      </div>
     </ThemeProviderContext.Provider>
   );
 }

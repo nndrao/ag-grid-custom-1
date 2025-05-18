@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { GridApi, ColDef } from 'ag-grid-community';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BUTTON_CLASSES, FORM_CONTROL_HEIGHTS } from './style-utils';
 
 // Import custom styles for scrollbar
 import './column-settings.css';
@@ -435,7 +437,7 @@ export function ColumnSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[625px] w-[625px] h-[650px] flex flex-col p-0 gap-0">
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-start justify-between pr-8">
             <div>
@@ -444,7 +446,7 @@ export function ColumnSettingsDialog({
                 Configure display and behavior for grid columns
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2 ml-auto mt-4">
+            <div className="flex items-center gap-2 ml-auto mt-6">
               <Label htmlFor="bulkUpdate" className="text-xs font-normal cursor-pointer text-muted-foreground">
                 Bulk Update Mode
               </Label>
@@ -479,11 +481,36 @@ export function ColumnSettingsDialog({
               className="flex-1 flex flex-col"
             >
               <TabsList className="w-full justify-start rounded-none border-b px-3 bg-transparent h-9">
-                <TabsTrigger value="header" className="rounded-none text-xs h-7">Header</TabsTrigger>
-                <TabsTrigger value="cell" className="rounded-none text-xs h-7">Cell</TabsTrigger>
-                <TabsTrigger value="formatter" className="rounded-none text-xs h-7">Formatter</TabsTrigger>
-                <TabsTrigger value="filter" className="rounded-none text-xs h-7">Filter</TabsTrigger>
-                <TabsTrigger value="editors" className="rounded-none text-xs h-7">Editors</TabsTrigger>
+                <TabsTrigger 
+                  value="header" 
+                  className={`rounded-none text-xs ${FORM_CONTROL_HEIGHTS.compact}`}
+                >
+                  Header
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="cell" 
+                  className={`rounded-none text-xs ${FORM_CONTROL_HEIGHTS.compact}`}
+                >
+                  Cell
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="formatter" 
+                  className={`rounded-none text-xs ${FORM_CONTROL_HEIGHTS.compact}`}
+                >
+                  Formatter
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="filter" 
+                  className={`rounded-none text-xs ${FORM_CONTROL_HEIGHTS.compact}`}
+                >
+                  Filter
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="editors" 
+                  className={`rounded-none text-xs ${FORM_CONTROL_HEIGHTS.compact}`}
+                >
+                  Editors
+                </TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-hidden">
@@ -537,17 +564,17 @@ export function ColumnSettingsDialog({
         </div>
 
         <DialogFooter className="border-t px-4 py-2 flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-8 text-xs">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className={`${BUTTON_CLASSES}`}>
             Cancel
           </Button>
           <div className="flex gap-1.5">
-            <Button variant="outline" onClick={handleReset} className="h-8 text-xs">
+            <Button variant="outline" onClick={handleReset} className={`${BUTTON_CLASSES}`}>
               {state.bulkUpdateMode ? "Clear Selection" : "Reset"}
             </Button>
             <Button
               onClick={applyChanges}
               disabled={isApplyDisabled}
-              className="gap-1.5 h-8 text-xs"
+              className={`gap-1.5 ${BUTTON_CLASSES}`}
             >
               <Check className="w-3 h-3" />
               {state.bulkUpdateMode

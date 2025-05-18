@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical } from "lucide-react";
+import { FormField } from '../FormField';
+import { FormRow } from '../FormRow';
+import { INPUT_CLASSES, SELECT_CLASSES, FORM_LAYOUT } from '../../style-utils';
 
 interface CellTabProps {
   settings: any;
@@ -88,13 +90,32 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
 
   // Font families
   const fontFamilies = [
-    { value: "Inter", label: "Inter" },
-    { value: "Arial", label: "Arial" },
-    { value: "Verdana", label: "Verdana" },
-    { value: "Helvetica", label: "Helvetica" },
-    { value: "Times New Roman", label: "Times New Roman" },
-    { value: "Georgia", label: "Georgia" },
-    { value: "Courier New", label: "Courier New" }
+    // System fonts
+    { value: "system-ui", label: "System UI" },
+    { value: "sans-serif", label: "Sans Serif" },
+    { value: "serif", label: "Serif" },
+    { value: "monospace", label: "Monospace" },
+    
+    // Google Monospace Fonts
+    { value: '"Roboto Mono", monospace', label: "Roboto Mono" },
+    { value: '"JetBrains Mono", monospace', label: "JetBrains Mono" },
+    { value: '"Source Code Pro", monospace', label: "Source Code Pro" },
+    { value: '"Fira Code", monospace', label: "Fira Code" },
+    { value: '"Space Mono", monospace', label: "Space Mono" },
+    { value: '"Ubuntu Mono", monospace', label: "Ubuntu Mono" },
+    { value: '"IBM Plex Mono", monospace', label: "IBM Plex Mono" },
+    { value: '"Inconsolata", monospace', label: "Inconsolata" },
+    { value: '"Cousine", monospace', label: "Cousine" },
+    { value: '"PT Mono", monospace', label: "PT Mono" },
+    
+    // Other fonts
+    { value: "Inter, sans-serif", label: "Inter" },
+    { value: "Arial, sans-serif", label: "Arial" },
+    { value: "Verdana, sans-serif", label: "Verdana" },
+    { value: "Helvetica, sans-serif", label: "Helvetica" },
+    { value: "Times New Roman, serif", label: "Times New Roman" },
+    { value: "Georgia, serif", label: "Georgia" },
+    { value: "Courier New, monospace", label: "Courier New" }
   ];
 
   // Calculate preview styles
@@ -156,80 +177,98 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Sample Display */}
-      <div>
-        <Label className="text-xs mb-1 block">Sample Display</Label>
+      <FormField label="Sample Display">
         <div 
           style={getPreviewStyles()}
           className="shadow-sm border text-xs"
         >
           {cellStyles.sampleText}
         </div>
-      </div>
+      </FormField>
       
       {/* Font Settings */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs mb-1 block">Font Family</Label>
+      <FormRow cols={2}>
+        <FormField label="Font Family">
           <Select 
             value={cellStyles.cellFontFamily}
             onValueChange={(value) => updateCellStyle('cellFontFamily', value)}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className={SELECT_CLASSES}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {fontFamilies.map((item) => (
-                <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                <SelectItem 
+                  key={item.value} 
+                  value={item.value}
+                  style={{ fontFamily: item.value }}
+                >
+                  {item.label}
+                  {item.label.includes('Mono') && (
+                    <span className="ml-2 text-[10px] text-muted-foreground">mono</span>
+                  )}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Font Size</Label>
+        </FormField>
+        
+        <FormField label="Font Size">
           <Select 
             value={cellStyles.cellFontSize}
             onValueChange={(value) => updateCellStyle('cellFontSize', value)}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className={SELECT_CLASSES}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="8px">8px</SelectItem>
               <SelectItem value="10px">10px</SelectItem>
+              <SelectItem value="11px">11px</SelectItem>
               <SelectItem value="12px">12px</SelectItem>
+              <SelectItem value="13px">13px</SelectItem>
               <SelectItem value="14px">14px</SelectItem>
               <SelectItem value="16px">16px</SelectItem>
               <SelectItem value="18px">18px</SelectItem>
               <SelectItem value="20px">20px</SelectItem>
+              <SelectItem value="22px">22px</SelectItem>
+              <SelectItem value="24px">24px</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Font Weight</Label>
+        </FormField>
+      </FormRow>
+      
+      <FormRow cols={2}>
+        <FormField label="Font Weight">
           <Select 
             value={cellStyles.cellFontWeight}
             onValueChange={(value) => updateCellStyle('cellFontWeight', value)}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className={SELECT_CLASSES}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="500">Medium</SelectItem>
-              <SelectItem value="600">Semi-Bold</SelectItem>
-              <SelectItem value="bold">Bold</SelectItem>
+              <SelectItem value="normal">Normal (400)</SelectItem>
+              <SelectItem value="300">Light (300)</SelectItem>
+              <SelectItem value="400">Regular (400)</SelectItem>
+              <SelectItem value="500">Medium (500)</SelectItem>
+              <SelectItem value="600">Semi-Bold (600)</SelectItem>
+              <SelectItem value="700">Bold (700)</SelectItem>
+              <SelectItem value="800">Extra-Bold (800)</SelectItem>
+              <SelectItem value="900">Black (900)</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Style</Label>
+        </FormField>
+        
+        <FormField label="Style">
           <div className="flex gap-1">
             <Button 
               variant={cellStyles.cellFontStyle.includes('bold') ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => toggleFontStyle('bold')}
-              className="font-bold flex-1 h-7 text-xs"
+              className={`font-bold flex-1 ${FORM_LAYOUT.compact} text-xs`}
             >
               B
             </Button>
@@ -237,7 +276,7 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
               variant={cellStyles.cellFontStyle.includes('italic') ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => toggleFontStyle('italic')}
-              className="italic flex-1 h-7 text-xs"
+              className={`italic flex-1 ${FORM_LAYOUT.compact} text-xs`}
             >
               I
             </Button>
@@ -245,19 +284,19 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
               variant={cellStyles.cellFontStyle.includes('underline') ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => toggleFontStyle('underline')}
-              className="underline flex-1 h-7 text-xs"
+              className={`underline flex-1 ${FORM_LAYOUT.compact} text-xs`}
             >
               U
             </Button>
           </div>
-        </div>
-      </div>
+        </FormField>
+      </FormRow>
       
       {/* Color Settings */}
-      <div className="grid grid-cols-2 gap-3">
+      <FormRow cols={2}>
         <div>
-          <div className="flex justify-between mb-1">
-            <Label className="text-[10px]">Text Color</Label>
+          <div className="flex justify-between mb-1.5">
+            <Label className={FORM_LAYOUT.label}>Text Color</Label>
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">Apply</span>
               <Switch 
@@ -279,7 +318,7 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
               type="color" 
               id="cellTextColor"
               value={cellStyles.cellTextColor || '#000000'}
-              className="h-7 w-12 p-0.5 border"
+              className={FORM_LAYOUT.colorPicker}
               onChange={(e) => {
                 if (cellStyles.cellTextColor) {
                   updateCellStyle('cellTextColor', e.target.value);
@@ -289,14 +328,15 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             />
             <Input
               value={(cellStyles.cellTextColor || '#000000').toUpperCase()}
-              className="h-7 font-mono text-[10px] flex-1"
+              className={`${FORM_LAYOUT.compact} font-mono text-[10px] flex-1`}
               disabled
             />
           </div>
         </div>
+        
         <div>
-          <div className="flex justify-between mb-1">
-            <Label className="text-[10px]">Background</Label>
+          <div className="flex justify-between mb-1.5">
+            <Label className={FORM_LAYOUT.label}>Background</Label>
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground">Apply</span>
               <Switch 
@@ -318,7 +358,7 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
               type="color" 
               id="cellBgColor"
               value={cellStyles.cellBackgroundColor || '#FFFFFF'}
-              className="h-7 w-12 p-0.5 border"
+              className={FORM_LAYOUT.colorPicker}
               onChange={(e) => {
                 if (cellStyles.cellBackgroundColor) {
                   updateCellStyle('cellBackgroundColor', e.target.value);
@@ -328,22 +368,21 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             />
             <Input
               value={(cellStyles.cellBackgroundColor || '#FFFFFF').toUpperCase()}
-              className="h-7 font-mono text-[10px] flex-1"
+              className={`${FORM_LAYOUT.compact} font-mono text-[10px] flex-1`}
               disabled
             />
           </div>
         </div>
-      </div>
+      </FormRow>
       
       {/* Alignment */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs mb-1 block">Horizontal</Label>
+      <FormRow cols={2}>
+        <FormField label="Horizontal">
           <div className="grid grid-cols-3 gap-1">
             <Button 
               variant={cellStyles.cellTextAlign === 'left' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellTextAlign', 'left')}
             >
               <AlignLeft className="h-3 w-3" />
@@ -351,7 +390,7 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             <Button 
               variant={cellStyles.cellTextAlign === 'center' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellTextAlign', 'center')}
             >
               <AlignCenter className="h-3 w-3" />
@@ -359,20 +398,20 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             <Button 
               variant={cellStyles.cellTextAlign === 'right' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellTextAlign', 'right')}
             >
               <AlignRight className="h-3 w-3" />
             </Button>
           </div>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Vertical</Label>
+        </FormField>
+        
+        <FormField label="Vertical">
           <div className="grid grid-cols-3 gap-1">
             <Button 
               variant={cellStyles.cellVerticalAlign === 'top' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellVerticalAlign', 'top')}
             >
               <AlignStartVertical className="h-3 w-3" />
@@ -380,7 +419,7 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             <Button 
               variant={cellStyles.cellVerticalAlign === 'middle' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellVerticalAlign', 'middle')}
             >
               <AlignCenterVertical className="h-3 w-3" />
@@ -388,14 +427,14 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
             <Button 
               variant={cellStyles.cellVerticalAlign === 'bottom' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-7"
+              className={FORM_LAYOUT.compact}
               onClick={() => updateCellStyle('cellVerticalAlign', 'bottom')}
             >
               <AlignEndVertical className="h-3 w-3" />
             </Button>
           </div>
-        </div>
-      </div>
+        </FormField>
+      </FormRow>
       
       {/* Border Settings */}
       <div>
@@ -411,16 +450,15 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
           </div>
         </div>
         
-        <div className={`space-y-3 ${!cellStyles.applyCellBorders ? 'opacity-50' : ''}`}>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs mb-1 block">Style</Label>
+        <div className={`space-y-4 ${!cellStyles.applyCellBorders ? 'opacity-50' : ''}`}>
+          <FormRow cols={2}>
+            <FormField label="Style">
               <Select 
                 value={cellStyles.cellBorderStyle}
                 onValueChange={(value) => updateCellStyle('cellBorderStyle', value)}
                 disabled={!cellStyles.applyCellBorders}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className={SELECT_CLASSES}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -431,48 +469,58 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
                   <SelectItem value="none">None</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
             
-            <div>
-              <Label className="text-xs mb-1 block">Width: {cellStyles.cellBorderWidth}</Label>
-              <Slider
-                value={[parseInt(cellStyles.cellBorderWidth)]}
-                max={5}
-                step={1}
-                className="py-2"
-                onValueChange={(value) => updateCellStyle('cellBorderWidth', `${value[0]}px`)}
+            <FormField label="Width">
+              <Select
+                value={cellStyles.cellBorderWidth}
+                onValueChange={(value) => updateCellStyle('cellBorderWidth', value)}
                 disabled={!cellStyles.applyCellBorders}
-              />
-            </div>
-          </div>
+              >
+                <SelectTrigger className={SELECT_CLASSES}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1px">1px</SelectItem>
+                  <SelectItem value="2px">2px</SelectItem>
+                  <SelectItem value="3px">3px</SelectItem>
+                  <SelectItem value="4px">4px</SelectItem>
+                  <SelectItem value="5px">5px</SelectItem>
+                  <SelectItem value="6px">6px</SelectItem>
+                  <SelectItem value="7px">7px</SelectItem>
+                  <SelectItem value="8px">8px</SelectItem>
+                  <SelectItem value="9px">9px</SelectItem>
+                  <SelectItem value="10px">10px</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+          </FormRow>
           
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs mb-1 block">Color</Label>
+          <FormRow cols={2}>
+            <FormField label="Color">
               <div className="flex items-center gap-2">
                 <Input 
                   type="color" 
                   value={cellStyles.cellBorderColor}
-                  className="h-7 w-12 p-0.5 border"
+                  className={FORM_LAYOUT.colorPicker}
                   onChange={(e) => updateCellStyle('cellBorderColor', e.target.value)}
                   disabled={!cellStyles.applyCellBorders}
                 />
                 <Input
                   value={cellStyles.cellBorderColor.toUpperCase()}
-                  className="h-7 font-mono text-[10px] flex-1"
+                  className={`${FORM_LAYOUT.compact} font-mono text-[10px] flex-1`}
                   disabled
                 />
               </div>
-            </div>
+            </FormField>
             
-            <div>
-              <Label className="text-xs mb-1 block">Sides</Label>
+            <FormField label="Sides">
               <Select 
                 value={cellStyles.cellBorderSides}
                 onValueChange={(value) => updateCellStyle('cellBorderSides', value)}
                 disabled={!cellStyles.applyCellBorders}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className={SELECT_CLASSES}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -485,8 +533,8 @@ export function CellTab({ settings, onSettingsChange, isModified, bulkUpdateMode
                   <SelectItem value="vertical">Vertical</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+            </FormField>
+          </FormRow>
         </div>
       </div>
     </div>

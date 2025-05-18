@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { INPUT_CLASSES, SELECT_CLASSES, FORM_LAYOUT } from '../../style-utils';
 
 interface FormatterTabProps {
   settings: any;
@@ -131,15 +132,15 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Formatter Type */}
-      <div>
-        <Label className="text-xs mb-1 block">Formatter Type</Label>
+      <div className={FORM_LAYOUT.field}>
+        <Label className={FORM_LAYOUT.label}>Formatter Type</Label>
         <Select 
           value={formatterSettings.formatterType}
           onValueChange={(value) => updateFormatterSetting('formatterType', value)}
         >
-          <SelectTrigger className="h-8 text-xs">
+          <SelectTrigger className={SELECT_CLASSES}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -155,28 +156,28 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
 
       {/* Number Options */}
       {formatterSettings.formatterType === 'number' && (
-        <div>
-          <Label className="text-xs mb-1 block">Decimal Precision</Label>
+        <div className={FORM_LAYOUT.field}>
+          <Label className={FORM_LAYOUT.label}>Decimal Precision</Label>
           <Input
             type="number"
             min="0"
             max="10"
             value={formatterSettings.decimalPrecision}
             onChange={(e) => updateFormatterSetting('decimalPrecision', parseInt(e.target.value) || 0)}
-            className="h-8 text-xs"
+            className={INPUT_CLASSES}
           />
         </div>
       )}
 
       {/* Date Options */}
       {formatterSettings.formatterType === 'date' && (
-        <div>
-          <Label className="text-xs mb-1 block">Format</Label>
+        <div className={FORM_LAYOUT.field}>
+          <Label className={FORM_LAYOUT.label}>Format</Label>
           <Select 
             value={formatterSettings.dateFormat}
             onValueChange={(value) => updateFormatterSetting('dateFormat', value)}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className={SELECT_CLASSES}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -193,14 +194,14 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
       {/* Currency Options */}
       {formatterSettings.formatterType === 'currency' && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs mb-1 block">Symbol</Label>
+          <div className={FORM_LAYOUT.grid2}>
+            <div className={FORM_LAYOUT.field}>
+              <Label className={FORM_LAYOUT.label}>Symbol</Label>
               <Select 
                 value={formatterSettings.currencySymbol}
                 onValueChange={(value) => updateFormatterSetting('currencySymbol', value)}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className={SELECT_CLASSES}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -217,25 +218,25 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs mb-1 block">Decimal Places</Label>
+            <div className={FORM_LAYOUT.field}>
+              <Label className={FORM_LAYOUT.label}>Decimal Places</Label>
               <Input
                 type="number"
                 min="0"
                 max="10"
                 value={formatterSettings.currencyDecimalPlaces}
                 onChange={(e) => updateFormatterSetting('currencyDecimalPlaces', parseInt(e.target.value) || 0)}
-                className="h-8 text-xs"
+                className={INPUT_CLASSES}
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs mb-1 block">Symbol Position</Label>
+          <div className={FORM_LAYOUT.field}>
+            <Label className={FORM_LAYOUT.label}>Symbol Position</Label>
             <Select 
               value={formatterSettings.symbolPosition}
               onValueChange={(value) => updateFormatterSetting('symbolPosition', value)}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className={SELECT_CLASSES}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -249,49 +250,59 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
 
       {/* Percent Options */}
       {formatterSettings.formatterType === 'percent' && (
-        <div>
-          <Label className="text-xs mb-1 block">Decimal Places</Label>
+        <div className={FORM_LAYOUT.field}>
+          <Label className={FORM_LAYOUT.label}>Decimal Places</Label>
           <Input
             type="number"
             min="0"
             max="10"
             value={formatterSettings.percentDecimalPlaces}
             onChange={(e) => updateFormatterSetting('percentDecimalPlaces', parseInt(e.target.value) || 0)}
-            className="h-8 text-xs"
+            className={INPUT_CLASSES}
           />
         </div>
       )}
 
       {/* Custom Format */}
       {formatterSettings.formatterType === 'custom' && (
-        <div className="space-y-3">
-          <Tabs defaultValue="format">
-            <TabsList className="grid w-full grid-cols-2 h-7">
-              <TabsTrigger value="format" className="text-xs h-6">Format</TabsTrigger>
-              <TabsTrigger value="examples" className="text-xs h-6">Examples</TabsTrigger>
+        <div className="space-y-4">
+          <Tabs defaultValue="format" className="w-full">
+            <TabsList className="w-full grid grid-cols-2 h-9">
+              <TabsTrigger 
+                value="format" 
+                className={`text-xs h-8`}
+              >
+                Format
+              </TabsTrigger>
+              <TabsTrigger 
+                value="examples" 
+                className={`text-xs h-8`}
+              >
+                Examples
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="format" className="space-y-3 mt-3">
-              <div>
-                <Label className="text-xs mb-1 block">Format String</Label>
+            <TabsContent value="format" className="space-y-4 mt-3">
+              <div className={FORM_LAYOUT.field}>
+                <Label className={FORM_LAYOUT.label}>Format String</Label>
                 <Textarea
                   placeholder="Enter custom format (e.g., {value} units)"
                   value={formatterSettings.customFormat}
                   onChange={(e) => updateFormatterSetting('customFormat', e.target.value)}
-                  className="text-xs h-16"
+                  className="text-xs min-h-16"
                 />
               </div>
-              <div>
-                <Label className="text-xs mb-1 block">Preview Value</Label>
+              <div className={FORM_LAYOUT.field}>
+                <Label className={FORM_LAYOUT.label}>Preview Value</Label>
                 <Input
                   type="text"
                   value={formatterSettings.previewValue}
                   onChange={(e) => updateFormatterSetting('previewValue', e.target.value)}
-                  className="h-8 text-xs"
+                  className={INPUT_CLASSES}
                 />
               </div>
-              <div>
-                <Label className="text-xs mb-1 block">Preview</Label>
-                <div className="p-2 border rounded bg-muted text-xs">
+              <div className={FORM_LAYOUT.field}>
+                <Label className={FORM_LAYOUT.label}>Preview</Label>
+                <div className="p-2 border rounded bg-muted text-xs min-h-8 flex items-center">
                   {formatPreview()}
                 </div>
               </div>
@@ -319,19 +330,19 @@ export function FormatterTab({ settings, onSettingsChange, isModified, bulkUpdat
 
       {/* Preview for non-custom formats */}
       {formatterSettings.formatterType !== 'custom' && formatterSettings.formatterType !== 'none' && (
-        <div className="pt-3">
-          <Label className="text-xs mb-1 block">Preview</Label>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="pt-2">
+          <Label className={FORM_LAYOUT.label}>Preview</Label>
+          <div className={FORM_LAYOUT.grid2}>
             <div>
               <Input
                 type="text"
                 value={formatterSettings.previewValue}
                 onChange={(e) => updateFormatterSetting('previewValue', e.target.value)}
                 placeholder="Enter value to preview"
-                className="h-8 text-xs"
+                className={INPUT_CLASSES}
               />
             </div>
-            <div className="p-2 border rounded bg-muted text-xs">
+            <div className="p-2 border rounded bg-muted text-xs min-h-8 flex items-center">
               {formatPreview()}
             </div>
           </div>

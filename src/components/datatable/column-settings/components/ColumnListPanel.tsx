@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Info, Circle, Filter } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { INPUT_CLASSES, SELECT_CLASSES } from '../style-utils';
 import {
   Tooltip,
   TooltipContent,
@@ -120,7 +122,7 @@ export function ColumnListPanel({
   return (
     <div className={cn(
       "flex flex-col bg-background transition-all duration-200",
-      bulkUpdateMode ? "w-[calc(25%+50px)]" : "w-1/4"
+      "w-[210px]"
     )}>
       {/* Search and filter area */}
       <div className="p-3 border-b space-y-2">
@@ -132,14 +134,14 @@ export function ColumnListPanel({
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-8 h-8 text-xs"
+            className={`pl-8 ${INPUT_CLASSES}`}
           />
         </div>
         
         <div className="relative">
           <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Select value={dataTypeFilter} onValueChange={setDataTypeFilter}>
-            <SelectTrigger className="pl-8 h-8 text-xs">
+            <SelectTrigger className={`pl-8 ${SELECT_CLASSES}`}>
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -243,15 +245,15 @@ export function ColumnListPanel({
                     </span>
                   </div>
                   {isModified && (
-                    <Circle className="h-2 w-2 fill-blue-500 absolute right-12 top-1/2 -translate-y-1/2" />
+                    <Circle className="h-2 w-2 fill-blue-500 absolute right-2 top-1/2 -translate-y-1/2" />
                   )}
                 </div>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <div className="absolute inset-0 cursor-pointer" />
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent side="right">
                     <div className="text-[10px] space-y-0.5">
                       <p><strong>Field:</strong> {col.field}</p>
                       <p><strong>Type:</strong> {dataType}</p>

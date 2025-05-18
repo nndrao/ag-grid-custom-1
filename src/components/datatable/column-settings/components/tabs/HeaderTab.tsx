@@ -18,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 
 interface HeaderTabProps {
   settings: any;
@@ -101,13 +100,32 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
 
   // Font families
   const fontFamilies = [
-    { value: "Inter", label: "Inter" },
-    { value: "Arial", label: "Arial" },
-    { value: "Verdana", label: "Verdana" },
-    { value: "Helvetica", label: "Helvetica" },
-    { value: "Times New Roman", label: "Times New Roman" },
-    { value: "Georgia", label: "Georgia" },
-    { value: "Courier New", label: "Courier New" }
+    // System fonts
+    { value: "system-ui", label: "System UI" },
+    { value: "sans-serif", label: "Sans Serif" },
+    { value: "serif", label: "Serif" },
+    { value: "monospace", label: "Monospace" },
+    
+    // Google Monospace Fonts
+    { value: '"Roboto Mono", monospace', label: "Roboto Mono" },
+    { value: '"JetBrains Mono", monospace', label: "JetBrains Mono" },
+    { value: '"Source Code Pro", monospace', label: "Source Code Pro" },
+    { value: '"Fira Code", monospace', label: "Fira Code" },
+    { value: '"Space Mono", monospace', label: "Space Mono" },
+    { value: '"Ubuntu Mono", monospace', label: "Ubuntu Mono" },
+    { value: '"IBM Plex Mono", monospace', label: "IBM Plex Mono" },
+    { value: '"Inconsolata", monospace', label: "Inconsolata" },
+    { value: '"Cousine", monospace', label: "Cousine" },
+    { value: '"PT Mono", monospace', label: "PT Mono" },
+    
+    // Other fonts
+    { value: "Inter, sans-serif", label: "Inter" },
+    { value: "Arial, sans-serif", label: "Arial" },
+    { value: "Verdana, sans-serif", label: "Verdana" },
+    { value: "Helvetica, sans-serif", label: "Helvetica" },
+    { value: "Times New Roman, serif", label: "Times New Roman" },
+    { value: "Georgia, serif", label: "Georgia" },
+    { value: "Courier New, monospace", label: "Courier New" }
   ];
 
   // Calculate preview styles
@@ -206,7 +224,16 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
               </SelectTrigger>
               <SelectContent>
                 {fontFamilies.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  <SelectItem 
+                    key={item.value} 
+                    value={item.value}
+                    style={{ fontFamily: item.value }}
+                  >
+                    {item.label}
+                    {item.label.includes('Mono') && (
+                      <span className="ml-2 text-[10px] text-muted-foreground">mono</span>
+                    )}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -221,11 +248,17 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="8px">8px</SelectItem>
+                <SelectItem value="10px">10px</SelectItem>
+                <SelectItem value="11px">11px</SelectItem>
                 <SelectItem value="12px">12px</SelectItem>
+                <SelectItem value="13px">13px</SelectItem>
                 <SelectItem value="14px">14px</SelectItem>
                 <SelectItem value="16px">16px</SelectItem>
                 <SelectItem value="18px">18px</SelectItem>
                 <SelectItem value="20px">20px</SelectItem>
+                <SelectItem value="22px">22px</SelectItem>
+                <SelectItem value="24px">24px</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -239,10 +272,14 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="500">Medium</SelectItem>
-                <SelectItem value="600">Semi-Bold</SelectItem>
-                <SelectItem value="bold">Bold</SelectItem>
+                <SelectItem value="normal">Normal (400)</SelectItem>
+                <SelectItem value="300">Light (300)</SelectItem>
+                <SelectItem value="400">Regular (400)</SelectItem>
+                <SelectItem value="500">Medium (500)</SelectItem>
+                <SelectItem value="600">Semi-Bold (600)</SelectItem>
+                <SelectItem value="700">Bold (700)</SelectItem>
+                <SelectItem value="800">Extra-Bold (800)</SelectItem>
+                <SelectItem value="900">Black (900)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -458,15 +495,28 @@ export function HeaderTab({ settings, onSettingsChange, isModified, bulkUpdateMo
             </div>
             
             <div>
-              <Label className="text-xs mb-1 block">Width: {headerStyles.headerBorderWidth}</Label>
-              <Slider
-                value={[parseInt(headerStyles.headerBorderWidth)]}
-                max={5}
-                step={1}
-                className="py-2"
-                onValueChange={(value) => updateHeaderStyle('headerBorderWidth', `${value[0]}px`)}
+              <Label className="text-xs mb-1 block">Width</Label>
+              <Select
+                value={headerStyles.headerBorderWidth}
+                onValueChange={(value) => updateHeaderStyle('headerBorderWidth', value)}
                 disabled={!headerStyles.applyHeaderBorders}
-              />
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1px">1px</SelectItem>
+                  <SelectItem value="2px">2px</SelectItem>
+                  <SelectItem value="3px">3px</SelectItem>
+                  <SelectItem value="4px">4px</SelectItem>
+                  <SelectItem value="5px">5px</SelectItem>
+                  <SelectItem value="6px">6px</SelectItem>
+                  <SelectItem value="7px">7px</SelectItem>
+                  <SelectItem value="8px">8px</SelectItem>
+                  <SelectItem value="9px">9px</SelectItem>
+                  <SelectItem value="10px">10px</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
