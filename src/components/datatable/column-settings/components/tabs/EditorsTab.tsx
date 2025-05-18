@@ -1,265 +1,175 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { InfoIcon } from "lucide-react";
-import { EditorSettings } from "../../types";
 
 interface EditorsTabProps {
-  settings: EditorSettings;
-  onSettingsChange: (settings: EditorSettings) => void;
-  isModified: boolean;
-  bulkUpdateMode: boolean;
-  columnType?: string;
+  settings: any;
+  onSettingsChange: (updates: Partial<EditorSettings>) => void;
+  isModified?: boolean;
+  bulkUpdateMode?: boolean;
 }
 
-export function EditorsTab({
-  settings,
-  onSettingsChange,
-  isModified,
-  bulkUpdateMode,
-  columnType
-}: EditorsTabProps) {
-  const updateSettings = (update: Partial<EditorSettings>) => {
-    onSettingsChange({ ...settings, ...update });
+interface EditorSettings {
+  editorType: string;
+  // Select Editor
+  selectValueSource?: string;
+  selectCsvValues?: string;
+  selectJsonValues?: string;
+  selectRestUrl?: string;
+}
+
+export function EditorsTab({ settings, onSettingsChange, isModified, bulkUpdateMode }: EditorsTabProps) {
+  const [editorSettings, setEditorSettings] = useState<EditorSettings>({
+    editorType: settings.editorType || 'none',
+    selectValueSource: settings.selectValueSource || 'csv',
+    selectCsvValues: settings.selectCsvValues || '',
+    selectJsonValues: settings.selectJsonValues || '{"value":["Option 1","Option 2","Option 3"]}',
+    selectRestUrl: settings.selectRestUrl || ''
+  });
+
+  useEffect(() => {
+    setEditorSettings({
+      editorType: settings.editorType || 'none',
+      selectValueSource: settings.selectValueSource || 'csv',
+      selectCsvValues: settings.selectCsvValues || '',
+      selectJsonValues: settings.selectJsonValues || '{"value":["Option 1","Option 2","Option 3"]}',
+      selectRestUrl: settings.selectRestUrl || ''
+    });
+  }, [settings]);
+
+  const updateEditorSetting = (key: keyof EditorSettings, value: any) => {
+    const newSettings = { ...editorSettings, [key]: value };
+    setEditorSettings(newSettings);
+    onSettingsChange({ [key]: value });
   };
 
-  const getEditorOptions = () => {
-    const baseOptions = [
-      { value: 'agTextCellEditor', label: 'Text Editor' },
-      { value: 'agSelectCellEditor', label: 'Select Editor' },
-      { value: 'agNumberCellEditor', label: 'Number Editor' },
-      { value: 'agDateCellEditor', label: 'Date Editor' },
-      { value: 'agLargeTextCellEditor', label: 'Large Text Editor' },
-    ];
-
-    if (columnType === 'boolean') {
-      baseOptions.push({ value: 'agCheckboxCellEditor', label: 'Checkbox Editor' });
+  const parseSelectValues = () => {
+    try {
+      switch (editorSettings.selectValueSource) {
+        case 'csv':
+          return editorSettings.selectCsvValues
+            .split(',')
+            .map(v => v.trim())
+            .filter(v => v);
+        case 'json':
+          const parsed = JSON.parse(editorSettings.selectJsonValues);
+          return parsed.value || [];
+        case 'rest':
+          return ['[Values from REST API]'];
+        default:
+          return [];
+      }
+    } catch (e) {
+      return ['[Invalid format]'];
     }
-
-    return baseOptions;
   };
 
   return (
-    <div className="space-y-6">
-      {bulkUpdateMode && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>
-            These settings will be applied to all selected columns
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {isModified && (
-        <Badge variant="outline" className="mb-4">Modified</Badge>
-      )}
-
+    <div className="space-y-3">
       {/* Editor Type */}
-      <Card className="p-4">
-        <h4 className="text-sm font-semibold mb-4">Cell Editor</h4>
-        
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="editable"
-              checked={settings.editable !== false}
-              onCheckedChange={(checked) => updateSettings({ editable: checked })}
-            />
-            <Label htmlFor="editable" className="text-sm font-normal">
-              Allow editing
-            </Label>
+      <div>
+        <Label className="text-xs mb-1 block">Editor Type</Label>
+        <Select 
+          value={editorSettings.editorType}
+          onValueChange={(value) => updateEditorSetting('editorType', value)}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>
+            <SelectItem value="default">Default</SelectItem>
+            <SelectItem value="text">Text</SelectItem>
+            <SelectItem value="select">Select</SelectItem>
+            <SelectItem value="date">Date</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Select Editor Options */}
+      {editorSettings.editorType === 'select' && (
+        <div className="space-y-3 pt-3 border-t">
+          <h4 className="text-xs font-semibold">Select Editor Options</h4>
+          
+          <div>
+            <Label className="text-xs mb-1 block">Value Source</Label>
+            <Select 
+              value={editorSettings.selectValueSource}
+              onValueChange={(value) => updateEditorSetting('selectValueSource', value)}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="csv">CSV</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="rest">REST</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {settings.editable !== false && (
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Editor Type</Label>
-              <Select
-                value={settings.cellEditor || 'agTextCellEditor'}
-                onValueChange={(value) => updateSettings({ cellEditor: value })}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getEditorOptions().map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* CSV Input */}
+          {editorSettings.selectValueSource === 'csv' && (
+            <div>
+              <Label className="text-xs mb-1 block">CSV Values</Label>
+              <Textarea
+                placeholder="Option 1, Option 2, Option 3"
+                value={editorSettings.selectCsvValues}
+                onChange={(e) => updateEditorSetting('selectCsvValues', e.target.value)}
+                className="text-xs h-16"
+              />
             </div>
           )}
-        </div>
-      </Card>
 
-      {/* Editor Options */}
-      {settings.editable !== false && (
-        <Card className="p-4">
-          <h4 className="text-sm font-semibold mb-4">Editor Options</h4>
-          
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="singleClickEdit"
-                checked={settings.singleClickEdit || false}
-                onCheckedChange={(checked) => updateSettings({ singleClickEdit: !!checked })}
+          {/* JSON Input */}
+          {editorSettings.selectValueSource === 'json' && (
+            <div>
+              <Label className="text-xs mb-1 block">JSON Values</Label>
+              <Textarea
+                placeholder='{"value":["Option 1","Option 2","Option 3"]}'
+                value={editorSettings.selectJsonValues}
+                onChange={(e) => updateEditorSetting('selectJsonValues', e.target.value)}
+                className="text-xs h-16 font-mono"
               />
-              <Label htmlFor="singleClickEdit" className="text-sm font-normal">
-                Single click to edit
-              </Label>
             </div>
+          )}
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="enterMovesDown"
-                checked={settings.enterMovesDown !== false}
-                onCheckedChange={(checked) => updateSettings({ enterMovesDown: checked })}
-              />
-              <Label htmlFor="enterMovesDown" className="text-sm font-normal">
-                Enter key moves down
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="enterMovesDownAfterEdit"
-                checked={settings.enterMovesDownAfterEdit !== false}
-                onCheckedChange={(checked) => updateSettings({ enterMovesDownAfterEdit: checked })}
-              />
-              <Label htmlFor="enterMovesDownAfterEdit" className="text-sm font-normal">
-                Enter moves down after edit
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="stopEditingWhenCellsLoseFocus"
-                checked={settings.stopEditingWhenCellsLoseFocus !== false}
-                onCheckedChange={(checked) => updateSettings({ stopEditingWhenCellsLoseFocus: checked })}
-              />
-              <Label htmlFor="stopEditingWhenCellsLoseFocus" className="text-sm font-normal">
-                Stop editing when focus lost
-              </Label>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Validation */}
-      {settings.editable !== false && (
-        <Card className="p-4">
-          <h4 className="text-sm font-semibold mb-4">Validation</h4>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Pattern Validation</Label>
+          {/* REST URL Input */}
+          {editorSettings.selectValueSource === 'rest' && (
+            <div>
+              <Label className="text-xs mb-1 block">REST URL</Label>
               <Input
                 type="text"
-                value={settings.pattern || ''}
-                onChange={(e) => updateSettings({ pattern: e.target.value })}
-                placeholder="e.g., [A-Za-z]+"
-                className="w-40"
+                placeholder="https://api.example.com/options"
+                value={editorSettings.selectRestUrl}
+                onChange={(e) => updateEditorSetting('selectRestUrl', e.target.value)}
+                className="h-8 text-xs"
               />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Endpoint should return JSON with value array
+              </p>
             </div>
+          )}
 
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Min Value</Label>
-              <Input
-                type="number"
-                value={settings.min || ''}
-                onChange={(e) => updateSettings({ min: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-32"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Max Value</Label>
-              <Input
-                type="number"
-                value={settings.max || ''}
-                onChange={(e) => updateSettings({ max: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-32"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Max Length</Label>
-              <Input
-                type="number"
-                value={settings.maxLength || ''}
-                onChange={(e) => updateSettings({ maxLength: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-32"
-              />
+          {/* Preview */}
+          <div>
+            <Label className="text-xs mb-1 block">Preview</Label>
+            <div className="flex flex-wrap gap-1">
+              {parseSelectValues().map((value, index) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0.5"
+                >
+                  {value}
+                </Badge>
+              ))}
             </div>
           </div>
-        </Card>
-      )}
-
-      {/* Advanced Settings */}
-      {settings.editable !== false && (
-        <Card className="p-4">
-          <h4 className="text-sm font-semibold mb-4">Advanced Settings</h4>
-          
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="suppressPaste"
-                checked={settings.suppressPaste || false}
-                onCheckedChange={(checked) => updateSettings({ suppressPaste: !!checked })}
-              />
-              <Label htmlFor="suppressPaste" className="text-sm font-normal">
-                Disable paste
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="suppressKeyboardEvent"
-                checked={settings.suppressKeyboardEvent || false}
-                onCheckedChange={(checked) => updateSettings({ suppressKeyboardEvent: !!checked })}
-              />
-              <Label htmlFor="suppressKeyboardEvent" className="text-sm font-normal">
-                Suppress keyboard events
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="navigateToNextCell"
-                checked={settings.navigateToNextCell || false}
-                onCheckedChange={(checked) => updateSettings({ navigateToNextCell: !!checked })}
-              />
-              <Label htmlFor="navigateToNextCell" className="text-sm font-normal">
-                Navigate to next cell after edit
-              </Label>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-normal">Cell Data Type</Label>
-              <Select
-                value={settings.cellDataType || ''}
-                onValueChange={(value) => updateSettings({ cellDataType: value })}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Auto" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Auto</SelectItem>
-                  <SelectItem value="text">Text</SelectItem>
-                  <SelectItem value="number">Number</SelectItem>
-                  <SelectItem value="boolean">Boolean</SelectItem>
-                  <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="object">Object</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
+        </div>
       )}
     </div>
   );
