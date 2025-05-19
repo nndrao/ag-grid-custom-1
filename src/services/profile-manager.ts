@@ -2,6 +2,8 @@ import { Profile, ProfileSettings } from '@/types/profile.types';
 import { ProfileStore } from '@/lib/profile-store';
 import { SettingsStore } from '@/stores/settings-store';
 import { SettingsController } from './settings-controller';
+import { extractSettingsFromColDef } from '@/components/datatable/column-settings/conversion-utils';
+import { ColumnSettingsMap } from '@/components/datatable/column-settings/types';
 
 /**
  * ProfileManager handles loading, saving, and switching between profiles
@@ -81,6 +83,23 @@ export class ProfileManager {
     if (!this._activeProfile) return;
 
     const currentSettings = this.settingsController.collectCurrentSettings();
+
+    // Derive column settings map from current column definitions
+    const columnSettingsMap: ColumnSettingsMap = {} as ColumnSettingsMap;
+    if (Array.isArray(currentSettings.custom?.columnDefs)) {
+      currentSettings.custom.columnDefs.forEach((col: any) => {
+        if (col && col.field) {
+          const settings = extractSettingsFromColDef(col, col.field);
+          columnSettingsMap[col.field] = settings;
+        }
+      });
+    }
+
+    if (currentSettings.custom) {
+      currentSettings.custom.columnSettings = columnSettingsMap;
+    } else {
+      currentSettings.custom = { columnSettings: columnSettingsMap };
+    }
     
     const updatedProfile: Profile = {
       ...this._activeProfile,
