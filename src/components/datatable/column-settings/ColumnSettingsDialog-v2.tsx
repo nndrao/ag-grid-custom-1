@@ -158,7 +158,7 @@ export function ColumnSettingsDialogV2({
       }));
 
       // Load saved settings from profile
-      const savedSettings = ColumnSettingsPersistenceV2.getColumnSettings();
+      const savedSettings = await ColumnSettingsPersistenceV2.getColumnSettings();
       const columnSettingsMap: ColumnSettingsMap = savedSettings?.columnSettings || {};
 
       // Initialize with saved settings or extract from current columns
@@ -470,7 +470,7 @@ export function ColumnSettingsDialogV2({
         .map(s => s.colId || '');
 
       // Save to profile
-      const saved = ColumnSettingsPersistenceV2.saveColumnSettings(
+      const saved = await ColumnSettingsPersistenceV2.saveColumnSettings(
         state.columnSettingsMap,
         {
           columnOrder,

@@ -23,6 +23,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
 import { ColumnSettingsPersistenceV2 } from './utils/column-settings-persistence-v2';
 import { convertSettingsToColDef } from './column-settings/conversion-utils';
+import type { ProfileCustomSettings } from './column-settings/types';
 import './tooltip-fixes.css';
 
 ModuleRegistry.registerModules([AllEnterpriseModule]);
@@ -104,40 +105,41 @@ export function DataTableV2({ columnDefs, dataRow }: DataTableProps) {
     className: "mb-2.5"
   }), [profileManager, gridReady]);
 
+  // State for saved column settings
+  const [savedColumnSettings, setSavedColumnSettings] = useState<ProfileCustomSettings | null>(null);
+
+  // Load saved settings when profile changes
+  useEffect(() => {
+    ColumnSettingsPersistenceV2.getColumnSettings()
+      .then(setSavedColumnSettings)
+      .catch(error => {
+        console.error('Error loading saved column settings:', error);
+        setSavedColumnSettings(null);
+      });
+  }, [profileManager?.activeProfile?.id]);
+
   // Memoize columnDefs and merge with saved column settings using the new V2 persistence
   const memoizedColumnDefs = useMemo(() => {
-    try {
-      // Try to get saved settings using V2 persistence
-      const savedSettings = ColumnSettingsPersistenceV2.getColumnSettings();
-      
-      if (savedSettings?.columnSettings) {
-        console.log('DataTableV2: Applying saved column settings');
-        
-        // Apply saved settings to base column definitions
-        return columnDefs.map((col: ColDef) => {
-          if (!col.field) return col;
-          
-          const settings = savedSettings.columnSettings[col.field];
-          if (!settings) return col;
-          
-          // Convert settings to column definition properties
-          const settingsColDef = convertSettingsToColDef(settings);
-          
-          // Merge with base column definition
-          return {
-            ...col,
-            ...settingsColDef
-          };
-        });
-      }
-      
-      console.log('DataTableV2: No saved column settings found');
-    } catch (error) {
-      console.error('Error applying saved column settings:', error);
+    if (savedColumnSettings?.columnSettings) {
+      console.log('DataTableV2: Applying saved column settings');
+
+      return columnDefs.map((col: ColDef) => {
+        if (!col.field) return col;
+
+        const settings = savedColumnSettings.columnSettings[col.field];
+        if (!settings) return col;
+
+        const settingsColDef = convertSettingsToColDef(settings);
+
+        return {
+          ...col,
+          ...settingsColDef
+        };
+      });
     }
-    
+
     return columnDefs;
-  }, [columnDefs, profileManager?.activeProfile?.settings?.custom]);
+  }, [columnDefs, savedColumnSettings]);
 
   // Get dynamic configurations from customGridOptions
   const dynamicConfigs = useMemo(() => {
@@ -184,7 +186,7 @@ export function DataTableV2({ columnDefs, dataRow }: DataTableProps) {
   }, [customGridOptions]);
 
   // Handle grid ready event
-  const onGridReady = useCallback((params: GridReadyEvent) => {
+  const onGridReady = useCallback(async (params: GridReadyEvent) => {
     gridApiRef.current = params.api;
     
     if (gridStateProviderRef.current) {
@@ -198,7 +200,7 @@ export function DataTableV2({ columnDefs, dataRow }: DataTableProps) {
     setGridReady(true);
     
     // Apply saved column state
-    const savedSettings = ColumnSettingsPersistenceV2.getColumnSettings();
+    const savedSettings = await ColumnSettingsPersistenceV2.getColumnSettings();
     if (savedSettings?.columnState) {
       console.log('DataTableV2: Applying saved column state');
       params.api.applyColumnState({
